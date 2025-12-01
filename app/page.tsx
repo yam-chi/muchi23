@@ -367,6 +367,8 @@ export default function Page() {
         e.stopPropagation();
         card.classList.toggle("done");
         syncOneCardFromDom(card);
+        // 안전망: DOM 기준으로 재저장
+        syncCurrentMonthFromDom();
         const dKey = card.dataset.date;
         if (dKey) updateDayBadge(dKey);
       });
@@ -405,6 +407,8 @@ export default function Page() {
             if (hintEl) hintEl.style.display = "block";
           }
         }
+        // 안전망: 혹시 위 로직이 실패해도 현재 DOM 상태를 기준으로 저장
+        syncCurrentMonthFromDom();
       });
 
       btnColor.addEventListener("click", (e) => {
@@ -415,6 +419,8 @@ export default function Page() {
         card.dataset.color = nextColor;
         applyCardColorClass(card, nextColor);
         syncOneCardFromDom(card);
+        // 안전망: DOM 기준으로 재저장
+        syncCurrentMonthFromDom();
       });
 
       card.draggable = true;

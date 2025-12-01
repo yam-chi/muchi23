@@ -1,11 +1,10 @@
 /* === Global layout & background (Glassmorphism) === */
     :root {
       /* === Reference Image Color Palette === */
-      --bg-gradient: linear-gradient(135deg, #d5dce3 0%, #eef2f5 100%);
-      --panel-bg: rgba(240, 244, 248, 0.6);
-      /* Slightly more transparent/lighter */
-      --text-main: #364049;
-      --text-sub: #8A93A1;
+      --bg-gradient: linear-gradient(135deg, #e9edf2 0%, #f6f8fb 100%);
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --text-main: #2f3842;
+      --text-sub: #7c8594;
 
       /* Pastel Card Colors */
       --c-yellow: #FAF2B1;
@@ -15,9 +14,9 @@
       --c-purple: #DCE1FA;
 
       /* Shadows (Soft Neumorphism) */
-      --shadow-soft: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-      --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-      --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+      --shadow-soft: 0 8px 18px -10px rgba(15, 23, 42, 0.18);
+      --shadow-card: 0 2px 8px -4px rgba(15, 23, 42, 0.14);
+      --shadow-inset: inset 0 1px 2px 0 rgba(0, 0, 0, 0.04);
 
       /* Typography */
       --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -50,12 +49,11 @@
     .main-glass-panel {
       width: 100%;
       max-width: 98%;
-      /* Fluid width */
-      background: rgba(255, 255, 255, 0.18);
-      border-radius: 32px;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
-      backdrop-filter: blur(24px);
+      background: var(--panel-bg);
+      border-radius: 24px;
+      border: 1px solid #e5e7eb;
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -63,14 +61,14 @@
 
     header {
       padding: 20px 32px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.6);
       color: #111827;
       font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      border-bottom: 1px solid #e5e7eb;
     }
 
     header .hint {
@@ -82,7 +80,7 @@
     .top-bar {
       padding: 16px 32px;
       background: transparent;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      border-bottom: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -98,23 +96,22 @@
 
     /* === Buttons (Neo-brutal pill style) === */
     .btn {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
       padding: 8px 16px;
       font-size: 13px;
       font-weight: 600;
       color: #1f2937;
       cursor: pointer;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
-      transition: all 0.2s ease;
+      box-shadow: var(--shadow-card);
+      transition: background 0.15s ease, transform 0.15s ease;
     }
 
     .btn:hover {
-      background: rgba(255, 255, 255, 0.6);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+      background: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
     }
 
     .btn-green {
@@ -305,28 +302,26 @@
 
     /* === Week Row (Glass Card) === */
     .week-row {
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.95);
-      /* Nearly opaque */
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
       padding: 8px 8px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      transition: all 0.3s ease;
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
-      /* Floating shadow */
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: var(--shadow-soft);
     }
 
     .week-row.current-week {
       border-color: #3b82f6;
-      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 10px 30px rgba(59, 130, 246, 0.15);
-      background: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.18), 0 4px 14px rgba(59, 130, 246, 0.12);
+      background: #f7fbff;
     }
 
     .week-row-outside {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.4);
+      background: #fafbfc;
+      border-color: #e5e7eb;
     }
 
     .week-row-outside .week-row-title {
@@ -373,15 +368,13 @@
     .day-cell {
       min-height: 160px;
       padding: 12px;
-      background: rgba(255, 255, 255, 0.95);
-      /* Nearly opaque */
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
-      /* Floating shadow */
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      box-shadow: var(--shadow-card);
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       margin: 4px;
-      border-radius: 16px;
+      border-radius: 14px;
     }
 
     .day-cell:last-child {
@@ -389,21 +382,21 @@
     }
 
     .day-cell:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
-      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+      background: #ffffff;
       z-index: 20;
     }
 
     .day-cell.today {
       border: 2px solid #3b82f6;
-      background: rgba(255, 255, 255, 0.5);
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: #f7fbff;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
 
     .day-cell.other-month {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: #f6f7fb;
+      border-color: #e5e7eb;
       opacity: 0.7;
     }
 
@@ -472,22 +465,21 @@
       position: relative;
       margin-bottom: 8px;
       padding: 8px 10px 8px 20px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      box-shadow: var(--shadow-card);
       font-size: 12px;
       line-height: 1.4;
       cursor: default;
       overflow-wrap: break-word;
       min-height: 40px;
       font-weight: 500;
-      backdrop-filter: blur(4px);
-      transition: transform 0.2s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
     .card:hover {
-      transform: scale(1.02);
+      transform: scale(1.01);
       z-index: 5;
     }
 
@@ -506,23 +498,23 @@
     }
 
     .card.color-yellow {
-      background: rgba(254, 240, 138, 0.85);
-      border-color: rgba(253, 224, 71, 0.6);
+      background: #fdf7d9;
+      border-color: #f4e29c;
     }
 
     .card.color-green {
-      background: rgba(187, 247, 208, 0.85);
-      border-color: rgba(134, 239, 172, 0.6);
+      background: #e7f6ec;
+      border-color: #b7e2c5;
     }
 
     .card.color-pink {
-      background: rgba(254, 205, 211, 0.85);
-      border-color: rgba(253, 164, 175, 0.6);
+      background: #fde6ea;
+      border-color: #f2c0c9;
     }
 
     .card.done {
-      background: rgba(229, 231, 235, 0.6);
-      border-color: transparent;
+      background: #f1f5f9;
+      border-color: #e5e7eb;
       text-decoration: line-through;
       color: #9ca3af;
       box-shadow: none;

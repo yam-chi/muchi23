@@ -32,7 +32,10 @@
     body {
       margin: 0;
       font-family: var(--font-main);
-      background: var(--bg-gradient);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.5), transparent 30%),
+        var(--bg-gradient);
       color: var(--text-main);
       min-height: 100vh;
       /* Custom Scrollbar */
@@ -44,35 +47,39 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
+      padding: 32px 16px 48px;
+      gap: 16px;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
     }
 
-    /* === Main Glass Panel Wrapper === */
+    /* === Main Glass Panel Wrapper (flattened) === */
     .main-glass-panel {
       width: 100%;
-      max-width: 98%;
-      background: var(--panel-bg);
-      border-radius: 24px;
-      border: 1px solid #e5e7eb;
-      box-shadow: var(--shadow-soft);
-      -webkit-backdrop-filter: blur(10px);
-              backdrop-filter: blur(10px);
+      max-width: 100%;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      -webkit-backdrop-filter: none;
+              backdrop-filter: none;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      gap: 12px;
     }
 
     header {
-      padding: 20px 32px;
-      background: rgba(255, 255, 255, 0.6);
+      padding: 16px 16px;
+      background: rgba(255, 255, 255, 0.9);
       color: #111827;
       font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #e5e7eb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
     }
 
     header .hint {
@@ -82,13 +89,15 @@
     }
 
     .top-bar {
-      padding: 16px 32px;
-      background: transparent;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       position: relative;
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
     }
 
     .month-title {
@@ -283,8 +292,11 @@
 
     .calendar-wrapper {
       flex: 1 1;
-      padding: 24px 32px 40px;
-      background: transparent;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
     }
 
     .weekday-row {
@@ -594,16 +606,14 @@
     }
 
     .help-bar {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.4);
-      border-radius: 16px;
-      padding: 12px 24px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
+      margin-top: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 14px;
+      padding: 12px 20px;
+      border: 1px solid #e5e7eb;
       font-size: 13px;
       color: #4b5563;
-      -webkit-backdrop-filter: blur(10px);
-              backdrop-filter: blur(10px);
-      max-width: 1400px;
+      box-shadow: var(--shadow-card);
       width: 100%;
     }
 

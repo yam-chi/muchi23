@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>MUCHI NOTE</title>
+  <style>
+    /* === Global layout & background (Glassmorphism) === */
+    :root {
+      /* === Reference Image Color Palette === */
+      --bg-gradient: linear-gradient(135deg, #d5dce3 0%, #eef2f5 100%);
+      --panel-bg: rgba(240, 244, 248, 0.6);
+      /* Slightly more transparent/lighter */
+      --text-main: #364049;
+      --text-sub: #8A93A1;
+
+      /* Pastel Card Colors */
+      --c-yellow: #FAF2B1;
+      --c-green: #DFF5E3;
+      --c-sky: #DDEAF9;
+      --c-pink: #F5D5D5;
+      --c-purple: #DCE1FA;
+
+      /* Shadows (Soft Neumorphism) */
+      --shadow-soft: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+
+      /* Typography */
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      /* Custom Scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: #CBD5E1 transparent;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* === Main Glass Panel Wrapper === */
+    .main-glass-panel {
+      width: 100%;
+      max-width: 98%;
+      /* Fluid width */
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+      backdrop-filter: blur(24px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 20px 32px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #111827;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    header .hint {
+      font-size: 13px;
+      opacity: 0.7;
+      font-weight: 500;
+    }
+
+    .top-bar {
+      padding: 16px 32px;
+      background: transparent;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .month-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.5px;
+    }
+
+    /* === Buttons (Neo-brutal pill style) === */
+    .btn {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.35);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1f2937;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+    }
+
+    .btn-green {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #065f46;
+    }
+
+    .btn-green:hover {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: rgba(16, 185, 129, 0.8);
+    }
+
+    /* 오늘 버튼 스타일 추가 */
+    .btn-today {
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      background: rgba(59, 130, 246, 0.1);
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .btn-today:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #2563eb;
+      color: #1e40af;
+    }
+
+    /* 년/월 선택 토글 UI */
+    .month-picker {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+    }
+
+    .month-display {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.3);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .month-display:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .month-caret {
+      font-size: 10px;
+      color: #6b7280;
+      transition: transform 0.15s;
+    }
+
+    .month-display.open .month-caret {
+      transform: rotate(180deg);
+    }
+
+    .month-dropdown {
+      position: absolute;
+      top: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 4px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      font-size: 12px;
+      z-index: 20;
+      display: none;
+      min-width: 240px;
+    }
+
+    .month-dropdown.open {
+      display: block;
+    }
+
+    .ym-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .ym-year-label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .ym-year-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(209, 213, 219, 0.5);
+      background: rgba(255, 255, 255, 0.5);
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .ym-year-btn:hover {
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .ym-month-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .ym-month-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(229, 231, 235, 0.5);
+      background: rgba(255, 255, 255, 0.5);
+      padding: 6px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .ym-month-btn:hover {
+      background: rgba(255, 255, 255, 0.8);
+      border-color: rgba(191, 219, 254, 0.8);
+    }
+
+    .ym-month-btn.active {
+      background: #3b82f6;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .search-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-input {
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.4);
+      min-width: 200px;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      background: rgba(255, 255, 255, 0.8);
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .calendar-wrapper {
+      flex: 1;
+      padding: 24px 32px 40px;
+      background: transparent;
+    }
+
+    .weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(17, 24, 39, 0.6);
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    /* 주별 레이아웃 + 접기/펼치기 */
+    .calendar-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* === Week Row (Glass Card) === */
+    .week-row {
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
+      /* Nearly opaque */
+      padding: 8px 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+      /* Floating shadow */
+    }
+
+    .week-row.current-week {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 10px 30px rgba(59, 130, 246, 0.15);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .week-row-outside {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .week-row-outside .week-row-title {
+      color: rgba(156, 163, 175, 0.8);
+      font-weight: 600;
+    }
+
+    .week-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(107, 114, 128, 0.9);
+      padding: 4px 12px;
+      margin: 0;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .week-row-header:hover {
+      background: rgba(59, 130, 246, 0.12);
+      /* Soft Blue for visibility */
+      border-radius: 99px;
+      color: #2563eb;
+      /* Darker blue text */
+    }
+
+    .week-row-title {
+      font-weight: 700;
+    }
+
+    .week-row-body {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .week-row.collapsed .week-row-body {
+      display: none;
+    }
+
+    /* === Day Cells (Glass Chips) === */
+    .day-cell {
+      min-height: 160px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      /* Nearly opaque */
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+      /* Floating shadow */
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      margin: 4px;
+      border-radius: 16px;
+    }
+
+    .day-cell:last-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.9);
+    }
+
+    .day-cell:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+      background: rgba(255, 255, 255, 1);
+      z-index: 20;
+    }
+
+    .day-cell.today {
+      border: 2px solid #3b82f6;
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    .day-cell.other-month {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      opacity: 0.7;
+    }
+
+    .day-cell.other-month .day-number,
+    .day-cell.other-month .day-meta {
+      color: rgba(156, 163, 175, 0.8);
+    }
+
+    .day-cell.drop-target {
+      outline: 2px solid #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+      background: rgba(224, 242, 254, 0.6);
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .day-number {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .day-number.sun {
+      color: #ef4444;
+    }
+
+    .day-number.sat {
+      color: #2563eb;
+    }
+
+    .day-meta {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+    }
+
+    .day-cell.today .day-meta {
+      background: #3b82f6;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    .day-body {
+      position: relative;
+      flex: 1;
+      padding-top: 4px;
+    }
+
+    .day-empty-hint {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      font-size: 10px;
+      color: rgba(107, 114, 128, 0.5);
+      pointer-events: none;
+    }
+
+    /* === Cards === */
+    .card {
+      position: relative;
+      margin-bottom: 8px;
+      padding: 8px 10px 8px 20px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      font-size: 12px;
+      line-height: 1.4;
+      cursor: default;
+      overflow-wrap: break-word;
+      min-height: 40px;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+      z-index: 5;
+    }
+
+    .card.selected {
+      border: 2px solid #3b82f6 !important;
+      background: rgba(219, 234, 254, 0.9) !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      z-index: 10;
+    }
+
+    .card-placeholder {
+      height: 3px;
+      margin: 2px 0;
+      border-radius: 2px;
+      background: rgba(59, 130, 246, 0.6);
+    }
+
+    .card.color-yellow {
+      background: rgba(254, 240, 138, 0.85);
+      border-color: rgba(253, 224, 71, 0.6);
+    }
+
+    .card.color-green {
+      background: rgba(187, 247, 208, 0.85);
+      border-color: rgba(134, 239, 172, 0.6);
+    }
+
+    .card.color-pink {
+      background: rgba(254, 205, 211, 0.85);
+      border-color: rgba(253, 164, 175, 0.6);
+    }
+
+    .card.done {
+      background: rgba(229, 231, 235, 0.6);
+      border-color: transparent;
+      text-decoration: line-through;
+      color: #9ca3af;
+      box-shadow: none;
+    }
+
+    .card-handle {
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      left: 6px;
+      width: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.2);
+      cursor: grab;
+    }
+
+    .card-content {
+      white-space: pre-wrap;
+      position: relative;
+    }
+
+    .card-content:empty::before {
+      content: attr(data-placeholder);
+      color: rgba(156, 163, 175, 0.8);
+      pointer-events: none;
+    }
+
+    .card-content:focus:empty::before {
+      content: "";
+    }
+
+    .card-toolbar {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 2;
+      max-width: 80px;
+    }
+
+    .card:hover .card-toolbar {
+      opacity: 1;
+    }
+
+    .card-btn {
+      border: none;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 999px;
+      font-size: 9px;
+      padding: 0 8px;
+      min-width: 40px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-btn:hover {
+      background: #ffffff;
+      font-weight: 600;
+    }
+
+    .help-bar {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 16px;
+      padding: 12px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      font-size: 13px;
+      color: #4b5563;
+      backdrop-filter: blur(10px);
+      max-width: 1400px;
+      width: 100%;
+    }
+
+    .debug-hint {
+      font-size: 11px;
+      color: rgba(107, 114, 128, 0.8);
+      margin-left: 4px;
+    }
+
+    /* === Search Scope Toggles === */
+    .search-scope-toggles {
+      display: flex;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .scope-btn {
+      border: none;
+      background: transparent;
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scope-btn.active {
+      background: #ffffff;
+      color: #3b82f6;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* === Search Highlights & Error === */
+    .card.search-hit {
+      outline: 2px solid #f97316 !important;
+      background: rgba(255, 237, 213, 0.9) !important;
+      /* Orange-100 */
+      transition: background 0.5s ease, outline 0.5s ease;
+    }
+
+    .search-input.error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+      animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translate3d(-1px, 0, 0);
+      }
+
+      20%,
+      80% {
+        transform: translate3d(2px, 0, 0);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translate3d(-4px, 0, 0);
+      }
+
+      40%,
+      60% {
+        transform: translate3d(4px, 0, 0);
+      }
+    }
+
+    /* === Toast Notification === */
+    .toast-container {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(31, 41, 55, 0.9);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(8px);
+      animation: toast-in 0.3s ease forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    @keyframes toast-in {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toast-out {
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="main-glass-panel">
+      <header>
+        <div>MUCHI NOTE</div>
+        <div class="hint">
+          💡 날짜 더블클릭 = 새 카드 · 카드 클릭 = 수정 · 카드 더블클릭 = 완료 토글 ·
+          드래그로 이월 · 주 제목 클릭 = 주별 접기/펼치기 · 카드 색상 버튼으로 슬롯 색 바꾸기
+        </div>
+      </header>
+
+      <div class="top-bar">
+        <button class="btn" id="prevMonth">&lt; 이전 달</button>
+        <div class="month-picker">
+          <button class="month-display" id="monthPickerToggle" type="button">
+            <span class="month-title" id="monthTitle"></span>
+          </button>
+          <div class="month-dropdown" id="monthDropdown">
+            <div class="ym-header">
+              <button type="button" class="ym-year-btn" id="ymPrevYear">‹</button>
+              <span class="ym-year-label" id="ymYearLabel"></span>
+              <button type="button" class="ym-year-btn" id="ymNextYear">›</button>
+            </div>
+            <div class="ym-month-grid">
+              <button type="button" class="ym-month-btn" data-month="0">1월</button>
+              <button type="button" class="ym-month-btn" data-month="1">2월</button>
+              <button type="button" class="ym-month-btn" data-month="2">3월</button>
+              <button type="button" class="ym-month-btn" data-month="3">4월</button>
+              <button type="button" class="ym-month-btn" data-month="4">5월</button>
+              <button type="button" class="ym-month-btn" data-month="5">6월</button>
+              <button type="button" class="ym-month-btn" data-month="6">7월</button>
+              <button type="button" class="ym-month-btn" data-month="7">8월</button>
+              <button type="button" class="ym-month-btn" data-month="8">9월</button>
+              <button type="button" class="ym-month-btn" data-month="9">10월</button>
+              <button type="button" class="ym-month-btn" data-month="10">11월</button>
+              <button type="button" class="ym-month-btn" data-month="11">12월</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn" id="nextMonth">다음 달 &gt;</button>
+        <!-- 오늘 버튼 추가 -->
+        <button class="btn btn-today" id="todayBtn">오늘</button>
+
+        <div class="search-wrap">
+          <div class="search-scope-toggles">
+            <button class="scope-btn active" id="scopeMonth">이번 달</button>
+            <button class="scope-btn" id="scopeAll">전체</button>
+          </div>
+          <input class="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
+          <button class="btn" id="searchBtn">검색</button>
+          <button class="btn btn-green" id="backupBtn">데이터 백업</button>
+        </div>
+      </div>
+
+      <div class="calendar-wrapper">
+        <div class="weekday-row">
+          <div>일</div>
+          <div>월</div>
+          <div>화</div>
+          <div>수</div>
+          <div>목</div>
+          <div>금</div>
+          <div>토</div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="help-bar">
+      ✏️ 날짜 칸 <b>더블클릭</b> → 새 카드 · 카드 <b>클릭</b> → 내용 수정 · 카드 <b>더블클릭</b> → 완료/해제 ·
+      카드 <b>왼쪽 막대 드래그</b> → 다른 날짜로 이동 · <b>주 제목 클릭</b>으로 주별 접기/펼치기 · 카드 툴바의 <b>색상</b> 버튼으로 슬롯 색상 변경
+      <span class="debug-hint">(💾 / 📥 버튼이 동작하지 않으면 브라우저 콘솔의 에러 메시지를 함께 확인해 주세요)</span>
+    </div>
+  </div>
+
+  <script>
+    // ==== MUCHI NOTE v3 – 단순하고 확실한 저장 + Airtable 연동 버전 ====
+
+    const STORAGE_KEY = "muchi-note-safe-v3";
+
+    // ==== Airtable 연동 설정 ====
+    // 실제 사용할 때 AIRTABLE_TOKEN 값에 pat 로 시작하는 토큰을 넣어야 합니다.
+    const AIRTABLE_BASE_ID = "app8KHGcgFezjsSHP"; // 이미 확인한 Base ID
+    const AIRTABLE_TABLE_NAME = "cards";          // 테이블 이름 (cards)
+    const AIRTABLE_TOKEN = "여기에_네_Airtable_토큰_붙여넣기"; // 이 문자열을 pat... 토큰으로 교체
+
+    let current = new Date();
+    current.setDate(1);
+
+    const monthTitle = document.getElementById("monthTitle");
+    const monthPickerToggle = document.getElementById("monthPickerToggle");
+    const monthDropdown = document.getElementById("monthDropdown");
+    const ymYearLabel = document.getElementById("ymYearLabel");
+    const ymPrevYear = document.getElementById("ymPrevYear");
+    const ymNextYear = document.getElementById("ymNextYear");
+    const ymMonthButtons = document.querySelectorAll(".ym-month-btn");
+    let pickerYear = current.getFullYear();
+
+    const calendarGrid = document.getElementById("calendarGrid");
+    const prevBtn = document.getElementById("prevMonth");
+    const nextBtn = document.getElementById("nextMonth");
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const backupBtn = document.getElementById("backupBtn");
+    const airtableSaveBtn = document.getElementById("airtableSaveBtn");
+    const airtableLoadBtn = document.getElementById("airtableLoadBtn");
+    const todayBtn = document.getElementById("todayBtn");
+
+    const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+    const weekdayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const CARD_COLORS = ["default", "yellow", "green", "pink"];
+
+    let state = { nextId: 1, cards: {}, weekVisibility: {} };
+    let draggingCard = null; // (Legacy)
+    let draggingCards = [];
+    let dragPlaceholder = null;
+
+    function toggleSelection(card) {
+      card.classList.toggle("selected");
+    }
+
+    function clearSelection() {
+      document.querySelectorAll(".card.selected").forEach(c => c.classList.remove("selected"));
+    }
+
+    // ===== 공통 유틸 =====
+    function formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    function formatMonthKey(year, monthIndex) {
+      return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+    }
+
+    function updateMonthTitle() {
+      monthTitle.textContent = `${current.getFullYear()}년 ${monthNames[current.getMonth()]}`;
+      if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+    }
+
+    function toggleMonthDropdown() {
+      if (!monthDropdown || !monthPickerToggle) return;
+      const willOpen = !monthDropdown.classList.contains("open");
+      if (willOpen) {
+        pickerYear = current.getFullYear();
+        monthDropdown.classList.add("open");
+        monthPickerToggle.classList.add("open");
+        if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+      } else {
+        monthDropdown.classList.remove("open");
+        monthPickerToggle.classList.remove("open");
+      }
+    }
+    function closeMonthDropdown() {
+      if (!monthDropdown || !monthPickerToggle) return;
+      monthDropdown.classList.remove("open");
+      monthPickerToggle.classList.remove("open");
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.cards && typeof parsed.cards === "object") state.cards = parsed.cards;
+          if (parsed.weekVisibility && typeof parsed.weekVisibility === "object") state.weekVisibility = parsed.weekVisibility;
+          if (typeof parsed.nextId === "number" && parsed.nextId > 0) state.nextId = parsed.nextId;
+        }
+      } catch (e) {
+        console.error("loadState error", e);
+        state = { nextId: 1, cards: {}, weekVisibility: {} };
+      }
+    }
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error("saveState error", e);
+      }
+    }
+
+    function getCardsForDate(dateKey) {
+      const list = state.cards[dateKey];
+      return Array.isArray(list) ? list : [];
+    }
+    function ensureCardList(dateKey) {
+      if (!Array.isArray(state.cards[dateKey])) state.cards[dateKey] = [];
+      return state.cards[dateKey];
+    }
+
+    function upsertCard(dateKey, cardObj) {
+      const list = ensureCardList(dateKey);
+      const id = cardObj.id;
+      const idx = list.findIndex(c => c.id === id);
+      if (idx >= 0) list[idx] = cardObj; else list.push(cardObj);
+      saveState();
+    }
+
+    function deleteCardFromState(dateKey, id) {
+      const list = state.cards[dateKey];
+      if (!Array.isArray(list)) return false;
+      const initLen = list.length;
+      state.cards[dateKey] = list.filter(c => c.id !== id);
+      const deleted = state.cards[dateKey].length < initLen;
+      if (state.cards[dateKey].length === 0) delete state.cards[dateKey];
+      if (deleted) saveState();
+      return deleted;
+    }
+
+    function applyCardColorClass(card, colorKey) {
+      card.classList.remove("color-yellow", "color-green", "color-pink");
+      if (colorKey === "yellow") card.classList.add("color-yellow");
+      else if (colorKey === "green") card.classList.add("color-green");
+      else if (colorKey === "pink") card.classList.add("color-pink");
+    }
+
+    // 뱃지 업데이트 헬퍼
+    function updateDayBadge(dateKey) {
+      const cell = document.querySelector(`.day-cell[data-date="${dateKey}"]`);
+      if (!cell) return;
+      const metaEl = cell.querySelector(".day-meta");
+      if (!metaEl) return;
+
+      // 오늘인지 확인
+      const isToday = cell.classList.contains("today");
+
+      if (isToday) {
+        metaEl.textContent = "오늘";
+      } else {
+        metaEl.textContent = "";
+      }
+    }
+
+    // DOM 카드 → state 반영
+    function syncOneCardFromDom(card) {
+      const dateKey = card.dataset.date;
+      const idStr = card.dataset.cardId;
+      if (!dateKey || !idStr) return;
+      const id = Number(idStr);
+      if (!Number.isFinite(id)) return;
+
+      const content = card.querySelector(".card-content");
+      const text = content ? content.textContent : "";
+      const done = card.classList.contains("done");
+      const color = card.dataset.color || "default";
+
+      const obj = { id, text, done, color };
+      upsertCard(dateKey, obj);
+    }
+
+    // 현재 달 화면 전체를 DOM 기준으로 state에 맞추는 안전 저장
+    function syncCurrentMonthFromDom() {
+      const dayCells = document.querySelectorAll(".day-cell[data-date]");
+      dayCells.forEach(cell => {
+        const dateKey = cell.dataset.date;
+        if (!dateKey) return;
+        const cards = Array.from(cell.querySelectorAll(".card"));
+        if (cards.length === 0) {
+          delete state.cards[dateKey];
+          return;
+        }
+        const list = [];
+        cards.forEach(card => {
+          const idStr = card.dataset.cardId;
+          const id = Number(idStr);
+          if (!Number.isFinite(id)) return;
+          const content = card.querySelector(".card-content");
+          const text = content ? content.textContent : "";
+          const done = card.classList.contains("done");
+          const color = card.dataset.color || "default";
+          list.push({ id, text, done, color });
+        });
+        state.cards[dateKey] = list;
+      });
+      saveState();
+    }
+
+    function makeEditable(card) {
+      const content = card.querySelector(".card-content");
+      if (!content || content.isContentEditable) return;
+
+      content.contentEditable = "true";
+      content.focus();
+      const range = document.createRange();
+      range.selectNodeContents(content);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      function onBlur() {
+        content.removeEventListener("blur", onBlur);
+        content.removeEventListener("keydown", onKey);
+        content.contentEditable = "false";
+        syncOneCardFromDom(card);
+      }
+      function onKey(e) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          content.blur();
+        }
+      }
+      content.addEventListener("blur", onBlur);
+      content.addEventListener("keydown", onKey);
+    }
+
+    function createCard(container, cardData, options) {
+      const opts = Object.assign({ autoEdit: true, fromState: false }, options || {});
+      const hint = container.querySelector(".day-empty-hint");
+      if (hint) hint.style.display = "none";
+
+      const card = document.createElement("div");
+      card.className = "card";
+      const handle = document.createElement("div");
+      handle.className = "card-handle";
+      const content = document.createElement("div");
+      content.className = "card-content";
+      content.dataset.placeholder = "새 할 일을 적어보세요";
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      const btnColor = document.createElement("button");
+      btnColor.className = "card-btn card-btn-color";
+      btnColor.textContent = "색상";
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "card-btn card-btn-delete";
+      btnDelete.textContent = "삭제";
+      toolbar.appendChild(btnColor);
+      toolbar.appendChild(btnDelete);
+
+      let text = (cardData && cardData.text) || "";
+      let done = !!(cardData && cardData.done);
+      let color = (cardData && cardData.color) || "default";
+      let id = (cardData && typeof cardData.id === "number") ? cardData.id : null;
+      if (!Number.isFinite(id) || id <= 0) id = state.nextId++;
+
+      card.dataset.cardId = String(id);
+      card.id = "card-" + id;
+      card.dataset.color = color;
+      applyCardColorClass(card, color);
+      content.textContent = text || "";
+
+      const dayCell = container.closest(".day-cell");
+      if (dayCell && dayCell.dataset.date) {
+        const key = dayCell.dataset.date;
+        card.dataset.date = key;
+        if (!opts.fromState) {
+          upsertCard(key, { id, text, done, color });
+        }
+      }
+
+      if (done) card.classList.add("done");
+
+      card.appendChild(handle);
+      card.appendChild(toolbar);
+      card.appendChild(content);
+      container.appendChild(card);
+
+      card.addEventListener("click", (e) => {
+        // Shift + Click: 다중 선택
+        if (e.shiftKey) {
+          e.stopPropagation();
+          toggleSelection(card);
+          return;
+        }
+
+        // 일반 클릭: 편집 모드 (기존 동작)
+        // 단, 요구사항: "단일 클릭: 기존처럼 카드 내용 편집(에디트) 진입 (다중 선택과 상관 없음)"
+        // "선택 상태에서 선택되지 않은 카드를 드래그할 경우: 이전 선택을 모두 해제하고 그 카드 하나만 드래그"
+        // 여기서 선택을 해제해야 할까? "빈 영역 클릭 또는 Esc 키: 모든 카드 선택 해제"라고 했으므로,
+        // 카드 클릭 시에는 선택을 해제하지 않는 것이 안전해 보임. (편집하면서 선택 유지 가능?)
+        // 하지만 보통 편집 모드 들어가면 선택 해제하는게 자연스러움.
+        // 일단 요구사항대로 "빈 영역 클릭" 시 해제하므로 여기선 놔둠.
+
+        const contentEl = card.querySelector(".card-content");
+        if (!contentEl || contentEl.isContentEditable) return;
+        makeEditable(card);
+      });
+      card.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        card.classList.toggle("done");
+        syncOneCardFromDom(card);
+        // 완료 상태 변경 시 뱃지 업데이트
+        const dKey = card.dataset.date;
+        if (dKey) updateDayBadge(dKey);
+      });
+
+      btnDelete.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const dateKey = card.dataset.date;
+        const idStr = card.dataset.cardId;
+        const parent = card.parentElement;
+        card.remove();
+        if (dateKey && idStr) {
+          const id = Number(idStr);
+          if (Number.isFinite(id)) {
+            // 1차 시도: 해당 날짜에서 삭제
+            let deleted = deleteCardFromState(dateKey, id);
+
+            // 2차 시도: 실패 시 전체 검색해서 삭제 (안전장치)
+            if (!deleted) {
+              console.warn(`[Delete] Card ${id} not found in ${dateKey}. Searching all dates...`);
+              for (const key of Object.keys(state.cards)) {
+                if (deleteCardFromState(key, id)) {
+                  console.log(`[Delete] Found and deleted card ${id} from ${key}`);
+                  // 만약 다른 날짜에서 지워졌다면, 그 날짜의 뱃지도 업데이트 해야 함
+                  updateDayBadge(key);
+                  deleted = true;
+                  break;
+                }
+              }
+            }
+
+            if (!deleted) {
+              console.error(`[Delete] Failed to delete card ${id} from state.`);
+            }
+          }
+          updateDayBadge(dateKey); // 삭제 시 뱃지 업데이트
+        }
+        if (parent && parent.classList.contains("day-body")) {
+          if (!parent.querySelector(".card")) {
+            const hint = parent.querySelector(".day-empty-hint");
+            if (hint) hint.style.display = "block";
+          }
+        }
+      });
+
+      btnColor.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const currentColor = card.dataset.color || "default";
+        const idx = CARD_COLORS.indexOf(currentColor);
+        const nextColor = CARD_COLORS[(idx + 1 + CARD_COLORS.length) % CARD_COLORS.length];
+        card.dataset.color = nextColor;
+        applyCardColorClass(card, nextColor);
+        syncOneCardFromDom(card);
+      });
+
+      // 드래그 이동
+      card.draggable = true;
+      card.addEventListener("dragstart", (e) => {
+        // 선택되지 않은 카드를 드래그하면 기존 선택 해제하고 이 카드만 선택
+        if (!card.classList.contains("selected")) {
+          clearSelection();
+          toggleSelection(card);
+        }
+
+        // 선택된 모든 카드 수집
+        draggingCards = Array.from(document.querySelectorAll(".card.selected"));
+
+        // 안전장치: 만약 현재 카드가 선택 리스트에 없으면(위 로직상 그럴리 없지만) 추가
+        if (!draggingCards.includes(card)) {
+          draggingCards.push(card);
+        }
+
+        e.dataTransfer.effectAllowed = "move";
+        // 드래그 중인 카드들 투명도 조절
+        setTimeout(() => {
+          draggingCards.forEach(c => c.style.opacity = "0.4");
+        }, 0);
+      });
+
+      card.addEventListener("dragend", () => {
+        if (draggingCards) {
+          draggingCards.forEach(c => c.style.opacity = "1");
+        }
+        draggingCards = [];
+
+        const targets = document.querySelectorAll(".day-cell.drop-target");
+        targets.forEach(c => c.classList.remove("drop-target"));
+        if (dragPlaceholder && dragPlaceholder.parentElement) {
+          dragPlaceholder.parentElement.removeChild(dragPlaceholder);
+        }
+        dragPlaceholder = null;
+      });
+
+      return card;
+    }
+
+    function renderCalendar() {
+      calendarGrid.innerHTML = "";
+
+      const viewYear = current.getFullYear();
+      const viewMonth = current.getMonth();
+
+      // 오늘 날짜(시간 0시로 정규화)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      updateMonthTitle();
+
+      const monthKey = formatMonthKey(viewYear, viewMonth);
+      const monthVisibility = state.weekVisibility[monthKey] || [];
+
+      // 기준: 현재 달의 1일 ~ 말일
+      const firstOfMonth = new Date(viewYear, viewMonth, 1);
+      const lastOfMonth = new Date(viewYear, viewMonth + 1, 0);
+
+      // 현재 달과 겹치는 첫 주의 "시작 일"(일요일)
+      const firstWeekStart = new Date(firstOfMonth);
+      const firstWeekday = firstWeekStart.getDay(); // 0(일)~6(토)
+      firstWeekStart.setDate(firstWeekStart.getDate() - firstWeekday);
+
+      // 현재 달과 겹치는 마지막 주의 "끝 일"(토요일)
+      const lastWeekEnd = new Date(lastOfMonth);
+      const lastWeekday = lastWeekEnd.getDay();
+      lastWeekEnd.setDate(lastWeekEnd.getDate() + (6 - lastWeekday));
+
+      // 기준 주 앞뒤로 2주(14일)씩 확장
+      const startDate = new Date(firstWeekStart);
+      startDate.setDate(startDate.getDate() - 14);
+
+      const endDate = new Date(lastWeekEnd);
+      endDate.setDate(endDate.getDate() + 14);
+
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const totalDays = Math.round((endDate - startDate) / MS_PER_DAY) + 1;
+      const totalWeeks = Math.ceil(totalDays / 7);
+
+      for (let rowIndex = 0; rowIndex < totalWeeks; rowIndex++) {
+        const weekRow = document.createElement("div");
+        weekRow.className = "week-row";
+
+        const weekHeader = document.createElement("div");
+        weekHeader.className = "week-row-header";
+        const weekTitle = document.createElement("div");
+        weekTitle.className = "week-row-title";
+
+        const weekBody = document.createElement("div");
+        weekBody.className = "week-row-body";
+
+        let containsToday = false;
+
+        // 이 주에 포함된 실제 날짜 범위 (주 제목에 표시용)
+        let weekStartDate = null;
+        let weekEndDate = null;
+
+        // 이 주가 현재 선택된 달(viewMonth)의 날짜를 하나라도 포함하는지
+        let weekHasCurrentMonth = false;
+
+        for (let col = 0; col < 7; col++) {
+          const cell = document.createElement("div");
+          cell.className = "day-cell";
+
+          const header = document.createElement("div");
+          header.className = "day-header";
+          const numEl = document.createElement("div");
+          numEl.className = "day-number";
+          const metaEl = document.createElement("div");
+          metaEl.className = "day-meta";
+
+          const body = document.createElement("div");
+          body.className = "day-body";
+          const hint = document.createElement("div");
+          hint.className = "day-empty-hint";
+          hint.textContent = "더블클릭해서 카드 추가";
+          body.appendChild(hint);
+
+          // 이번 셀의 실제 날짜 = startDate + (rowIndex * 7 + col)
+          const thisDate = new Date(startDate);
+          thisDate.setDate(startDate.getDate() + rowIndex * 7 + col);
+
+          // 현재 선택된 달인지 여부에 따라 셀/주 스타일 플래그 설정
+          if (thisDate.getMonth() !== viewMonth) {
+            cell.classList.add("other-month");
+          } else {
+            weekHasCurrentMonth = true;
+          }
+
+          // 주의 시작/끝 날짜 추적
+          if (!weekStartDate) {
+            weekStartDate = new Date(thisDate);
+            weekEndDate = new Date(thisDate);
+          } else {
+            if (thisDate < weekStartDate) weekStartDate = new Date(thisDate);
+            if (thisDate > weekEndDate) weekEndDate = new Date(thisDate);
+          }
+
+          const w = thisDate.getDay();
+          const dayOfMonth = thisDate.getDate();
+
+          numEl.textContent = `${dayOfMonth}(${weekdayNames[w]})`;
+          if (w === 0) numEl.classList.add("sun");
+          else if (w === 6) numEl.classList.add("sat");
+
+          const key = formatDateKey(thisDate);
+          cell.dataset.date = key;
+
+          // 오늘 표시
+          const cmp = new Date(thisDate.getTime());
+          cmp.setHours(0, 0, 0, 0);
+          if (cmp.getTime() === today.getTime()) {
+            cell.classList.add("today");
+            metaEl.textContent = "오늘";
+            containsToday = true;
+          }
+
+          const cards = getCardsForDate(key);
+          if (cards.length > 0) hint.style.display = "none";
+          cards.forEach(data => {
+            createCard(body, data, { autoEdit: false, fromState: true });
+          });
+          // 렌더링 직후 뱃지 갱신
+          updateDayBadge(key);
+
+          header.appendChild(numEl);
+          header.appendChild(metaEl);
+          cell.appendChild(header);
+          cell.appendChild(body);
+          weekBody.appendChild(cell);
+
+          // 날짜 더블클릭 → 새 카드
+          cell.addEventListener("dblclick", () => {
+            if (!cell.dataset.date) return;
+            createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+            // 생성 시 뱃지 업데이트
+            updateDayBadge(cell.dataset.date);
+          });
+
+          // 드래그 이동 처리
+          cell.addEventListener("dragover", (e) => {
+            if (!draggingCards || draggingCards.length === 0) return;
+            e.preventDefault();
+
+            const allCells = document.querySelectorAll(".day-cell.drop-target");
+            allCells.forEach(c => c.classList.remove("drop-target"));
+            cell.classList.add("drop-target");
+
+            const bodyEl = cell.querySelector(".day-body");
+            if (!bodyEl) return;
+
+            if (!dragPlaceholder) {
+              dragPlaceholder = document.createElement("div");
+              dragPlaceholder.className = "card-placeholder";
+              // 여러 개 드래그 시 플레이스홀더 높이 조정 (선택 사항, 여기선 기본값 유지)
+            }
+
+            const cardsInBody = Array.from(bodyEl.querySelectorAll(".card"));
+            // 드래그 중인 카드들은 제외하고 위치 계산
+            const filtered = cardsInBody.filter(c => !draggingCards.includes(c));
+
+            if (filtered.length === 0) {
+              if (dragPlaceholder.parentElement !== bodyEl) {
+                bodyEl.appendChild(dragPlaceholder);
+              }
+              return;
+            }
+
+            const mouseY = e.clientY;
+            let inserted = false;
+            for (const cardEl of filtered) {
+              const rect = cardEl.getBoundingClientRect();
+              const midY = rect.top + rect.height / 2;
+              if (mouseY < midY) {
+                if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling !== cardEl) {
+                  bodyEl.insertBefore(dragPlaceholder, cardEl);
+                }
+                inserted = true;
+                break;
+              }
+            }
+
+            if (!inserted) {
+              if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling != null) {
+                bodyEl.appendChild(dragPlaceholder);
+              }
+            }
+          });
+
+          cell.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
+
+            const newKey = cell.dataset.date;
+            const bodyEl = cell.querySelector(".day-body");
+            if (!bodyEl) return;
+
+            // 1. DOM 이동
+            // draggingCards를 순서대로 placeholder 위치에 삽입
+            if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
+              draggingCards.forEach(c => bodyEl.insertBefore(c, dragPlaceholder));
+            } else {
+              draggingCards.forEach(c => bodyEl.appendChild(c));
+            }
+
+            // 2. 데이터 업데이트
+            const affectedDateKeys = new Set();
+            affectedDateKeys.add(newKey);
+
+            draggingCards.forEach(card => {
+              const oldKey = card.dataset.date;
+              if (oldKey) affectedDateKeys.add(oldKey);
+
+              card.dataset.date = newKey; // DOM 업데이트
+
+              // State 업데이트
+              if (oldKey && oldKey !== newKey) {
+                const idStr = card.dataset.cardId;
+                const id = Number(idStr);
+                if (Number.isFinite(id)) {
+                  // 기존 날짜에서 제거
+                  const oldList = getCardsForDate(oldKey);
+                  const idx = oldList.findIndex(c => c.id === id);
+                  let obj = null;
+                  if (idx >= 0) {
+                    obj = oldList.splice(idx, 1)[0];
+                    if (oldList.length === 0) delete state.cards[oldKey];
+                  }
+
+                  // 새 날짜에 추가
+                  if (obj) {
+                    const newList = ensureCardList(newKey);
+                    newList.push(obj);
+                  }
+                }
+              }
+            });
+
+            saveState();
+
+            // 3. UI 업데이트 (뱃지, 힌트)
+            affectedDateKeys.forEach(key => {
+              updateDayBadge(key);
+              // 힌트 처리
+              const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
+              if (cellEl) {
+                const bEl = cellEl.querySelector(".day-body");
+                if (bEl) {
+                  const h = bEl.querySelector(".day-empty-hint");
+                  const hasCards = bEl.querySelector(".card");
+                  if (h) h.style.display = hasCards ? "none" : "block";
+                }
+              }
+            });
+
+            // 드롭 타겟 정리
+            const targets = document.querySelectorAll(".day-cell.drop-target");
+            targets.forEach(c => c.classList.remove("drop-target"));
+
+            if (dragPlaceholder && dragPlaceholder.parentElement) {
+              dragPlaceholder.parentElement.removeChild(dragPlaceholder);
+            }
+            dragPlaceholder = null;
+            draggingCards = []; // 드롭 후 선택 상태 유지는 요구사항에 명시 없으나, 보통 드롭 후엔 선택 해제하거나 유지함. 
+            // "드롭이 완료되면... 각 카드의 dataset.date와 state.cards 갱신"
+            // "renderCalendar 호출 시 초기화" -> 여기선 renderCalendar 호출 안함 (DOM 이동만 함)
+            // 사용자 경험상 드롭 후에도 선택 유지되는게 연속 작업에 좋음. 일단 유지.
+          });
+        }
+
+        if (containsToday) {
+          weekRow.classList.add("current-week");
+        }
+
+        // 주 제목을 날짜 범위로 표시 (예: 11월 3일~9일, 11월 27일~12월 3일)
+        if (weekStartDate && weekEndDate) {
+          const sM = weekStartDate.getMonth();
+          const sD = weekStartDate.getDate();
+          const eM = weekEndDate.getMonth();
+          const eD = weekEndDate.getDate();
+          if (sM === eM) {
+            weekTitle.textContent = `${sM + 1}월 ${sD}일~${eD}일`;
+          } else {
+            weekTitle.textContent = `${sM + 1}월 ${sD}일~${eM + 1}월 ${eD}일`;
+          }
+        } else {
+          weekTitle.textContent = "";
+        }
+
+        // 현재 달에 속하는 주 / 완전 버퍼 주 스타일 구분
+        if (weekHasCurrentMonth) {
+          weekRow.classList.add("week-row-main");
+        } else {
+          weekRow.classList.add("week-row-outside");
+        }
+
+        let isCollapsed;
+        const savedVis = monthVisibility[rowIndex];
+        if (savedVis === true) isCollapsed = false;
+        else if (savedVis === false) isCollapsed = true;
+        else isCollapsed = !containsToday; // 기본값: 오늘 포함된 주만 펼침
+
+        if (isCollapsed) {
+          weekRow.classList.add("collapsed");
+        }
+
+        // 주별 접기/펼치기: 주 헤더 클릭
+        weekHeader.addEventListener("click", () => {
+          const monthKeyLocal = monthKey;
+          const row = rowIndex;
+          const currentlyCollapsed = weekRow.classList.contains("collapsed");
+          if (!state.weekVisibility[monthKeyLocal]) {
+            state.weekVisibility[monthKeyLocal] = [];
+          }
+          if (currentlyCollapsed) {
+            weekRow.classList.remove("collapsed");
+            state.weekVisibility[monthKeyLocal][row] = true;
+          } else {
+            weekRow.classList.add("collapsed");
+            state.weekVisibility[monthKeyLocal][row] = false;
+          }
+          saveState();
+        });
+
+        weekHeader.appendChild(weekTitle);
+        weekRow.appendChild(weekHeader);
+        weekRow.appendChild(weekBody);
+        calendarGrid.appendChild(weekRow);
+
+        // 주 생성 후 뱃지 초기 업데이트 (모든 셀이 추가된 후 해야 정확하지만, 
+        // 여기서는 아직 셀이 추가되기 전임. weekBody에 셀을 추가하는 루프가 뒤에 있음.
+        // 따라서 루프가 끝난 뒤에 호출해야 함.)
+        // -> 수정: weekBody에 cell을 append하는 루프는 이 코드 블록 *내부*가 아니라 *뒤*가 아니라 *안*에 있음.
+        // 현재 코드 구조:
+        // for (rowIndex) {
+        //   create weekRow...
+        //   for (col) { create cell... append to weekBody }
+        //   append weekBody to weekRow...
+        // }
+
+        // 따라서 for(col) 루프가 끝난 직후, weekRow가 완성된 시점에 updateWeekBadge 호출하면 됨.
+
+        // 하지만 위 코드는 weekHeader 생성 부분임. 
+        // col 루프는 이 코드 *뒤*가 아니라 *앞*도 아니고... 
+        // renderCalendar 전체 구조를 다시 봐야함.
+
+        // renderCalendar 구조:
+        // for (rowIndex) {
+        //   create weekRow, header, body...
+        //   for (col) { ... create cell ... weekBody.appendChild(cell) }
+        //   ...
+        //   weekRow.appendChild(header)
+        //   weekRow.appendChild(body)
+        //   calendarGrid.appendChild(weekRow)
+        // }
+
+        // 그러므로 col 루프가 끝난 뒤, weekRow를 calendarGrid에 붙이기 직전에 updateWeekBadge를 호출하면 됨.
+        // 현재 ReplacementContent는 weekHeader 생성 및 append 부분임.
+        // 이 부분은 col 루프 *이전*에 위치함 (원래 코드상).
+        // 따라서 여기서 badge를 생성해서 header에 붙여두고,
+        // col 루프가 끝난 뒤에 updateWeekBadge를 호출해야 함.
+
+        // 기존 코드 위치 확인:
+        // weekHeader 생성 -> col 루프 -> weekRow 조립.
+        // 내가 지금 수정하려는 부분은 weekRow 조립 부분 (Line 1327 근처).
+        // 이 부분은 col 루프가 *끝난 뒤*에 있음. (Line 1200~1300 사이가 col 루프일 것임)
+        // 확인해보자.
+
+        // view_file로 확인한 바에 따르면:
+        // Line 1200~1300: col 루프 및 cell 생성 로직.
+        // Line 1309: weekHeader click listener.
+        // Line 1327: weekHeader.appendChild(weekTitle); ...
+
+        // 맞음. 이 부분은 col 루프가 끝난 뒤임.
+        // 그러므로 여기서 updateWeekBadge 호출 가능.
+      }
+    }
+
+    const scopeMonthBtn = document.getElementById("scopeMonth");
+    const scopeAllBtn = document.getElementById("scopeAll");
+    const toastContainer = document.getElementById("toastContainer");
+
+    let searchMode = "month"; // "month" | "all"
+
+    function switchSearchScope(mode) {
+      searchMode = mode;
+      if (mode === "month") {
+        scopeMonthBtn.classList.add("active");
+        scopeAllBtn.classList.remove("active");
+        searchInput.placeholder = "이 달에서 검색";
+      } else {
+        scopeMonthBtn.classList.remove("active");
+        scopeAllBtn.classList.add("active");
+        searchInput.placeholder = "전체 기간 검색";
+      }
+      searchInput.focus();
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = "toast-out 0.3s ease forwards";
+        toast.addEventListener("animationend", () => {
+          toast.remove();
+        });
+      }, 3000);
+    }
+
+    function clearSearchHighlights() {
+      document.querySelectorAll(".card.search-hit").forEach(c => {
+        c.classList.remove("search-hit");
+      });
+      searchInput.classList.remove("error");
+    }
+
+    function highlightCard(card) {
+      card.classList.add("search-hit");
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        card.classList.remove("search-hit");
+      }, 4000);
+    }
+
+    function runSearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      clearSearchHighlights();
+
+      if (!q) return;
+
+      if (searchMode === "month") {
+        // (A) 이번 달 검색 (DOM 기준)
+        const cards = Array.from(document.querySelectorAll(".card"));
+        let found = null;
+        for (const card of cards) {
+          const text = card.innerText.toLowerCase();
+          if (text.includes(q)) { found = card; break; }
+        }
+
+        if (found) {
+          highlightCard(found);
+        } else {
+          handleSearchFail();
+        }
+
+      } else {
+        // (B) 전체 기간 검색 (State 기준)
+        let foundDateKey = null;
+        let foundCardId = null;
+
+        // 날짜 키 정렬 (최신순 or 과거순? 요구사항: "가장 최근 혹은 가장 첫 번째" -> 여기선 날짜순 정렬 후 첫번째로 함)
+        // 요구사항 재확인: "매칭된 날짜 중 가장 최근 혹은 가장 첫 번째 날짜" -> 단순화를 위해 오름차순(과거->미래) 첫번째 발견으로 구현
+        // 혹은 Object.keys 순서는 보장되지 않으므로 정렬 필요.
+        const dateKeys = Object.keys(state.cards).sort();
+
+        for (const key of dateKeys) {
+          const list = state.cards[key];
+          if (!Array.isArray(list)) continue;
+          const match = list.find(c => (c.text || "").toLowerCase().includes(q));
+          if (match) {
+            foundDateKey = key;
+            foundCardId = match.id;
+            break;
+          }
+        }
+
+        if (foundDateKey && foundCardId) {
+          // 해당 날짜로 이동
+          const [y, m, d] = foundDateKey.split("-").map(Number);
+          current = new Date(y, m - 1, 1); // 해당 달 1일로 설정
+          renderCalendar(); // 달력 다시 그리기
+
+          // DOM에서 카드 찾기
+          // renderCalendar 직후에는 DOM이 생성됨.
+          // 약간의 지연이 필요할 수 있으나 동기적으로 처리됨.
+          setTimeout(() => {
+            const targetCard = document.querySelector(`.card[data-card-id="${foundCardId}"]`);
+            if (targetCard) {
+              highlightCard(targetCard);
+            }
+          }, 50); // 렌더링 안정화 안전장치
+        } else {
+          handleSearchFail();
+        }
+      }
+    }
+
+    function handleSearchFail() {
+      searchInput.classList.add("error");
+      showToast("검색 결과 없음");
+      setTimeout(() => {
+        searchInput.classList.remove("error");
+      }, 1500);
+    }
+
+    // ===== Airtable 연동 로직 =====
+    function ensureAirtableConfig() {
+      if (!AIRTABLE_BASE_ID || !AIRTABLE_TABLE_NAME) {
+        alert("Airtable 설정(Base ID / Table Name)이 비어 있습니다.");
+        return false;
+      }
+      if (!AIRTABLE_TOKEN || AIRTABLE_TOKEN.includes("여기에_네_Airtable_토큰_붙여넣기")) {
+        alert("Airtable 토큰이 설정되지 않았습니다. pat... 토큰을 AIRTABLE_TOKEN에 넣어주세요.");
+        return false;
+      }
+      return true;
+    }
+
+    async function saveToAirtableSnapshot() {
+      if (!ensureAirtableConfig()) return;
+      try {
+        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
+        const snapshotName = new Date().toISOString().slice(0, 19).replace("T", " ");
+        const snapshotJson = JSON.stringify(state);
+
+        // Airtable Web API는 create 시 body 안에 "records" 배열을 요구함
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            records: [
+              {
+                fields: {
+                  cardID: snapshotName,
+                  json: snapshotJson
+                }
+              }
+            ]
+          })
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("[Airtable] save error", res.status, res.statusText, text);
+          alert(`에어테이블 저장 중 오류가 발생했습니다. (HTTP ${res.status})`);
+          return;
+        }
+
+        alert("에어테이블에 스냅샷 저장 완료!");
+      } catch (e) {
+        console.error("saveToAirtableSnapshot error", e);
+        alert("에어테이블 저장 중 예외가 발생했습니다. 콘솔을 확인해주세요.");
+      }
+    }
+
+    async function loadFromAirtableSnapshot() {
+      if (!ensureAirtableConfig()) return;
+      try {
+        const url =
+          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}` +
+          `?maxRecords=1&sort[0][field]=createdTime&sort[0][direction]=desc`;
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_TOKEN}`
+          }
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("[Airtable] load error", res.status, res.statusText, text);
+          alert("에어테이블에서 데이터 불러오기 실패. 콘솔을 확인해주세요.");
+          return;
+        }
+
+        const data = await res.json();
+        if (!data.records || data.records.length === 0) {
+          alert("에어테이블에 저장된 스냅샷이 없습니다.");
+          return;
+        }
+
+        const latest = data.records[0];
+        const rawJson = latest.fields.json;
+        if (!rawJson) {
+          alert("마지막 스냅샷에 json 필드가 없습니다.");
+          return;
+        }
+
+        const parsed = JSON.parse(rawJson);
+        if (!parsed || typeof parsed !== "object" || !parsed.cards || typeof parsed.nextId !== "number") {
+          alert("스냅샷 구조가 예상과 다릅니다.");
+          return;
+        }
+
+        state = parsed;
+        saveState();
+        renderCalendar();
+        alert("에어테이블 스냅샷을 불러왔습니다!");
+      } catch (e) {
+        console.error("loadFromAirtableSnapshot error", e);
+        alert("에어테이블에서 데이터 불러오는 중 예외가 발생했습니다. 콘솔을 확인해주세요.");
+      }
+    }
+
+    // ===== 초기화 =====
+    window.addEventListener("DOMContentLoaded", () => {
+      // ... (기존 코드)
+
+
+      // ... (기존 코드)
+      loadState();
+      renderCalendar();
+
+      prevBtn.addEventListener("click", () => {
+        syncCurrentMonthFromDom();
+        current.setMonth(current.getMonth() - 1);
+        renderCalendar();
+      });
+      nextBtn.addEventListener("click", () => {
+        syncCurrentMonthFromDom();
+        current.setMonth(current.getMonth() + 1);
+        renderCalendar();
+      });
+
+      // 오늘 버튼 클릭 이벤트 추가
+      if (todayBtn) {
+        todayBtn.addEventListener("click", () => {
+          syncCurrentMonthFromDom();
+          const now = new Date();
+          current = new Date(now.getFullYear(), now.getMonth(), 1);
+          renderCalendar();
+          const currentWeekEl = document.querySelector(".week-row.current-week");
+          if (currentWeekEl) {
+            currentWeekEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+
+      backupBtn.addEventListener("click", () => {
+        try {
+          const dataStr = JSON.stringify(state, null, 2);
+          const blob = new Blob([dataStr], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, "0");
+          const d = String(now.getDate());
+          a.href = url;
+          a.download = `muchi-note-safe-${y}${m}${d}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error("백업 오류", e);
+          alert("백업 중 오류가 발생했습니다.");
+        }
+      });
+
+      // 검색 스코프 버튼 이벤트
+      scopeMonthBtn.addEventListener("click", () => switchSearchScope("month"));
+      scopeAllBtn.addEventListener("click", () => switchSearchScope("all"));
+
+      searchBtn.addEventListener("click", runSearch);
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") runSearch();
+      });
+
+      if (monthPickerToggle) {
+        monthPickerToggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleMonthDropdown();
+        });
+      }
+      document.addEventListener("click", (e) => {
+        // 빈 영역 클릭 시 선택 해제
+        // .card 내부 클릭이나 .month-picker 내부 클릭 등은 제외
+        if (e.target.closest(".card")) return;
+        if (e.target.closest(".month-picker")) return; // 달력 피커 닫기 로직과 충돌 방지
+        clearSelection();
+
+        if (!monthDropdown || !monthPickerToggle) return;
+        if (!monthDropdown.classList.contains("open")) return;
+        const target = e.target;
+        const picker = monthPickerToggle.closest(".month-picker");
+        if (picker && picker.contains(target)) return;
+        closeMonthDropdown();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          clearSelection();
+        }
+      });
+
+      if (ymPrevYear && ymNextYear) {
+        ymPrevYear.addEventListener("click", () => {
+          pickerYear--;
+          if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+        });
+        ymNextYear.addEventListener("click", () => {
+          pickerYear++;
+          if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+        });
+      }
+
+      if (ymMonthButtons && ymMonthButtons.length) {
+        ymMonthButtons.forEach(btn => {
+          btn.addEventListener("click", () => {
+            const monthIndex = Number(btn.dataset.month);
+            if (!Number.isFinite(monthIndex)) return;
+            current.setFullYear(pickerYear);
+            current.setMonth(monthIndex);
+            current.setDate(1);
+            renderCalendar();
+            closeMonthDropdown();
+          });
+        });
+      }
+
+      if (airtableSaveBtn) airtableSaveBtn.addEventListener("click", saveToAirtableSnapshot);
+      if (airtableLoadBtn) airtableLoadBtn.addEventListener("click", loadFromAirtableSnapshot);
+
+      // 디버그용: 콘솔에서 window._dumpState() 호출하면 현재 state 확인 가능
+      window._dumpState = () => JSON.parse(JSON.stringify(state));
+    });
+  </script>
+</body>
+
+</html>

@@ -62,6 +62,7 @@ export default function Page() {
     );
 
     const calendarGrid = document.getElementById("calendarGrid") as HTMLElement | null;
+    const calendarWrapper = document.querySelector(".calendar-wrapper") as HTMLElement | null;
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
@@ -97,6 +98,9 @@ export default function Page() {
     let current = new Date();
     current.setDate(1);
     let pickerYear = current.getFullYear();
+    // 인피니트 스크롤 범위: 시작/끝 달
+    let startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
     let state: State = { nextId: 1, cards: {}, weekVisibility: {} };
     let draggingCards: HTMLDivElement[] = [];
@@ -118,13 +122,13 @@ export default function Page() {
       return `${y}-${m}-${d}`;
     };
 
+
     const formatMonthKey = (year: number, monthIndex: number) =>
       `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
-    function updateMonthTitle() {
-      monthTitle.textContent = `${current.getFullYear()}년 ${
-        MONTH_NAMES[current.getMonth()]
-      }`;
+    function updateMonthTitle(date: Date = current) {
+      monthTitle.textContent = `${date.getFullYear()}년 ${MONTH_NAMES[date.getMonth()]}`;
+      pickerYear = date.getFullYear();
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
     }
 
@@ -471,297 +475,211 @@ export default function Page() {
     function renderCalendar() {
       calendarGrid.innerHTML = "";
 
-      const viewYear = current.getFullYear();
-      const viewMonth = current.getMonth();
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      updateMonthTitle();
+      // 현재 표시 범위: startCursor ~ endCursor
+      const viewYear = current.getFullYear();
+      const viewMonth = current.getMonth();
+      const startMonth = new Date(startCursor);
+      const endMonth = new Date(endCursor);
 
-      const monthKey = formatMonthKey(viewYear, viewMonth);
-      const monthVisibility = state.weekVisibility[monthKey] || [];
+      const firstOfRange = new Date(startMonth.getFullYear(), startMonth.getMonth(), 1);
+      const lastOfRange = new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0);
 
-      const firstOfMonth = new Date(viewYear, viewMonth, 1);
-      const lastOfMonth = new Date(viewYear, viewMonth + 1, 0);
-
-      const firstWeekStart = new Date(firstOfMonth);
+      const firstWeekStart = new Date(firstOfRange);
       const firstWeekday = firstWeekStart.getDay();
       firstWeekStart.setDate(firstWeekStart.getDate() - firstWeekday);
 
-      const lastWeekEnd = new Date(lastOfMonth);
+      const lastWeekEnd = new Date(lastOfRange);
       const lastWeekday = lastWeekEnd.getDay();
       lastWeekEnd.setDate(lastWeekEnd.getDate() + (6 - lastWeekday));
 
       const startDate = new Date(firstWeekStart);
-      startDate.setDate(startDate.getDate() - 14);
-
       const endDate = new Date(lastWeekEnd);
-      endDate.setDate(endDate.getDate() + 14);
 
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
-      const totalWeeks = Math.ceil(totalDays / 7);
 
-      for (let rowIndex = 0; rowIndex < totalWeeks; rowIndex++) {
-        const weekRow = document.createElement("div");
-        weekRow.className = "week-row";
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const cell = document.createElement("div");
+        cell.className = "day-cell";
 
-        const weekHeader = document.createElement("div");
-        weekHeader.className = "week-row-header";
-        const weekTitle = document.createElement("div");
-        weekTitle.className = "week-row-title";
+        const header = document.createElement("div");
+        header.className = "day-header";
+        const numEl = document.createElement("div");
+        numEl.className = "day-number";
+        const metaEl = document.createElement("div");
+        metaEl.className = "day-meta";
 
-        const weekBody = document.createElement("div");
-        weekBody.className = "week-row-body";
+        const body = document.createElement("div");
+        body.className = "day-body";
+        const hint = document.createElement("div");
+        hint.className = "day-empty-hint";
+        hint.textContent = "더블클릭해서 카드 추가";
+        body.appendChild(hint);
 
-        let containsToday = false;
-        let weekStartDate: Date | null = null;
-        let weekEndDate: Date | null = null;
-        let weekHasCurrentMonth = false;
+        const thisDate = new Date(startDate);
+        thisDate.setDate(startDate.getDate() + dayIndex);
 
-        for (let col = 0; col < 7; col++) {
-          const cell = document.createElement("div");
-          cell.className = "day-cell";
-
-          const header = document.createElement("div");
-          header.className = "day-header";
-          const numEl = document.createElement("div");
-          numEl.className = "day-number";
-          const metaEl = document.createElement("div");
-          metaEl.className = "day-meta";
-
-          const body = document.createElement("div");
-          body.className = "day-body";
-          const hint = document.createElement("div");
-          hint.className = "day-empty-hint";
-          hint.textContent = "더블클릭해서 카드 추가";
-          body.appendChild(hint);
-
-          const thisDate = new Date(startDate);
-          thisDate.setDate(startDate.getDate() + rowIndex * 7 + col);
-
-          if (thisDate.getMonth() !== viewMonth) {
-            cell.classList.add("other-month");
-          } else {
-            weekHasCurrentMonth = true;
-          }
-
-          if (!weekStartDate) {
-            weekStartDate = new Date(thisDate);
-            weekEndDate = new Date(thisDate);
-          } else {
-            if (thisDate < weekStartDate) weekStartDate = new Date(thisDate);
-            if (thisDate > weekEndDate!) weekEndDate = new Date(thisDate);
-          }
-
-          const w = thisDate.getDay();
-          const dayOfMonth = thisDate.getDate();
-
-          numEl.textContent = `${dayOfMonth}(${WEEKDAY_NAMES[w]})`;
-          if (w === 0) numEl.classList.add("sun");
-          else if (w === 6) numEl.classList.add("sat");
-
-          const key = formatDateKey(thisDate);
-          cell.dataset.date = key;
-
-          const cmp = new Date(thisDate.getTime());
-          cmp.setHours(0, 0, 0, 0);
-          if (cmp.getTime() === today.getTime()) {
-            cell.classList.add("today");
-            metaEl.textContent = "오늘";
-            containsToday = true;
-          }
-
-          const cards = getCardsForDate(key);
-          if (cards.length > 0) hint.style.display = "none";
-          cards.forEach((data) => {
-            createCard(body, data, { autoEdit: false, fromState: true });
-          });
-          updateDayBadge(key);
-
-          header.appendChild(numEl);
-          header.appendChild(metaEl);
-          cell.appendChild(header);
-          cell.appendChild(body);
-          weekBody.appendChild(cell);
-
-          cell.addEventListener("dblclick", () => {
-            if (!cell.dataset.date) return;
-            createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
-            updateDayBadge(cell.dataset.date);
-          });
-
-          cell.addEventListener("dragover", (e) => {
-            if (!draggingCards || draggingCards.length === 0) return;
-            e.preventDefault();
-
-            const allCells = document.querySelectorAll(".day-cell.drop-target");
-            allCells.forEach((c) => c.classList.remove("drop-target"));
-            cell.classList.add("drop-target");
-
-            const bodyEl = cell.querySelector(".day-body");
-            if (!bodyEl) return;
-
-            if (!dragPlaceholder) {
-              dragPlaceholder = document.createElement("div");
-              dragPlaceholder.className = "card-placeholder";
-            }
-
-            const cardsInBody = Array.from(bodyEl.querySelectorAll<HTMLDivElement>(".card"));
-            const filtered = cardsInBody.filter((c) => !draggingCards.includes(c));
-
-            if (filtered.length === 0) {
-              if (dragPlaceholder.parentElement !== bodyEl) {
-                bodyEl.appendChild(dragPlaceholder);
-              }
-              return;
-            }
-
-            const mouseY = e.clientY;
-            let inserted = false;
-            for (const cardEl of filtered) {
-              const rect = cardEl.getBoundingClientRect();
-              const midY = rect.top + rect.height / 2;
-              if (mouseY < midY) {
-                if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling !== cardEl) {
-                  bodyEl.insertBefore(dragPlaceholder, cardEl);
-                }
-                inserted = true;
-                break;
-              }
-            }
-
-            if (!inserted) {
-              if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling != null) {
-                bodyEl.appendChild(dragPlaceholder);
-              }
-            }
-          });
-
-          cell.addEventListener("drop", (e) => {
-            e.preventDefault();
-            if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
-
-            const newKey = cell.dataset.date;
-            const bodyEl = cell.querySelector(".day-body");
-            if (!bodyEl) return;
-
-            if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
-              draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
-            } else {
-              draggingCards.forEach((c) => bodyEl.appendChild(c));
-            }
-
-            const affectedDateKeys = new Set<string>();
-            affectedDateKeys.add(newKey);
-
-            draggingCards.forEach((card) => {
-              const oldKey = card.dataset.date;
-              if (oldKey) affectedDateKeys.add(oldKey);
-
-              card.dataset.date = newKey;
-
-              if (oldKey && oldKey !== newKey) {
-                const idStr = card.dataset.cardId;
-                const id = Number(idStr);
-                if (Number.isFinite(id)) {
-                  const oldList = getCardsForDate(oldKey);
-                  const idx = oldList.findIndex((c) => c.id === id);
-                  let obj: CardData | null = null;
-                  if (idx >= 0) {
-                    obj = oldList.splice(idx, 1)[0];
-                    if (oldList.length === 0) delete state.cards[oldKey];
-                  }
-
-                  if (obj) {
-                    const newList = ensureCardList(newKey);
-                    newList.push(obj);
-                  }
-                }
-              }
-            });
-
-            saveState();
-
-            affectedDateKeys.forEach((key) => {
-              updateDayBadge(key);
-              const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
-              if (cellEl) {
-                const bEl = cellEl.querySelector(".day-body");
-                if (bEl) {
-                  const h = bEl.querySelector(".day-empty-hint") as HTMLElement | null;
-                  const hasCards = bEl.querySelector(".card");
-                  if (h) h.style.display = hasCards ? "none" : "block";
-                }
-              }
-            });
-
-            const targets = document.querySelectorAll(".day-cell.drop-target");
-            targets.forEach((c) => c.classList.remove("drop-target"));
-
-            if (dragPlaceholder && dragPlaceholder.parentElement) {
-              dragPlaceholder.parentElement.removeChild(dragPlaceholder);
-            }
-            dragPlaceholder = null;
-            draggingCards = [];
-          });
+        if (thisDate.getMonth() !== viewMonth) {
+          cell.classList.add("other-month");
         }
 
-        if (containsToday) {
-          weekRow.classList.add("current-week");
+        const w = thisDate.getDay();
+        const dayOfMonth = thisDate.getDate();
+
+        numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${WEEKDAY_NAMES[w]})`;
+        if (w === 0) numEl.classList.add("sun");
+        else if (w === 6) numEl.classList.add("sat");
+
+        const key = formatDateKey(thisDate);
+        cell.dataset.date = key;
+
+        const cmp = new Date(thisDate.getTime());
+        cmp.setHours(0, 0, 0, 0);
+        if (cmp.getTime() === today.getTime()) {
+          cell.classList.add("today");
+          metaEl.textContent = "오늘";
         }
 
-        if (weekStartDate && weekEndDate) {
-          const sM = weekStartDate.getMonth();
-          const sD = weekStartDate.getDate();
-          const eM = weekEndDate.getMonth();
-          const eD = weekEndDate.getDate();
-          if (sM === eM) {
-            weekTitle.textContent = `${sM + 1}월 ${sD}일~${eD}일`;
-          } else {
-            weekTitle.textContent = `${sM + 1}월 ${sD}일~${eM + 1}월 ${eD}일`;
-          }
-        } else {
-          weekTitle.textContent = "";
-        }
+        const cards = getCardsForDate(key);
+        if (cards.length > 0) hint.style.display = "none";
+        cards.forEach((data) => {
+          createCard(body, data, { autoEdit: false, fromState: true });
+        });
+        updateDayBadge(key);
 
-        if (weekHasCurrentMonth) {
-          weekRow.classList.add("week-row-main");
-        } else {
-          weekRow.classList.add("week-row-outside");
-        }
+        header.appendChild(numEl);
+        header.appendChild(metaEl);
+        cell.appendChild(header);
+        cell.appendChild(body);
+        calendarGrid.appendChild(cell);
 
-        const savedVis = monthVisibility[rowIndex];
-        const isCollapsed =
-          savedVis === true ? false : savedVis === false ? true : !containsToday;
-
-        if (isCollapsed) {
-          weekRow.classList.add("collapsed");
-        }
-
-        weekHeader.addEventListener("click", () => {
-          const monthKeyLocal = monthKey;
-          const row = rowIndex;
-          const currentlyCollapsed = weekRow.classList.contains("collapsed");
-          if (!state.weekVisibility[monthKeyLocal]) {
-            state.weekVisibility[monthKeyLocal] = [];
-          }
-          if (currentlyCollapsed) {
-            weekRow.classList.remove("collapsed");
-            state.weekVisibility[monthKeyLocal][row] = true;
-          } else {
-            weekRow.classList.add("collapsed");
-            state.weekVisibility[monthKeyLocal][row] = false;
-          }
-          saveState();
+        cell.addEventListener("dblclick", () => {
+          if (!cell.dataset.date) return;
+          createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+          updateDayBadge(cell.dataset.date);
         });
 
-        weekHeader.appendChild(weekTitle);
-        weekRow.appendChild(weekHeader);
-        weekRow.appendChild(weekBody);
-        calendarGrid.appendChild(weekRow);
+        cell.addEventListener("dragover", (e) => {
+          if (!draggingCards || draggingCards.length === 0) return;
+          e.preventDefault();
+
+          const allCells = document.querySelectorAll(".day-cell.drop-target");
+          allCells.forEach((c) => c.classList.remove("drop-target"));
+          cell.classList.add("drop-target");
+
+          const bodyEl = cell.querySelector(".day-body");
+          if (!bodyEl) return;
+
+          if (!dragPlaceholder) {
+            dragPlaceholder = document.createElement("div");
+            dragPlaceholder.className = "card-placeholder";
+          }
+
+          const cardsInBody = Array.from(bodyEl.querySelectorAll<HTMLDivElement>(".card"));
+          const filtered = cardsInBody.filter((c) => !draggingCards.includes(c));
+
+          if (filtered.length === 0) {
+            if (dragPlaceholder.parentElement !== bodyEl) {
+              bodyEl.appendChild(dragPlaceholder);
+            }
+            return;
+          }
+
+          const mouseY = e.clientY;
+          let inserted = false;
+          for (const cardEl of filtered) {
+            const rect = cardEl.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (mouseY < midY) {
+              if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling !== cardEl) {
+                bodyEl.insertBefore(dragPlaceholder, cardEl);
+              }
+              inserted = true;
+              break;
+            }
+          }
+
+          if (!inserted) {
+            if (dragPlaceholder.parentElement !== bodyEl || dragPlaceholder.nextSibling != null) {
+              bodyEl.appendChild(dragPlaceholder);
+            }
+          }
+        });
+
+        cell.addEventListener("drop", (e) => {
+          e.preventDefault();
+          if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
+
+          const newKey = cell.dataset.date;
+          const bodyEl = cell.querySelector(".day-body");
+          if (!bodyEl) return;
+
+          if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
+            draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
+          } else {
+            draggingCards.forEach((c) => bodyEl.appendChild(c));
+          }
+
+          const affectedDateKeys = new Set<string>();
+          affectedDateKeys.add(newKey);
+
+          draggingCards.forEach((card) => {
+            const oldKey = card.dataset.date;
+            if (oldKey) affectedDateKeys.add(oldKey);
+
+            card.dataset.date = newKey;
+
+            if (oldKey && oldKey !== newKey) {
+              const idStr = card.dataset.cardId;
+              const id = Number(idStr);
+              if (Number.isFinite(id)) {
+                const oldList = getCardsForDate(oldKey);
+                const idx = oldList.findIndex((c) => c.id === id);
+                let obj: CardData | null = null;
+                if (idx >= 0) {
+                  obj = oldList.splice(idx, 1)[0];
+                  if (oldList.length === 0) delete state.cards[oldKey];
+                }
+
+                if (obj) {
+                  const newList = ensureCardList(newKey);
+                  newList.push(obj);
+                }
+              }
+            }
+          });
+
+          saveState();
+
+          affectedDateKeys.forEach((key) => {
+            updateDayBadge(key);
+            const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
+            if (cellEl) {
+              const bEl = cellEl.querySelector(".day-body");
+              if (bEl) {
+                const h = bEl.querySelector(".day-empty-hint") as HTMLElement | null;
+                const hasCards = bEl.querySelector(".card");
+                if (h) h.style.display = hasCards ? "none" : "block";
+              }
+            }
+          });
+
+          const targets = document.querySelectorAll(".day-cell.drop-target");
+          targets.forEach((c) => c.classList.remove("drop-target"));
+
+          if (dragPlaceholder && dragPlaceholder.parentElement) {
+            dragPlaceholder.parentElement.removeChild(dragPlaceholder);
+          }
+          dragPlaceholder = null;
+          draggingCards = [];
+        });
       }
+
+      // 스크롤 위치 기준으로 월 타이틀을 동기화
+      syncMonthHeaderWithScroll();
     }
 
     const switchSearchScope = (mode: "month" | "all") => {
@@ -977,16 +895,23 @@ export default function Page() {
     loadState();
     renderCalendar();
 
+    // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
     prevBtn?.addEventListener("click", () => {
       syncCurrentMonthFromDom();
       current.setMonth(current.getMonth() - 1);
+      startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+      endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       renderCalendar();
+      if (calendarWrapper) calendarWrapper.scrollTop = 0;
     });
 
     nextBtn?.addEventListener("click", () => {
       syncCurrentMonthFromDom();
       current.setMonth(current.getMonth() + 1);
+      startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+      endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       renderCalendar();
+      if (calendarWrapper) calendarWrapper.scrollTop = 0;
     });
 
     if (todayBtn) {
@@ -994,11 +919,10 @@ export default function Page() {
         syncCurrentMonthFromDom();
         const now = new Date();
         current = new Date(now.getFullYear(), now.getMonth(), 1);
+        startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+        endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         renderCalendar();
-        const currentWeekEl = document.querySelector(".week-row.current-week");
-        if (currentWeekEl) {
-          currentWeekEl.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        if (calendarWrapper) calendarWrapper.scrollTop = 0;
       });
     }
 
@@ -1077,7 +1001,10 @@ export default function Page() {
           current.setFullYear(pickerYear);
           current.setMonth(monthIndex);
           current.setDate(1);
+          startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+          endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
           renderCalendar();
+          if (calendarWrapper) calendarWrapper.scrollTop = 0;
           closeMonthDropdown();
         });
       });
@@ -1088,6 +1015,80 @@ export default function Page() {
 
     (window as typeof window & { _dumpState?: () => State })._dumpState = () =>
       JSON.parse(JSON.stringify(state));
+
+    // ===== 스크롤 동기화: 화면 상단에 보이는 일(또는 카드)의 월로 헤더 업데이트 =====
+    let syncRaf = 0;
+    function syncMonthHeaderWithScroll() {
+      const days = Array.from(document.querySelectorAll<HTMLDivElement>(".day-cell"));
+      if (!days.length) return;
+      let targetDate: Date | null = null;
+      let bestTop = Number.POSITIVE_INFINITY;
+      days.forEach((cell) => {
+        const rect = cell.getBoundingClientRect();
+        if (rect.bottom <= 0) return;
+        const top = Math.max(rect.top, 0);
+        if (top < bestTop) {
+          bestTop = top;
+          const dateKey = cell.dataset.date;
+          if (dateKey) {
+            const [y, m, d] = dateKey.split("-").map(Number);
+            targetDate = new Date(y, m - 1, d);
+          }
+        }
+      });
+      if (targetDate) updateMonthTitle(targetDate);
+    }
+
+    function onScrollThrottled() {
+      if (syncRaf) return;
+      syncRaf = requestAnimationFrame(() => {
+        syncRaf = 0;
+        syncMonthHeaderWithScroll();
+      });
+    }
+
+    // 인피니트 스크롤: 상/하단 근접 시 범위 확장
+    let loadingPrev = false;
+    let loadingNext = false;
+
+    function extendRange(direction: "prev" | "next") {
+      const container = calendarWrapper || document.documentElement;
+      const prevHeight = container.scrollHeight;
+      if (direction === "prev") {
+        startCursor = new Date(startCursor.getFullYear(), startCursor.getMonth() - 1, 1);
+        loadingPrev = true;
+        renderCalendar();
+        const newHeight = container.scrollHeight;
+        const diff = newHeight - prevHeight;
+        container.scrollTop += diff > 0 ? diff : 0; // 스크롤 위치 보정
+        loadingPrev = false;
+      } else {
+        endCursor = new Date(endCursor.getFullYear(), endCursor.getMonth() + 1, 1);
+        loadingNext = true;
+        renderCalendar();
+        loadingNext = false;
+      }
+    }
+
+    function onCalendarScroll() {
+      const container = calendarWrapper || document.documentElement;
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
+      const scrollHeight = container.scrollHeight;
+
+      if (scrollTop < 120 && !loadingPrev) {
+        extendRange("prev");
+      } else if (scrollTop + clientHeight > scrollHeight - 200 && !loadingNext) {
+        extendRange("next");
+      }
+      onScrollThrottled();
+    }
+
+    if (calendarWrapper) {
+      calendarWrapper.addEventListener("scroll", onCalendarScroll);
+    } else {
+      window.addEventListener("scroll", onCalendarScroll);
+    }
   }, []);
 
   return (

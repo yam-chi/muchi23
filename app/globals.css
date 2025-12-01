@@ -65,17 +65,21 @@
     }
 
     header {
-      padding: 16px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px;
       background: rgba(255, 255, 255, 0.9);
       color: #111827;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border: 1px solid #e5e7eb;
       border-radius: 14px;
-      box-shadow: var(--shadow-card);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(6px);
     }
 
     header .hint {
@@ -85,15 +89,18 @@
     }
 
     .top-bar {
-      padding: 12px;
+      position: sticky;
+      top: 58px;
+      z-index: 18;
+      padding: 10px;
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
-      gap: 10px;
-      position: relative;
-      border-radius: 14px;
-      box-shadow: var(--shadow-card);
+      gap: 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(6px);
     }
 
     .month-title {
@@ -286,54 +293,34 @@
 
     .calendar-wrapper {
       flex: 1;
-      padding: 14px;
+      padding: 12px;
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      box-shadow: var(--shadow-card);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      max-height: calc(100vh - 190px);
+      overflow-y: auto;
+      position: relative;
     }
+
 
     .weekday-row {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-      font-size: 14px;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
       font-weight: 700;
       color: rgba(17, 24, 39, 0.6);
       text-align: center;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     /* 주별 레이아웃 + 접기/펼치기 */
     .calendar-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* === Week Row (Glass Card) === */
-    .week-row {
-      border-radius: 18px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      padding: 8px 8px 12px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(140px, 1fr));
       gap: 8px;
-      transition: background 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .week-row.current-week {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.18), 0 4px 14px rgba(59, 130, 246, 0.12);
-      background: #f7fbff;
-    }
-
-    .week-row-outside {
-      background: #fafbfc;
-      border-color: #e5e7eb;
     }
 
     .week-row-outside .week-row-title {
@@ -378,15 +365,15 @@
 
     /* === Day Cells (Glass Chips) === */
     .day-cell {
-      min-height: 160px;
-      padding: 12px;
+      min-height: 120px;
+      padding: 10px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
       box-shadow: var(--shadow-card);
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      margin: 4px;
-      border-radius: 14px;
+      margin: 3px;
+      border-radius: 12px;
     }
 
     .day-cell:last-child {
@@ -394,8 +381,8 @@
     }
 
     .day-cell:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
       background: #ffffff;
       z-index: 20;
     }
@@ -407,14 +394,9 @@
     }
 
     .day-cell.other-month {
-      background: #f6f7fb;
+      background: #ffffff;
       border-color: #e5e7eb;
-      opacity: 0.7;
-    }
-
-    .day-cell.other-month .day-number,
-    .day-cell.other-month .day-meta {
-      color: rgba(156, 163, 175, 0.8);
+      opacity: 1;
     }
 
     .day-cell.drop-target {
@@ -489,6 +471,7 @@
       font-weight: 500;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
+
 
     .card:hover {
       transform: scale(1.01);

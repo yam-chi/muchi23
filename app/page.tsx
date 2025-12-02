@@ -1024,8 +1024,15 @@ export default function Page() {
           startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
           endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
           renderCalendar();
-          if (calendarWrapper) calendarWrapper.scrollTop = 0;
-          updateMonthTitle(current);
+          requestAnimationFrame(() => {
+            skipAutoExtend = true;
+            if (calendarWrapper) calendarWrapper.scrollTop = 0;
+            setTimeout(() => {
+              skipAutoExtend = false;
+              updateMonthTitle(current);
+              syncMonthHeaderWithScroll();
+            }, 80);
+          });
           closeMonthDropdown();
         });
       });

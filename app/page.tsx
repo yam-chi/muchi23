@@ -1065,15 +1065,16 @@ export default function Page() {
       );
       if (!days.length) return;
       const container = calendarWrapper || document.documentElement;
-      const scrollY = container.scrollTop;
+      const baseline = container.scrollTop + container.clientHeight * 0.4; // 화면 40% 지점 기준
       let targetDate: Date | null = null;
-      let bestTop = Number.POSITIVE_INFINITY;
+      let bestGap = Number.POSITIVE_INFINITY;
       days.forEach((cell) => {
         const top = cell.offsetTop;
         const bottom = top + cell.offsetHeight;
-        if (bottom <= scrollY) return; // 완전히 위로 지나간 셀은 제외
-        if (top < bestTop) {
-          bestTop = top;
+        if (bottom < baseline) return; // 기준보다 완전히 위인 셀은 제외
+        const gap = Math.abs(top - baseline);
+        if (gap < bestGap) {
+          bestGap = gap;
           const dateKey = cell.dataset.date;
           if (dateKey) {
             const [y, m, d] = dateKey.split("-").map(Number);

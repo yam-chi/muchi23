@@ -30,7 +30,7 @@ const MONTH_NAMES = [
   "11월",
   "12월",
 ];
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAY_NAMES_MON_FIRST = ["월", "화", "수", "목", "금", "토", "일"];
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
 
 export default function Page() {
@@ -493,7 +493,8 @@ export default function Page() {
       const endDate = new Date(lastOfRange);
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
-      const leadingEmpty = startDate.getDay(); // 요일 맞추기용 앞부분 빈 칸
+      // 월요일을 주 시작으로 맞추기 위한 앞쪽 빈 칸 수
+      const leadingEmpty = (startDate.getDay() + 6) % 7;
 
       // 앞쪽 빈 셀로 요일 정렬
       for (let i = 0; i < leadingEmpty; i++) {
@@ -527,10 +528,11 @@ export default function Page() {
           cell.classList.add("other-month");
         }
 
-        const w = thisDate.getDay();
+        const w = thisDate.getDay(); // 0(일)~6(토)
         const dayOfMonth = thisDate.getDate();
 
-        numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${WEEKDAY_NAMES[w]})`;
+        const label = WEEKDAY_NAMES_MON_FIRST[w === 0 ? 6 : w - 1];
+        numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${label})`;
         if (w === 0) numEl.classList.add("sun");
         else if (w === 6) numEl.classList.add("sat");
 
@@ -1163,6 +1165,7 @@ export default function Page() {
           <div className="month-picker">
             <button className="month-display" id="monthPickerToggle" type="button">
               <span className="month-title" id="monthTitle" />
+              <span className="month-caret">▾</span>
             </button>
             <div className="month-dropdown" id="monthDropdown">
               <div className="ym-header">
@@ -1243,13 +1246,13 @@ export default function Page() {
 
         <div className="calendar-wrapper">
           <div className="weekday-row">
-            <div>일</div>
             <div>월</div>
             <div>화</div>
             <div>수</div>
             <div>목</div>
             <div>금</div>
             <div>토</div>
+            <div>일</div>
           </div>
           <div className="calendar-grid" id="calendarGrid" />
         </div>

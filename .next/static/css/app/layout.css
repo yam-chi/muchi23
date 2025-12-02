@@ -187,18 +187,21 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      background: rgba(255, 255, 255, 0.3);
-      font-size: 15px;
-      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
 
     .month-display:hover {
-      background: rgba(255, 255, 255, 0.5);
+      background: #f8fafc;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+      transform: translateY(-1px);
     }
 
     .month-caret {
@@ -362,7 +365,7 @@
       grid-gap: 8px;
       gap: 8px;
       margin-bottom: 12px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: rgba(17, 24, 39, 0.6);
       text-align: center;
@@ -372,9 +375,9 @@
     /* 주별 레이아웃 + 접기/펼치기 */
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(140px, 1fr));
-      grid-gap: 8px;
-      gap: 8px;
+      grid-template-columns: repeat(7, minmax(150px, 1fr));
+      grid-gap: 10px;
+      gap: 10px;
     }
 
     .week-row-outside .week-row-title {
@@ -420,14 +423,14 @@
 
     /* === Day Cells (Glass Chips) === */
     .day-cell {
-      min-height: 120px;
-      padding: 10px;
+      min-height: 140px;
+      padding: 12px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
       box-shadow: var(--shadow-card);
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      margin: 3px;
+      margin: 4px;
       border-radius: 12px;
     }
 
@@ -445,7 +448,7 @@
 
     .day-cell:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
       background: #ffffff;
       z-index: 20;
     }
@@ -477,8 +480,8 @@
     }
 
     .day-number {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 600;
     }
 
     .day-number.sun {
@@ -520,8 +523,8 @@
     /* === Cards === */
     .card {
       position: relative;
-      margin-bottom: 8px;
-      padding: 8px 10px 8px 20px;
+      margin-bottom: 10px;
+      padding: 10px 12px 10px 22px;
       border-radius: 10px;
       background: #ffffff;
       border: 1px solid #e5e7eb;

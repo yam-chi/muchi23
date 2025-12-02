@@ -906,25 +906,7 @@ export default function Page() {
     renderCalendar();
 
     // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
-    prevBtn?.addEventListener("click", () => {
-      syncCurrentMonthFromDom();
-      current.setMonth(current.getMonth() - 1);
-      startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
-      endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-      renderCalendar();
-      if (calendarWrapper) calendarWrapper.scrollTop = 0;
-      syncMonthHeaderWithScroll();
-    });
-
-    nextBtn?.addEventListener("click", () => {
-      syncCurrentMonthFromDom();
-      current.setMonth(current.getMonth() + 1);
-      startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
-      endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-      renderCalendar();
-      if (calendarWrapper) calendarWrapper.scrollTop = 0;
-      syncMonthHeaderWithScroll();
-    });
+    // prev/next 버튼은 숨김 상태 (동작 비활성)
 
     if (todayBtn) {
       todayBtn.addEventListener("click", () => {
@@ -934,19 +916,31 @@ export default function Page() {
         startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
         endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         renderCalendar();
-        const target = document.querySelector<HTMLDivElement>(".day-cell.today");
-        if (target) {
-          const container = calendarWrapper || document.documentElement;
-          const containerRect = container.getBoundingClientRect();
-          const targetRect = target.getBoundingClientRect();
-          const headerHeight = headerCollapsed ? 0 : 140;
-          const desiredOffset = container.clientHeight * 0.25;
-          const offset = targetRect.top - containerRect.top + container.scrollTop - headerHeight - desiredOffset;
-          container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
-          setTimeout(syncMonthHeaderWithScroll, 350);
-        } else if (calendarWrapper) {
-          calendarWrapper.scrollTop = 0;
-        }
+        requestAnimationFrame(() => {
+          const target = document.querySelector<HTMLDivElement>(".day-cell.today");
+          if (target) {
+            const container = calendarWrapper || document.documentElement;
+            const containerRect = container.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const headerHeight = headerCollapsed ? 0 : 140;
+            const desiredOffset = container.clientHeight * 0.5;
+            const offset =
+              targetRect.top - containerRect.top + container.scrollTop - headerHeight - desiredOffset;
+            skipAutoExtend = true;
+            container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+            setTimeout(() => {
+              skipAutoExtend = false;
+              syncMonthHeaderWithScroll();
+            }, 450);
+          } else if (calendarWrapper) {
+            skipAutoExtend = true;
+            calendarWrapper.scrollTop = 0;
+            setTimeout(() => {
+              skipAutoExtend = false;
+              syncMonthHeaderWithScroll();
+            }, 120);
+          }
+        });
       });
     }
 
@@ -1010,10 +1004,12 @@ export default function Page() {
       ymPrevYear.addEventListener("click", () => {
         pickerYear--;
         if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+        updateMonthTitle(new Date(pickerYear, current.getMonth(), 1));
       });
       ymNextYear.addEventListener("click", () => {
         pickerYear++;
         if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+        updateMonthTitle(new Date(pickerYear, current.getMonth(), 1));
       });
     }
 
@@ -1029,6 +1025,7 @@ export default function Page() {
           endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
           renderCalendar();
           if (calendarWrapper) calendarWrapper.scrollTop = 0;
+          updateMonthTitle(current);
           closeMonthDropdown();
         });
       });
@@ -1091,6 +1088,7 @@ export default function Page() {
     // 인피니트 스크롤: 상/하단 근접 시 범위 확장
     let loadingPrev = false;
     let loadingNext = false;
+    let skipAutoExtend = false;
 
     function extendRange(direction: "prev" | "next") {
       const container = calendarWrapper || document.documentElement;
@@ -1116,6 +1114,10 @@ export default function Page() {
       const scrollTop = container.scrollTop;
       const clientHeight = container.clientHeight;
       const scrollHeight = container.scrollHeight;
+
+      if (skipAutoExtend) {
+        return;
+      }
 
       if (scrollTop < 120 && !loadingPrev) {
         extendRange("prev");

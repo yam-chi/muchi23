@@ -115,6 +115,12 @@
       transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
     }
 
+    /* prev/next 버튼 숨김 */
+    #prevMonth,
+    #nextMonth {
+      display: none;
+    }
+
     .month-title {
       font-size: 24px;
       font-weight: 700;

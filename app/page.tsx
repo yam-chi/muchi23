@@ -1144,14 +1144,14 @@ export default function Page() {
     }
   }, []);
 
-    return (
+  return (
     <div className="app">
-      <button className="btn header-toggle" id="headerToggle">
-        헤더 숨기기
-      </button>
       <div className="main-glass-panel">
+        <button className="btn header-toggle" id="headerToggle">
+          헤더 숨기기
+        </button>
         <header>
-          <div>MUCHI NOTE</div>
+          <div className="title">MUCHI NOTE</div>
           <div className="hint">
             💡 날짜 더블클릭 = 새 카드 · 카드 클릭 = 수정 · 카드 더블클릭 = 완료 토글 · 드래그로 이월 · 주 제목 클릭
             = 주별 접기/펼치기 · 카드 색상 버튼으로 슬롯 색 바꾸기

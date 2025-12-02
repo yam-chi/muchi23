@@ -63,6 +63,7 @@ export default function Page() {
 
     const calendarGrid = document.getElementById("calendarGrid") as HTMLElement | null;
     const calendarWrapper = document.querySelector(".calendar-wrapper") as HTMLElement | null;
+    const headerToggle = document.getElementById("headerToggle") as HTMLButtonElement | null;
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
@@ -98,11 +99,12 @@ export default function Page() {
     let current = new Date();
     current.setDate(1);
     let pickerYear = current.getFullYear();
-    // 인피니트 스크롤 범위: 시작/끝 달
-    let startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    // 인피니트 스크롤 범위: 시작 달(포함) / 끝 달 시작(제외)
+    let startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
     let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
     let state: State = { nextId: 1, cards: {}, weekVisibility: {} };
+    let headerCollapsed = false;
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
@@ -485,21 +487,20 @@ export default function Page() {
       const endMonth = new Date(endCursor);
 
       const firstOfRange = new Date(startMonth.getFullYear(), startMonth.getMonth(), 1);
-      const lastOfRange = new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0);
+      const lastOfRange = new Date(endMonth.getFullYear(), endMonth.getMonth(), 0); // endCursor는 다음달 1일(제외)
 
-      const firstWeekStart = new Date(firstOfRange);
-      const firstWeekday = firstWeekStart.getDay();
-      firstWeekStart.setDate(firstWeekStart.getDate() - firstWeekday);
-
-      const lastWeekEnd = new Date(lastOfRange);
-      const lastWeekday = lastWeekEnd.getDay();
-      lastWeekEnd.setDate(lastWeekEnd.getDate() + (6 - lastWeekday));
-
-      const startDate = new Date(firstWeekStart);
-      const endDate = new Date(lastWeekEnd);
-
+      const startDate = new Date(firstOfRange);
+      const endDate = new Date(lastOfRange);
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
+      const leadingEmpty = startDate.getDay(); // 요일 맞추기용 앞부분 빈 칸
+
+      // 앞쪽 빈 셀로 요일 정렬
+      for (let i = 0; i < leadingEmpty; i++) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "day-cell placeholder";
+        calendarGrid.appendChild(placeholder);
+      }
 
       for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
         const cell = document.createElement("div");
@@ -676,6 +677,15 @@ export default function Page() {
           dragPlaceholder = null;
           draggingCards = [];
         });
+      }
+
+      // 뒷쪽 빈 셀로 마지막 주 채우기
+      const totalCells = leadingEmpty + totalDays;
+      const trailing = (7 - (totalCells % 7)) % 7;
+      for (let i = 0; i < trailing; i++) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "day-cell placeholder";
+        calendarGrid.appendChild(placeholder);
       }
 
       // 스크롤 위치 기준으로 월 타이틀을 동기화
@@ -899,19 +909,21 @@ export default function Page() {
     prevBtn?.addEventListener("click", () => {
       syncCurrentMonthFromDom();
       current.setMonth(current.getMonth() - 1);
-      startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+      startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
       endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       renderCalendar();
       if (calendarWrapper) calendarWrapper.scrollTop = 0;
+      syncMonthHeaderWithScroll();
     });
 
     nextBtn?.addEventListener("click", () => {
       syncCurrentMonthFromDom();
       current.setMonth(current.getMonth() + 1);
-      startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+      startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
       endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       renderCalendar();
       if (calendarWrapper) calendarWrapper.scrollTop = 0;
+      syncMonthHeaderWithScroll();
     });
 
     if (todayBtn) {
@@ -919,10 +931,22 @@ export default function Page() {
         syncCurrentMonthFromDom();
         const now = new Date();
         current = new Date(now.getFullYear(), now.getMonth(), 1);
-        startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+        startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
         endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         renderCalendar();
-        if (calendarWrapper) calendarWrapper.scrollTop = 0;
+        const target = document.querySelector<HTMLDivElement>(".day-cell.today");
+        if (target) {
+          const container = calendarWrapper || document.documentElement;
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const headerHeight = headerCollapsed ? 0 : 140;
+          const desiredOffset = container.clientHeight * 0.25;
+          const offset = targetRect.top - containerRect.top + container.scrollTop - headerHeight - desiredOffset;
+          container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+          setTimeout(syncMonthHeaderWithScroll, 350);
+        } else if (calendarWrapper) {
+          calendarWrapper.scrollTop = 0;
+        }
       });
     }
 
@@ -1001,7 +1025,7 @@ export default function Page() {
           current.setFullYear(pickerYear);
           current.setMonth(monthIndex);
           current.setDate(1);
-          startCursor = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+          startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
           endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
           renderCalendar();
           if (calendarWrapper) calendarWrapper.scrollTop = 0;
@@ -1016,17 +1040,34 @@ export default function Page() {
     (window as typeof window & { _dumpState?: () => State })._dumpState = () =>
       JSON.parse(JSON.stringify(state));
 
+    // 헤더 토글
+    function setHeaderVisibility(collapsed: boolean) {
+      headerCollapsed = collapsed;
+      document.body.classList.toggle("header-collapsed", collapsed);
+      if (headerToggle) {
+        headerToggle.textContent = collapsed ? "헤더 보이기" : "헤더 숨기기";
+      }
+    }
+    if (headerToggle) {
+      headerToggle.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
+      setHeaderVisibility(false);
+    }
+
     // ===== 스크롤 동기화: 화면 상단에 보이는 일(또는 카드)의 월로 헤더 업데이트 =====
     let syncRaf = 0;
     function syncMonthHeaderWithScroll() {
-      const days = Array.from(document.querySelectorAll<HTMLDivElement>(".day-cell"));
+      const days = Array.from(document.querySelectorAll<HTMLDivElement>(".day-cell")).filter(
+        (cell) => !!cell.dataset.date,
+      );
       if (!days.length) return;
+      const container = calendarWrapper || document.documentElement;
+      const scrollY = container.scrollTop;
       let targetDate: Date | null = null;
       let bestTop = Number.POSITIVE_INFINITY;
       days.forEach((cell) => {
-        const rect = cell.getBoundingClientRect();
-        if (rect.bottom <= 0) return;
-        const top = Math.max(rect.top, 0);
+        const top = cell.offsetTop;
+        const bottom = top + cell.offsetHeight;
+        if (bottom <= scrollY) return; // 완전히 위로 지나간 셀은 제외
         if (top < bestTop) {
           bestTop = top;
           const dateKey = cell.dataset.date;
@@ -1091,8 +1132,11 @@ export default function Page() {
     }
   }, []);
 
-  return (
+    return (
     <div className="app">
+      <button className="btn header-toggle" id="headerToggle">
+        헤더 숨기기
+      </button>
       <div className="main-glass-panel">
         <header>
           <div>MUCHI NOTE</div>

@@ -376,6 +376,13 @@
       object-fit: contain;
     }
 
+    .emoji-placeholder {
+      height: 4px;
+      background: #2563eb;
+      border-radius: 999px;
+      margin: 2px 4px;
+    }
+
     .emoji-img {
       width: 20px;
       height: 20px;

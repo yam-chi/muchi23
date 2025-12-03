@@ -43,6 +43,7 @@ const FIXED_HOLIDAYS: Record<string, string> = {
 };
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
 const EMOJI_STORE_KEY = "muchi-emoji-store";
+const EMOJI_ORDER_KEY = "muchi-emoji-order";
 const DEFAULT_EMOJI_CHARS = ["✅", "🔥", "⭐️", "📌", "❤️", "👍", "💡", "❗️", "💪"];
 
 export default function Page() {
@@ -126,6 +127,8 @@ export default function Page() {
     let lastActiveDateKey: string | null = null;
     let cardClipboard: CardData[] = [];
     let emojiList: Array<{ id: string; src: string; name: string }> = [];
+    let emojiOrder: string[] = [];
+    let draggingUploadId: string | null = null;
     const HISTORY_LIMIT = 200;
     let history: State[] = [];
     let historyIndex = -1;
@@ -227,6 +230,25 @@ export default function Page() {
         localStorage.setItem(EMOJI_STORE_KEY, JSON.stringify(emojiList));
       } catch (e) {
         console.error("saveEmojis error", e);
+      }
+    }
+
+    function loadEmojiOrder() {
+      try {
+        const raw = localStorage.getItem(EMOJI_ORDER_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) emojiOrder = parsed.filter((id) => typeof id === "string");
+      } catch (e) {
+        console.error("loadEmojiOrder error", e);
+      }
+    }
+
+    function saveEmojiOrder() {
+      try {
+        localStorage.setItem(EMOJI_ORDER_KEY, JSON.stringify(emojiOrder));
+      } catch (e) {
+        console.error("saveEmojiOrder error", e);
       }
     }
 
@@ -1660,96 +1682,179 @@ export default function Page() {
 
     function renderEmojiPalette() {
       if (!emojiPalette) return;
-      let listEl =
-        emojiPalette.querySelector<HTMLElement>("#emojiPaletteList") ||
-        (() => {
-          const el = document.createElement("div");
-          el.id = "emojiPaletteList";
-          el.className = "emoji-list";
-          emojiPalette.appendChild(el);
-          return el;
-        })();
-      listEl.innerHTML = "";
+      const oldList = emojiPalette.querySelector<HTMLElement>("#emojiPaletteList");
+      const listEl = document.createElement("div");
+      listEl.id = "emojiPaletteList";
+      listEl.className = "emoji-list";
+      if (oldList) {
+        emojiPalette.replaceChild(listEl, oldList);
+      } else {
+        emojiPalette.appendChild(listEl);
+      }
 
       const seen = new Set<string>();
+
+      const orderedUploadEmojis = (() => {
+        const map = new Map(emojiList.map((e) => [e.id, e]));
+        const ordered: typeof emojiList = [];
+        emojiOrder.forEach((id) => {
+          const item = map.get(id);
+          if (item) {
+            ordered.push(item);
+            map.delete(id);
+          }
+        });
+        map.forEach((item) => ordered.push(item));
+        return ordered;
+      })();
+
+      let placeholder: HTMLDivElement | null = null;
+
+      function ensurePlaceholder() {
+        if (placeholder) return placeholder;
+        const ph = document.createElement("div");
+        ph.className = "emoji-placeholder";
+        placeholder = ph;
+        return ph;
+      }
+
+      const buildBtn = (
+        type: "default" | "upload",
+        payload: { ch?: string; item?: { id: string; src: string; name: string } },
+      ) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "emoji-btn";
+        btn.draggable = type === "upload";
+
+        btn.addEventListener("dragstart", (e) => {
+          if (type !== "upload") return;
+          btn.classList.add("dragging");
+          draggingUploadId = payload.item?.id ?? null;
+          if (e.dataTransfer) {
+            e.dataTransfer.setData("text/plain", payload.item?.id ?? "");
+            e.dataTransfer.effectAllowed = "move";
+          }
+        });
+
+        btn.addEventListener("dragend", () => {
+          btn.classList.remove("dragging");
+          draggingUploadId = null;
+          if (placeholder && placeholder.parentElement) placeholder.parentElement.removeChild(placeholder);
+          placeholder = null;
+        });
+
+        const runInsert = (html: string) => {
+          const targetContent = lastFocusedContent || lastActiveCardContent;
+          if (!targetContent || !targetContent.closest(".card")) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          targetContent.focus();
+          if (lastRange) {
+            sel?.addRange(lastRange);
+          } else if (targetContent) {
+            const r = document.createRange();
+            r.selectNodeContents(targetContent);
+            r.collapse(false);
+            sel?.addRange(r);
+            lastRange = r.cloneRange();
+          }
+          const ok = insertAtSelection(html, { strictCard: true });
+          if (!ok) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          const focusedCard = targetContent.closest(".card");
+          if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
+        };
+
+        if (type === "default" && payload.ch) {
+          btn.textContent = payload.ch;
+          btn.addEventListener("click", () => runInsert(payload.ch ?? ""));
+        } else if (type === "upload" && payload.item) {
+          const img = document.createElement("img");
+          img.src = payload.item.src;
+          img.alt = payload.item.name || "emoji";
+          btn.appendChild(img);
+          btn.addEventListener("click", () =>
+            runInsert(`<img class="emoji-img" src="${payload.item?.src || ""}">`),
+          );
+        }
+        return btn;
+      };
 
       DEFAULT_EMOJI_CHARS.forEach((ch) => {
         if (seen.has(ch)) return;
         seen.add(ch);
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "emoji-btn";
-        btn.textContent = ch;
-        btn.addEventListener("click", () => {
-          const targetContent = lastFocusedContent || lastActiveCardContent;
-          if (!targetContent || !targetContent.closest(".card")) {
-            showToast("카드를 먼저 클릭해 주세요.");
-            return;
-          }
-          // 커서 복구
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          targetContent.focus();
-          if (lastRange) {
-            sel?.addRange(lastRange);
-          } else if (targetContent) {
-            const r = document.createRange();
-            r.selectNodeContents(targetContent);
-            r.collapse(false);
-            sel?.addRange(r);
-            lastRange = r.cloneRange();
-          }
-          const ok = insertAtSelection(ch, { strictCard: true });
-          if (!ok) {
-            showToast("카드를 먼저 클릭해 주세요.");
-            return;
-          }
-          const focusedCard = lastFocusedContent?.closest(".card");
-          if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
-        });
-        listEl.appendChild(btn);
+        listEl.appendChild(buildBtn("default", { ch }));
       });
 
-      emojiList.forEach((item) => {
+      orderedUploadEmojis.forEach((item) => {
         if (seen.has(item.src)) return;
         seen.add(item.src);
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "emoji-btn";
-        const img = document.createElement("img");
-        img.src = item.src;
-        img.alt = item.name || "emoji";
-        btn.appendChild(img);
-        btn.addEventListener("click", () => {
-          const targetContent = lastFocusedContent || lastActiveCardContent;
-          if (!targetContent || !targetContent.closest(".card")) {
-            showToast("카드를 먼저 클릭해 주세요.");
-            return;
-          }
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          targetContent.focus();
-          if (lastRange) {
-            sel?.addRange(lastRange);
-          } else if (targetContent) {
-            const r = document.createRange();
-            r.selectNodeContents(targetContent);
-            r.collapse(false);
-            sel?.addRange(r);
-            lastRange = r.cloneRange();
-          }
-          const ok = insertAtSelection(`<img class="emoji-img" src="${item.src}">`, { strictCard: true });
-          if (!ok) {
-            showToast("카드를 먼저 클릭해 주세요.");
-            return;
-          }
-          const focusedCard = lastFocusedContent?.closest(".card");
-          if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
-        });
-        listEl.appendChild(btn);
+        listEl.appendChild(buildBtn("upload", { item }));
       });
 
-      emojiPalette.appendChild(listEl);
+      listEl.addEventListener("dragover", (e) => {
+        if (!draggingUploadId) return;
+        e.preventDefault();
+        const ph = ensurePlaceholder();
+        const target = (e.target as HTMLElement).closest(".emoji-btn");
+        const children = Array.from(listEl.children);
+        if (target && target.parentElement === listEl) {
+          const idx = children.indexOf(target);
+          const isDefault = idx > -1 && idx < DEFAULT_EMOJI_CHARS.length;
+          if (isDefault) {
+            const anchor = children[DEFAULT_EMOJI_CHARS.length - 1];
+            if (anchor) {
+              listEl.insertBefore(ph, anchor.nextSibling);
+            } else {
+              listEl.appendChild(ph);
+            }
+          } else {
+            const rect = target.getBoundingClientRect();
+            const before = e.clientY < rect.top + rect.height / 2;
+            if (before) {
+              listEl.insertBefore(ph, target);
+            } else {
+              listEl.insertBefore(ph, target.nextSibling);
+            }
+          }
+        } else if (!ph.parentElement) {
+          listEl.appendChild(ph);
+        }
+      });
+
+      listEl.addEventListener("drop", (e) => {
+        if (!draggingUploadId) return;
+        e.preventDefault();
+        const ph = placeholder;
+        const children = Array.from(listEl.children);
+        const uploads = children.slice(DEFAULT_EMOJI_CHARS.length);
+        let uploadTargetIndex = ph ? uploads.indexOf(ph) : uploads.length;
+        if (uploadTargetIndex < 0) uploadTargetIndex = uploads.length;
+        if (ph && ph.parentElement) ph.parentElement.removeChild(ph);
+        placeholder = null;
+
+        const order = emojiOrder.filter((id) => id !== draggingUploadId);
+        const uploadsCount = emojiOrder.length;
+        const clamped = Math.max(0, Math.min(uploadTargetIndex, uploadsCount));
+        order.splice(clamped, 0, draggingUploadId);
+        emojiOrder = order;
+        saveEmojiOrder();
+        renderEmojiPalette();
+      });
+
+      listEl.addEventListener("dragleave", (e) => {
+        if (!draggingUploadId) return;
+        const related = e.relatedTarget as HTMLElement | null;
+        if (related && listEl.contains(related)) return;
+        if (placeholder && placeholder.parentElement) placeholder.parentElement.removeChild(placeholder);
+        placeholder = null;
+      });
     }
 
     function handleEmojiFile(file: File) {
@@ -1768,7 +1873,10 @@ export default function Page() {
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         emojiList.unshift({ id, src, name: file.name });
         emojiList = emojiList.slice(0, 40); // 제한
+        emojiOrder.unshift(id);
+        emojiOrder = emojiOrder.slice(0, 40);
         saveEmojis();
+        saveEmojiOrder();
         renderEmojiPalette();
       };
       reader.readAsDataURL(file);
@@ -1811,6 +1919,11 @@ export default function Page() {
         keepFocusFromPalette = false;
       });
       emojiPalette.addEventListener("pointerdown", (e) => {
+        const dragBtn = (e.target as HTMLElement).closest(".emoji-btn");
+        if (dragBtn && dragBtn instanceof HTMLButtonElement && dragBtn.draggable) {
+          keepFocusFromPalette = true;
+          return; // 드래그를 막지 않음
+        }
         keepFocusFromPalette = true;
         e.preventDefault();
         if (lastFocusedContent) {
@@ -1833,6 +1946,7 @@ export default function Page() {
     }
 
     loadEmojis();
+    loadEmojiOrder();
     renderEmojiPalette();
 
     toggleWeekendUI();

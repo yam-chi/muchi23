@@ -592,7 +592,13 @@ export default function Page() {
       });
 
       content.addEventListener("blur", () => {
-        lastFocusedContent = null;
+        setTimeout(() => {
+          const active = document.activeElement as HTMLElement | null;
+          if (active && (active.closest(".emoji-palette") || active.closest(".card-content"))) {
+            return;
+          }
+          lastFocusedContent = null;
+        }, 0);
       });
 
       // 복사/붙여넣기: 텍스트+이모지(img dataURL)만 허용
@@ -1602,17 +1608,18 @@ export default function Page() {
     ) as HTMLButtonElement | null;
     const emojiUpload = document.getElementById("emojiUpload") as HTMLInputElement | null;
     const emojiPalette = document.getElementById("emojiPalette") as HTMLElement | null;
-    const emojiPaletteList = document.getElementById("emojiPaletteList") as HTMLElement | null;
 
     function renderEmojiPalette() {
       if (!emojiPalette) return;
-      let listEl = emojiPaletteList;
-      if (!listEl) {
-        listEl = document.createElement("div");
-        listEl.id = "emojiPaletteList";
-        listEl.className = "emoji-list";
-        emojiPalette.appendChild(listEl);
-      }
+      let listEl =
+        emojiPalette.querySelector<HTMLElement>("#emojiPaletteList") ||
+        (() => {
+          const el = document.createElement("div");
+          el.id = "emojiPaletteList";
+          el.className = "emoji-list";
+          emojiPalette.appendChild(el);
+          return el;
+        })();
       listEl.innerHTML = "";
 
       const seen = new Set<string>();
@@ -1669,6 +1676,11 @@ export default function Page() {
           alert("이미지 파일만 업로드 가능합니다.");
           return;
         }
+        // 중복 방지
+        if (emojiList.some((e) => e.src === src)) {
+          renderEmojiPalette();
+          return;
+        }
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         emojiList.unshift({ id, src, name: file.name });
         emojiList = emojiList.slice(0, 40); // 제한
@@ -1697,6 +1709,9 @@ export default function Page() {
       emojiPalette.addEventListener("mousedown", (e) => {
         // 팔레트 클릭 시 카드 포커스 유지
         e.preventDefault();
+        if (lastFocusedContent) {
+          lastFocusedContent.focus();
+        }
       });
       document.addEventListener("click", (e) => {
         const t = e.target as HTMLElement;

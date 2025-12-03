@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 type CardData = {
   id: number;
-  text: string;
+  text: string; // HTML-safe string (text + optional <img class="emoji-img" src="data:image/...">)
   done: boolean;
   color: string;
 };
@@ -42,6 +42,8 @@ const FIXED_HOLIDAYS: Record<string, string> = {
   "12-25": "크리스마스",
 };
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
+const EMOJI_STORE_KEY = "muchi-emoji-store";
+const DEFAULT_EMOJI_CHARS = ["✅", "🔥", "⭐️", "📌", "❤️", "👍", "💡", "❗️", "💪"];
 
 export default function Page() {
   useEffect(() => {
@@ -123,12 +125,14 @@ export default function Page() {
     let lastActiveDayCell: HTMLElement | null = null;
     let lastActiveDateKey: string | null = null;
     let cardClipboard: CardData[] = [];
+    let emojiList: Array<{ id: string; src: string; name: string }> = [];
     const HISTORY_LIMIT = 200;
     let history: State[] = [];
     let historyIndex = -1;
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
+    let lastFocusedContent: HTMLDivElement | null = null;
 
     function toggleSelection(card: HTMLDivElement) {
       card.classList.toggle("selected");
@@ -136,6 +140,82 @@ export default function Page() {
 
     function clearSelection() {
       document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
+    }
+
+    function sanitizeToTextAndEmojis(html: string) {
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null);
+      let result = "";
+      const allowedImg = (el: Element) =>
+        el.tagName.toLowerCase() === "img" &&
+        el.getAttribute("src")?.startsWith("data:image/") &&
+        (el as HTMLImageElement).src.length < 500000; // cap size
+
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.nodeType === Node.TEXT_NODE) {
+          result += node.textContent ?? "";
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const el = node as HTMLElement;
+          if (allowedImg(el)) {
+            const src = el.getAttribute("src") || "";
+            result += `<img class="emoji-img" src="${src}">`;
+          }
+        }
+      }
+      return result;
+    }
+
+    function insertAtSelection(htmlFragment: string, opts?: { strictCard?: boolean }) {
+      const selection = window.getSelection();
+      const strictCard = opts?.strictCard ?? false;
+      let range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+
+      if (!range && lastFocusedContent) {
+        range = document.createRange();
+        range.selectNodeContents(lastFocusedContent);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        if (selection && range) selection.addRange(range);
+      }
+
+      if (!range) return false;
+      if (strictCard && (!lastFocusedContent || !lastFocusedContent.closest(".card"))) return false;
+
+      range.deleteContents();
+      const temp = document.createElement("div");
+      temp.innerHTML = htmlFragment;
+      const frag = document.createDocumentFragment();
+      while (temp.firstChild) {
+        frag.appendChild(temp.firstChild);
+      }
+      range.insertNode(frag);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      if (selection) selection.addRange(range);
+      return true;
+    }
+
+    function loadEmojis() {
+      try {
+        const raw = localStorage.getItem(EMOJI_STORE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          emojiList = parsed.filter((e) => typeof e.src === "string" && typeof e.id === "string");
+        }
+      } catch (e) {
+        console.error("loadEmojis error", e);
+      }
+    }
+
+    function saveEmojis() {
+      try {
+        localStorage.setItem(EMOJI_STORE_KEY, JSON.stringify(emojiList));
+      } catch (e) {
+        console.error("saveEmojis error", e);
+      }
     }
 
     function setActiveDay(cell: HTMLElement | null) {
@@ -404,7 +484,7 @@ export default function Page() {
       if (!Number.isFinite(id)) return;
 
       const content = card.querySelector(".card-content");
-      const text = content ? content.textContent ?? "" : "";
+      const text = content ? content.innerHTML ?? "" : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
       upsertCard(dateKey, { id, text, done, color });
@@ -426,7 +506,7 @@ export default function Page() {
           const id = Number(idStr);
           if (!Number.isFinite(id)) return;
           const content = card.querySelector(".card-content");
-          const text = content ? content.textContent ?? "" : "";
+          const text = content ? content.innerHTML ?? "" : "";
           const done = card.classList.contains("done");
           const color = card.dataset.color || "default";
           list.push({ id, text, done, color });
@@ -505,22 +585,43 @@ export default function Page() {
       card.id = `card-${id}`;
       card.dataset.color = color;
       applyCardColorClass(card, color);
-      content.textContent = text || "";
+      content.innerHTML = sanitizeToTextAndEmojis(text || "");
 
-      // 복사/붙여넣기 시 텍스트만 처리하도록 강제
+      content.addEventListener("focus", () => {
+        lastFocusedContent = content;
+      });
+
+      content.addEventListener("blur", () => {
+        lastFocusedContent = null;
+      });
+
+      // 복사/붙여넣기: 텍스트+이모지(img dataURL)만 허용
       content.addEventListener("copy", (e) => {
         const sel = window.getSelection();
-        const copied = sel ? sel.toString() : content.innerText;
+        if (!sel) return;
+        const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+        if (!range) return;
+        const div = document.createElement("div");
+        div.appendChild(range.cloneContents());
+        const sanitized = sanitizeToTextAndEmojis(div.innerHTML);
         if (e.clipboardData) {
-          e.clipboardData.setData("text/plain", copied);
+          e.clipboardData.setData("text/html", sanitized);
+          e.clipboardData.setData("text/plain", div.textContent || "");
           e.preventDefault();
         }
       });
+
       content.addEventListener("paste", (e) => {
         e.preventDefault();
-        const pasteText = e.clipboardData?.getData("text/plain") ?? "";
-        document.execCommand("insertText", false, pasteText);
-        setTimeout(() => syncOneCardFromDom(card), 0);
+        const html = e.clipboardData?.getData("text/html");
+        const plain = e.clipboardData?.getData("text/plain") ?? "";
+        const sanitized = html ? sanitizeToTextAndEmojis(html) : plain;
+        if (sanitized) {
+          insertAtSelection(sanitized);
+          syncOneCardFromDom(card);
+          // 안전망
+          setTimeout(() => syncOneCardFromDom(card), 0);
+        }
       });
 
       const dayCell = container.closest(".day-cell") as HTMLElement | null;
@@ -1179,7 +1280,11 @@ export default function Page() {
       const target = e.target as HTMLElement;
       if (target.closest(".card")) return;
       if (target.closest(".month-picker")) return;
+      if (emojiPalette && emojiPalette.contains(target)) return;
       clearSelection();
+      if (!target.closest(".card-content")) {
+        lastFocusedContent = null;
+      }
 
       if (!monthDropdown || !monthPickerToggle) return;
       if (!monthDropdown.classList.contains("open")) return;
@@ -1410,7 +1515,11 @@ export default function Page() {
       pushHistory();
 
       data.forEach((c) => {
-        const created = createCard(bodyEl, { text: c.text, done: c.done, color: c.color }, { autoEdit: false, fromState: false });
+        const created = createCard(
+          bodyEl,
+          { text: c.text, done: c.done, color: c.color },
+          { autoEdit: false, fromState: false },
+        );
       });
       const key = targetCell.dataset.date;
       if (key) updateDayBadge(key);
@@ -1485,6 +1594,119 @@ export default function Page() {
         saveScale(1);
       });
     }
+
+    // ========== 이모지 업로드 & 팔레트 ==========
+    const emojiTrigger = document.getElementById("emojiTrigger") as HTMLButtonElement | null;
+    const emojiUploadTrigger = document.getElementById(
+      "emojiUploadTrigger",
+    ) as HTMLButtonElement | null;
+    const emojiUpload = document.getElementById("emojiUpload") as HTMLInputElement | null;
+    const emojiPalette = document.getElementById("emojiPalette") as HTMLElement | null;
+    const emojiPaletteList = document.getElementById("emojiPaletteList") as HTMLElement | null;
+
+    function renderEmojiPalette() {
+      if (!emojiPalette) return;
+      let listEl = emojiPaletteList;
+      if (!listEl) {
+        listEl = document.createElement("div");
+        listEl.id = "emojiPaletteList";
+        listEl.className = "emoji-list";
+        emojiPalette.appendChild(listEl);
+      }
+      listEl.innerHTML = "";
+
+      const seen = new Set<string>();
+
+      DEFAULT_EMOJI_CHARS.forEach((ch) => {
+        if (seen.has(ch)) return;
+        seen.add(ch);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "emoji-btn";
+        btn.textContent = ch;
+        btn.addEventListener("click", () => {
+          const ok = insertAtSelection(ch, { strictCard: true });
+          if (!ok) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          const focusedCard = lastFocusedContent?.closest(".card");
+          if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
+        });
+        listEl.appendChild(btn);
+      });
+
+      emojiList.forEach((item) => {
+        if (seen.has(item.src)) return;
+        seen.add(item.src);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "emoji-btn";
+        const img = document.createElement("img");
+        img.src = item.src;
+        img.alt = item.name || "emoji";
+        btn.appendChild(img);
+        btn.addEventListener("click", () => {
+          const ok = insertAtSelection(`<img class="emoji-img" src="${item.src}">`, { strictCard: true });
+          if (!ok) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          const focusedCard = lastFocusedContent?.closest(".card");
+          if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
+        });
+        listEl.appendChild(btn);
+      });
+
+      emojiPalette.appendChild(listEl);
+    }
+
+    function handleEmojiFile(file: File) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = typeof reader.result === "string" ? reader.result : "";
+        if (!src.startsWith("data:image/")) {
+          alert("이미지 파일만 업로드 가능합니다.");
+          return;
+        }
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        emojiList.unshift({ id, src, name: file.name });
+        emojiList = emojiList.slice(0, 40); // 제한
+        saveEmojis();
+        renderEmojiPalette();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (emojiUpload) {
+      emojiUpload.addEventListener("change", () => {
+        const file = emojiUpload.files?.[0];
+        if (file) handleEmojiFile(file);
+        emojiUpload.value = "";
+      });
+    }
+
+    if (emojiUploadTrigger && emojiUpload) {
+      emojiUploadTrigger.addEventListener("click", () => emojiUpload.click());
+    }
+
+    if (emojiTrigger && emojiPalette) {
+      emojiTrigger.addEventListener("click", () => {
+        emojiPalette.classList.toggle("open");
+      });
+      emojiPalette.addEventListener("mousedown", (e) => {
+        // 팔레트 클릭 시 카드 포커스 유지
+        e.preventDefault();
+      });
+      document.addEventListener("click", (e) => {
+        const t = e.target as HTMLElement;
+        if (emojiPalette.contains(t) || emojiTrigger.contains(t)) return;
+        emojiPalette.classList.remove("open");
+      });
+    }
+
+    loadEmojis();
+    renderEmojiPalette();
 
     toggleWeekendUI();
   }, []);
@@ -1583,9 +1805,22 @@ export default function Page() {
               </button>
             </div>
             <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
-            <button className="btn" id="searchBtn">
-              검색
+          <button className="btn" id="searchBtn">
+            검색
+          </button>
+          <div className="emoji-panel">
+            <button className="btn" id="emojiTrigger" type="button">
+              이모지
             </button>
+            <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
+            <div className="emoji-palette" id="emojiPalette">
+              <div className="emoji-upload-row">
+                <button className="btn" id="emojiUploadTrigger" type="button">
+                  업로드
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="scale-control">
             <button className="btn" id="scaleReset" type="button">
               🔍 100%

@@ -77,7 +77,6 @@ export default function Page() {
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
-    const scaleIndicator = document.getElementById("scaleIndicator") as HTMLElement | null;
     const scaleResetBtn = document.getElementById("scaleReset") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
@@ -121,9 +120,12 @@ export default function Page() {
     let marqueeStart: { x: number; y: number } | null = null;
     let marqueeActive = false;
     const SCALE_KEY = "muchi-ui-scale";
-    const COL_WIDTH_KEY = "muchi-cell-widths";
-    const DEFAULT_CELL_WIDTH = 230;
-    let columnWidths = Array(7).fill(DEFAULT_CELL_WIDTH);
+    let lastActiveDayCell: HTMLElement | null = null;
+    let lastActiveDateKey: string | null = null;
+    let cardClipboard: CardData[] = [];
+    const HISTORY_LIMIT = 200;
+    let history: State[] = [];
+    let historyIndex = -1;
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
@@ -136,6 +138,17 @@ export default function Page() {
       document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
     }
 
+    function setActiveDay(cell: HTMLElement | null) {
+      if (!cell || !cell.classList.contains("day-cell")) return;
+      const key = cell.dataset.date || null;
+      if (lastActiveDayCell && lastActiveDayCell !== cell) {
+        lastActiveDayCell.classList.remove("active-day");
+      }
+      lastActiveDayCell = cell;
+      lastActiveDateKey = key;
+      cell.classList.add("active-day");
+    }
+
     function ensureMarqueeBox() {
       if (marqueeBox) return marqueeBox;
       const box = document.createElement("div");
@@ -143,6 +156,14 @@ export default function Page() {
       document.body.appendChild(box);
       marqueeBox = box;
       return box;
+    }
+
+    function isEditableTarget(el: HTMLElement | null) {
+      if (!el) return false;
+      const tag = el.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea") return true;
+      if ((el as HTMLDivElement).isContentEditable) return true;
+      return false;
     }
 
     function updateMarqueeSelection(rect: { left: number; top: number; right: number; bottom: number }) {
@@ -180,6 +201,29 @@ export default function Page() {
       }
     };
 
+    function snapshotState() {
+      return JSON.parse(JSON.stringify(state)) as State;
+    }
+
+    function pushHistory() {
+      // 현재 인덱스 이후 히스토리 제거 후 추가
+      history = history.slice(0, historyIndex + 1);
+      history.push(snapshotState());
+      if (history.length > HISTORY_LIMIT) {
+        history.shift();
+      }
+      historyIndex = history.length - 1;
+    }
+
+    function undo() {
+      if (historyIndex <= 0) return;
+      historyIndex--;
+      const prev = history[historyIndex];
+      state = JSON.parse(JSON.stringify(prev));
+      saveState();
+      renderCalendar();
+    }
+
     function loadScale() {
       try {
         const raw = localStorage.getItem(SCALE_KEY);
@@ -187,7 +231,6 @@ export default function Page() {
         const v = Number(raw);
         if (Number.isFinite(v) && v >= 0.8 && v <= 1.3) {
           document.documentElement.style.setProperty("--ui-scale", String(v));
-          updateScaleIndicator();
         }
       } catch (e) {
         console.error("loadScale error", e);
@@ -230,71 +273,6 @@ export default function Page() {
         monthDropdown.classList.remove("open");
         monthPickerToggle.classList.remove("open");
       }
-    }
-
-    function loadColumnWidths() {
-      try {
-        const raw = localStorage.getItem(COL_WIDTH_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length >= 5) {
-          columnWidths = parsed.slice(0, 7).map((v) => (Number.isFinite(v) ? Number(v) : DEFAULT_CELL_WIDTH));
-        }
-      } catch (e) {
-        console.error("loadColumnWidths error", e);
-      }
-    }
-
-    function saveColumnWidths() {
-      try {
-        localStorage.setItem(COL_WIDTH_KEY, JSON.stringify(columnWidths));
-      } catch (e) {
-        console.error("saveColumnWidths error", e);
-      }
-    }
-
-    function applyColumnWidths() {
-      const cols = columnWidths.slice(0, showWeekend ? 7 : 5);
-      const template = cols.map((w) => `${w}px`).join(" ");
-      const totalWidth = cols.reduce((a, b) => a + b, 0) + (cols.length - 1) * 10;
-      if (calendarGrid) {
-        calendarGrid.style.gridTemplateColumns = template;
-        calendarGrid.style.minWidth = `${totalWidth}px`;
-      }
-      const weekdayRowEl = document.querySelector<HTMLElement>(".weekday-row");
-      if (weekdayRowEl) {
-        weekdayRowEl.style.gridTemplateColumns = template;
-      }
-    }
-
-    function loadScale() {
-      try {
-        const raw = localStorage.getItem(SCALE_KEY);
-        if (!raw) return;
-        const v = Number(raw);
-        if (Number.isFinite(v) && v >= 0.8 && v <= 1.3) {
-          document.documentElement.style.setProperty("--ui-scale", String(v));
-        }
-      } catch (e) {
-        console.error("loadScale error", e);
-      }
-    }
-
-    function saveScale(v: number) {
-      try {
-        localStorage.setItem(SCALE_KEY, String(v));
-      } catch (e) {
-        console.error("saveScale error", e);
-      }
-    }
-
-    function adjustScale(delta: number) {
-      const current = Number(
-        getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
-      );
-      const next = Math.max(0.8, Math.min(1.3, current + delta));
-      document.documentElement.style.setProperty("--ui-scale", String(next));
-      saveScale(next);
     }
 
     function closeMonthDropdown() {
@@ -529,6 +507,8 @@ export default function Page() {
           toggleSelection(card);
           return;
         }
+        const day = card.closest(".day-cell");
+        setActiveDay(day as HTMLElement | null);
         const contentEl = card.querySelector(".card-content") as HTMLDivElement | null;
         if (!contentEl || contentEl.isContentEditable) return;
         makeEditable(card);
@@ -536,6 +516,7 @@ export default function Page() {
 
       card.addEventListener("dblclick", (e) => {
         e.stopPropagation();
+        pushHistory();
         card.classList.toggle("done");
         syncOneCardFromDom(card);
         // 안전망: DOM 기준으로 재저장
@@ -554,6 +535,7 @@ export default function Page() {
         ) {
           return;
         }
+        pushHistory();
 
         const affectedDates = new Set<string>();
 
@@ -593,6 +575,7 @@ export default function Page() {
 
       btnColor.addEventListener("click", (e) => {
         e.stopPropagation();
+        pushHistory();
         const currentColor = card.dataset.color || "default";
         const idx = CARD_COLORS.indexOf(currentColor as (typeof CARD_COLORS)[number]);
         const nextColor = CARD_COLORS[(idx + 1 + CARD_COLORS.length) % CARD_COLORS.length];
@@ -650,6 +633,7 @@ export default function Page() {
 
     function renderCalendar() {
       calendarGrid.innerHTML = "";
+      lastActiveDayCell = null;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -752,15 +736,29 @@ export default function Page() {
         cell.appendChild(body);
         calendarGrid.appendChild(cell);
 
-        cell.addEventListener("dblclick", () => {
-          if (!cell.dataset.date) return;
-          createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
-          updateDayBadge(cell.dataset.date);
+        cell.addEventListener("mouseenter", () => {
+          cell.classList.add("hovered-day");
         });
 
-        cell.addEventListener("dragover", (e) => {
-          if (!draggingCards || draggingCards.length === 0) return;
-          e.preventDefault();
+        cell.addEventListener("mouseleave", () => {
+          cell.classList.remove("hovered-day");
+        });
+
+        cell.addEventListener("click", () => {
+          setActiveDay(cell);
+        });
+
+        cell.addEventListener("dblclick", () => {
+          if (!cell.dataset.date) return;
+          pushHistory();
+          createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+          updateDayBadge(cell.dataset.date);
+          setActiveDay(cell);
+        });
+
+          cell.addEventListener("dragover", (e) => {
+            if (!draggingCards || draggingCards.length === 0) return;
+            e.preventDefault();
 
           const allCells = document.querySelectorAll(".day-cell.drop-target");
           allCells.forEach((c) => c.classList.remove("drop-target"));
@@ -803,81 +801,81 @@ export default function Page() {
               bodyEl.appendChild(dragPlaceholder);
             }
           }
-        });
-
-        cell.addEventListener("drop", (e) => {
-          e.preventDefault();
-          if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
-
-          const newKey = cell.dataset.date;
-          const bodyEl = cell.querySelector(".day-body");
-          if (!bodyEl) return;
-
-          if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
-            draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
-          } else {
-            draggingCards.forEach((c) => bodyEl.appendChild(c));
-          }
-
-          const affectedDateKeys = new Set<string>();
-          affectedDateKeys.add(newKey);
-
-          draggingCards.forEach((card) => {
-            const oldKey = card.dataset.date;
-            if (oldKey) affectedDateKeys.add(oldKey);
-
-            card.dataset.date = newKey;
-
-            if (oldKey && oldKey !== newKey) {
-              const idStr = card.dataset.cardId;
-              const id = Number(idStr);
-              if (Number.isFinite(id)) {
-                const oldList = getCardsForDate(oldKey);
-                const idx = oldList.findIndex((c) => c.id === id);
-                let obj: CardData | null = null;
-                if (idx >= 0) {
-                  obj = oldList.splice(idx, 1)[0];
-                  if (oldList.length === 0) delete state.cards[oldKey];
-                }
-
-                if (obj) {
-                  const newList = ensureCardList(newKey);
-                  newList.push(obj);
-                }
-              }
-            }
           });
 
-          saveState();
+          cell.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
+            pushHistory();
+            const newKey = cell.dataset.date;
+            const bodyEl = cell.querySelector(".day-body");
+            if (!bodyEl) return;
 
-          affectedDateKeys.forEach((key) => {
-            updateDayBadge(key);
-            const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
-            if (cellEl) {
-              const bEl = cellEl.querySelector(".day-body");
-              if (bEl) {
-                const h = bEl.querySelector(".day-empty-hint") as HTMLElement | null;
-                const hasCards = bEl.querySelector(".card");
-                if (h) h.style.display = hasCards ? "none" : "block";
-              }
+            if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
+              draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
+            } else {
+              draggingCards.forEach((c) => bodyEl.appendChild(c));
             }
-          });
 
-          const targets = document.querySelectorAll(".day-cell.drop-target");
-          targets.forEach((c) => c.classList.remove("drop-target"));
+            const affectedDateKeys = new Set<string>();
+            affectedDateKeys.add(newKey);
 
-          if (dragPlaceholder && dragPlaceholder.parentElement) {
-            dragPlaceholder.parentElement.removeChild(dragPlaceholder);
-          }
-          if (draggingCards) {
-            draggingCards.forEach((c) => {
-              c.style.opacity = "1";
+            draggingCards.forEach((card) => {
+              const oldKey = card.dataset.date;
+              if (oldKey) affectedDateKeys.add(oldKey);
+
+              card.dataset.date = newKey;
+
+              if (oldKey && oldKey !== newKey) {
+                const idStr = card.dataset.cardId;
+                const id = Number(idStr);
+                if (Number.isFinite(id)) {
+                  const oldList = getCardsForDate(oldKey);
+                  const idx = oldList.findIndex((c) => c.id === id);
+                  let obj: CardData | null = null;
+                  if (idx >= 0) {
+                    obj = oldList.splice(idx, 1)[0];
+                    if (oldList.length === 0) delete state.cards[oldKey];
+                  }
+
+                  if (obj) {
+                    const newList = ensureCardList(newKey);
+                    newList.push(obj);
+                  }
+                }
+              }
             });
-          }
-          dragPlaceholder = null;
-          draggingCards = [];
-        });
-      }
+
+            saveState();
+
+            affectedDateKeys.forEach((key) => {
+              updateDayBadge(key);
+              const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
+              if (cellEl) {
+                const bEl = cellEl.querySelector(".day-body");
+                if (bEl) {
+                  const h = bEl.querySelector(".day-empty-hint") as HTMLElement | null;
+                  const hasCards = bEl.querySelector(".card");
+                  if (h) h.style.display = hasCards ? "none" : "block";
+                }
+              }
+            });
+
+            const targets = document.querySelectorAll(".day-cell.drop-target");
+            targets.forEach((c) => c.classList.remove("drop-target"));
+
+            if (dragPlaceholder && dragPlaceholder.parentElement) {
+              dragPlaceholder.parentElement.removeChild(dragPlaceholder);
+            }
+            if (draggingCards) {
+              draggingCards.forEach((c) => {
+                c.style.opacity = "1";
+              });
+            }
+            dragPlaceholder = null;
+            draggingCards = [];
+          });
+        }
 
       // 뒷쪽 빈 셀로 마지막 주 채우기
       const totalCells = leadingEmpty + renderedCount;
@@ -886,6 +884,19 @@ export default function Page() {
         const placeholder = document.createElement("div");
         placeholder.className = "day-cell placeholder";
         calendarGrid.appendChild(placeholder);
+      }
+
+      // 선택 유지: 기존 선택된 날짜가 있으면 새 DOM에서 다시 표시
+      if (lastActiveDateKey) {
+        const activeCell = calendarGrid.querySelector<HTMLElement>(
+          `.day-cell[data-date="${lastActiveDateKey}"]`,
+        );
+        if (activeCell) {
+          activeCell.classList.add("active-day");
+          lastActiveDayCell = activeCell;
+        } else {
+          lastActiveDateKey = null;
+        }
       }
 
       // 스크롤 위치 기준으로 월 타이틀을 동기화
@@ -1103,6 +1114,7 @@ export default function Page() {
     }
 
     loadState();
+    pushHistory();
     loadScale();
     renderCalendar();
 
@@ -1177,6 +1189,10 @@ export default function Page() {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         clearSelection();
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
       }
     });
 
@@ -1316,6 +1332,81 @@ export default function Page() {
       }, 0);
     }
 
+    function copySelectedCards(e: ClipboardEvent) {
+      if (isEditableTarget(e.target as HTMLElement)) return;
+      const selected = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
+      if (!selected.length) return;
+      const data: CardData[] = selected.map((card) => {
+        const content = card.querySelector(".card-content");
+        return {
+          id: Number(card.dataset.cardId) || 0,
+          text: content ? content.textContent ?? "" : "",
+          done: card.classList.contains("done"),
+          color: card.dataset.color || "default",
+        };
+      });
+      cardClipboard = data;
+      if (e.clipboardData) {
+        e.clipboardData.setData("application/json", JSON.stringify(data));
+        e.clipboardData.setData(
+          "text/plain",
+          data.map((c) => c.text).join("\n\n"),
+        );
+        e.preventDefault();
+      }
+    }
+
+    function pasteCards(e: ClipboardEvent) {
+      if (isEditableTarget(e.target as HTMLElement)) return;
+      const targetCell =
+        lastActiveDayCell ||
+        (lastActiveDateKey
+          ? calendarGrid.querySelector<HTMLElement>(`.day-cell[data-date="${lastActiveDateKey}"]`)
+          : null);
+      if (!targetCell) {
+        showToast("붙여넣기할 날짜 칸을 먼저 클릭하세요.");
+        return;
+      }
+      const bodyEl = targetCell.querySelector(".day-body");
+      if (!bodyEl) return;
+
+      let data: CardData[] = [];
+      const jsonStr = e.clipboardData?.getData("application/json");
+      if (jsonStr) {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (Array.isArray(parsed)) {
+            data = parsed
+              .map((c) => ({
+                text: c.text ?? "",
+                done: !!c.done,
+                color: c.color ?? "default",
+              }))
+              .filter((c) => typeof c.text === "string");
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!data.length && cardClipboard.length) {
+        data = cardClipboard.map((c) => ({
+          text: c.text,
+          done: c.done,
+          color: c.color,
+        }));
+      }
+      if (!data.length) return;
+      e.preventDefault();
+      pushHistory();
+
+      data.forEach((c) => {
+        const created = createCard(bodyEl, { text: c.text, done: c.done, color: c.color }, { autoEdit: false, fromState: false });
+      });
+      const key = targetCell.dataset.date;
+      if (key) updateDayBadge(key);
+      syncCurrentMonthFromDom();
+    }
+
     // 인피니트 스크롤: 상/하단 근접 시 범위 확장
     let loadingPrev = false;
     let loadingNext = false;
@@ -1375,6 +1466,8 @@ export default function Page() {
     }
 
     (calendarWrapper || window).addEventListener("wheel", onWheelScale, { passive: false });
+    document.addEventListener("copy", copySelectedCards);
+    document.addEventListener("paste", pasteCards);
 
     if (scaleResetBtn) {
       scaleResetBtn.addEventListener("click", () => {

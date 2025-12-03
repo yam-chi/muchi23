@@ -513,6 +513,18 @@
       z-index: 20;
     }
 
+    .day-cell.hovered-day {
+      transform: translateY(-1px) scale(1.01);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+    }
+
+    .day-cell.active-day {
+      outline: 2px solid #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+      position: relative;
+      z-index: 25;
+    }
+
     .day-cell.today {
       border: 2px solid #3b82f6;
       background: #f7fbff;

@@ -107,6 +107,9 @@ export default function Page() {
     let state: State = { nextId: 1, cards: {}, weekVisibility: {} };
     let headerCollapsed = false;
     let showWeekend = true;
+    let marqueeBox: HTMLDivElement | null = null;
+    let marqueeStart: { x: number; y: number } | null = null;
+    let marqueeActive = false;
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
@@ -117,6 +120,26 @@ export default function Page() {
 
     function clearSelection() {
       document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
+    }
+
+    function ensureMarqueeBox() {
+      if (marqueeBox) return marqueeBox;
+      const box = document.createElement("div");
+      box.className = "marquee-selection";
+      document.body.appendChild(box);
+      marqueeBox = box;
+      return box;
+    }
+
+    function updateMarqueeSelection(rect: { left: number; top: number; right: number; bottom: number }) {
+      const cards = document.querySelectorAll<HTMLDivElement>(".card");
+      cards.forEach((card) => {
+        const r = card.getBoundingClientRect();
+        const overlap = !(rect.right < r.left || rect.left > r.right || rect.bottom < r.top || rect.top > r.bottom);
+        if (overlap) {
+          card.classList.add("selected");
+        }
+      });
     }
 
     const formatDateKey = (date: Date) => {
@@ -1021,6 +1044,7 @@ export default function Page() {
     }
 
     document.addEventListener("click", (e) => {
+      if (marqueeActive) return;
       const target = e.target as HTMLElement;
       if (target.closest(".card")) return;
       if (target.closest(".month-picker")) return;
@@ -1131,6 +1155,49 @@ export default function Page() {
         syncMonthHeaderWithScroll();
       });
     }
+    // 마퀴 선택 (빈 영역 드래그로 카드 다중 선택)
+    function onMarqueeStart(e: MouseEvent) {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement;
+      if (target.closest(".card")) return; // 카드 위에서는 기존 드래그/클릭 우선
+      marqueeActive = true;
+      marqueeStart = { x: e.clientX, y: e.clientY };
+      const box = ensureMarqueeBox();
+      box.style.display = "block";
+      box.style.left = `${e.clientX}px`;
+      box.style.top = `${e.clientY}px`;
+      box.style.width = "0px";
+      box.style.height = "0px";
+      clearSelection();
+      document.addEventListener("mousemove", onMarqueeMove);
+      document.addEventListener("mouseup", onMarqueeEnd, { once: true });
+    }
+
+    function onMarqueeMove(e: MouseEvent) {
+      if (!marqueeStart || !marqueeBox) return;
+      const x1 = Math.min(marqueeStart.x, e.clientX);
+      const y1 = Math.min(marqueeStart.y, e.clientY);
+      const x2 = Math.max(marqueeStart.x, e.clientX);
+      const y2 = Math.max(marqueeStart.y, e.clientY);
+      marqueeBox.style.left = `${x1}px`;
+      marqueeBox.style.top = `${y1}px`;
+      marqueeBox.style.width = `${x2 - x1}px`;
+      marqueeBox.style.height = `${y2 - y1}px`;
+      updateMarqueeSelection({ left: x1, top: y1, right: x2, bottom: y2 });
+    }
+
+    function onMarqueeEnd() {
+      marqueeStart = null;
+      if (marqueeBox) {
+        marqueeBox.style.display = "none";
+        marqueeBox.style.width = "0px";
+        marqueeBox.style.height = "0px";
+      }
+      document.removeEventListener("mousemove", onMarqueeMove);
+      setTimeout(() => {
+        marqueeActive = false;
+      }, 0);
+    }
 
     // 인피니트 스크롤: 상/하단 근접 시 범위 확장
     let loadingPrev = false;
@@ -1176,8 +1243,10 @@ export default function Page() {
 
     if (calendarWrapper) {
       calendarWrapper.addEventListener("scroll", onCalendarScroll);
+      calendarWrapper.addEventListener("mousedown", onMarqueeStart);
     } else {
       window.addEventListener("scroll", onCalendarScroll);
+      window.addEventListener("mousedown", onMarqueeStart);
     }
 
     if (weekendToggleBtn) {

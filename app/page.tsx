@@ -31,6 +31,16 @@ const MONTH_NAMES = [
   "12월",
 ];
 const WEEKDAY_NAMES_MON_FIRST = ["월", "화", "수", "목", "금", "토", "일"];
+const FIXED_HOLIDAYS: Record<string, string> = {
+  "01-01": "신정",
+  "03-01": "삼일절",
+  "05-05": "어린이날",
+  "06-06": "현충일",
+  "08-15": "광복절",
+  "10-03": "개천절",
+  "10-09": "한글날",
+  "12-25": "크리스마스",
+};
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
 
 export default function Page() {
@@ -708,8 +718,15 @@ export default function Page() {
         const dayOfMonth = thisDate.getDate();
 
         const label = WEEKDAY_NAMES_MON_FIRST[w === 0 ? 6 : w - 1];
-        numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${label})`;
-        if (w === 0) numEl.classList.add("sun");
+        const mmdd = `${String(thisDate.getMonth() + 1).padStart(2, "0")}-${String(dayOfMonth).padStart(
+          2,
+          "0",
+        )}`;
+        const holidayName = FIXED_HOLIDAYS[mmdd];
+        numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${label})${
+          holidayName ? ` ${holidayName}` : ""
+        }`;
+        if (w === 0 || holidayName) numEl.classList.add("sun", "holiday");
         else if (w === 6) numEl.classList.add("sat");
 
         const key = formatDateKey(thisDate);

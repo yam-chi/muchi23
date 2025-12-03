@@ -346,6 +346,22 @@ export default function Page() {
       applyCardColorClass(card, color);
       content.textContent = text || "";
 
+      // 복사/붙여넣기 시 텍스트만 처리하도록 강제
+      content.addEventListener("copy", (e) => {
+        const sel = window.getSelection();
+        const copied = sel ? sel.toString() : content.innerText;
+        if (e.clipboardData) {
+          e.clipboardData.setData("text/plain", copied);
+          e.preventDefault();
+        }
+      });
+      content.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pasteText = e.clipboardData?.getData("text/plain") ?? "";
+        document.execCommand("insertText", false, pasteText);
+        setTimeout(() => syncOneCardFromDom(card), 0);
+      });
+
       const dayCell = container.closest(".day-cell") as HTMLElement | null;
       if (dayCell && dayCell.dataset.date) {
         const key = dayCell.dataset.date;

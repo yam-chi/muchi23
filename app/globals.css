@@ -390,8 +390,8 @@
     /* 주별 레이아웃 + 접기/펼치기 */
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(150px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(7, minmax(195px, 1fr));
+      gap: 8px;
     }
 
     .week-row-outside .week-row-title {
@@ -436,14 +436,14 @@
 
     /* === Day Cells (Glass Chips) === */
     .day-cell {
-      min-height: 140px;
-      padding: 12px;
+      min-height: 210px; /* 기존 대비 약 1.5배 */
+      padding: 18px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
       box-shadow: var(--shadow-card);
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      margin: 4px;
+      margin: 2px;
       border-radius: 12px;
     }
 
@@ -452,7 +452,7 @@
       border: none;
       box-shadow: none;
       pointer-events: none;
-      margin: 3px;
+      margin: 2px;
     }
 
     .day-cell:last-child {
@@ -488,13 +488,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 10px;
       margin-bottom: 10px;
     }
 
     .day-number {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 500;
     }
 
     .day-number.sun {
@@ -542,7 +542,7 @@
       background: #ffffff;
       border: 1px solid #e5e7eb;
       box-shadow: var(--shadow-card);
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.4;
       cursor: default;
       overflow-wrap: break-word;

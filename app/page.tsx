@@ -429,39 +429,48 @@ export default function Page() {
 
       btnDelete.addEventListener("click", (e) => {
         e.stopPropagation();
-        const dateKey = card.dataset.date;
-        const idStr = card.dataset.cardId;
-        const parent = card.parentElement;
-        card.remove();
-        if (dateKey && idStr) {
-          const numericId = Number(idStr);
-          if (Number.isFinite(numericId)) {
-            let deleted = deleteCardFromState(dateKey, numericId);
-            if (!deleted) {
-              console.warn(
-                `[Delete] Card ${numericId} not found in ${dateKey}. Searching all dates...`,
-              );
-              for (const key of Object.keys(state.cards)) {
-                if (deleteCardFromState(key, numericId)) {
-                  updateDayBadge(key);
-                  deleted = true;
-                  break;
+        const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
+        const targets = selectedCards.length ? selectedCards : [card];
+        if (
+          selectedCards.length &&
+          !confirm(`선택된 ${targets.length}개 카드를 삭제할까요?`)
+        ) {
+          return;
+        }
+
+        const affectedDates = new Set<string>();
+
+        targets.forEach((c) => {
+          const dateKey = c.dataset.date;
+          const idStr = c.dataset.cardId;
+          const parent = c.parentElement;
+          c.remove();
+          if (dateKey && idStr) {
+            const numericId = Number(idStr);
+            if (Number.isFinite(numericId)) {
+              let deleted = deleteCardFromState(dateKey, numericId);
+              if (!deleted) {
+                for (const key of Object.keys(state.cards)) {
+                  if (deleteCardFromState(key, numericId)) {
+                    affectedDates.add(key);
+                    deleted = true;
+                    break;
+                  }
                 }
               }
-            }
-            if (!deleted) {
-              console.error(`[Delete] Failed to delete card ${numericId} from state.`);
+              affectedDates.add(dateKey);
             }
           }
-          updateDayBadge(dateKey);
-        }
-        if (parent && parent.classList.contains("day-body")) {
-          if (!parent.querySelector(".card")) {
-            const hintEl = parent.querySelector(".day-empty-hint") as HTMLElement | null;
-            if (hintEl) hintEl.style.display = "block";
+          if (parent && parent.classList.contains("day-body")) {
+            if (!parent.querySelector(".card")) {
+              const hintEl = parent.querySelector(".day-empty-hint") as HTMLElement | null;
+              if (hintEl) hintEl.style.display = "block";
+            }
           }
-        }
-        // 안전망: 혹시 위 로직이 실패해도 현재 DOM 상태를 기준으로 저장
+        });
+
+        affectedDates.forEach((dk) => updateDayBadge(dk));
+        clearSelection();
         syncCurrentMonthFromDom();
       });
 

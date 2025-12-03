@@ -66,6 +66,7 @@ export default function Page() {
     const headerToggle = document.getElementById("headerToggle") as HTMLButtonElement | null;
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
+    const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
     const backupBtn = document.getElementById("backupBtn") as HTMLButtonElement | null;
@@ -105,6 +106,7 @@ export default function Page() {
 
     let state: State = { nextId: 1, cards: {}, weekVisibility: {} };
     let headerCollapsed = false;
+    let showWeekend = true;
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
@@ -133,6 +135,13 @@ export default function Page() {
       pickerYear = date.getFullYear();
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
     }
+
+    const toggleWeekendUI = () => {
+      document.body.classList.toggle("weekend-hidden", !showWeekend);
+      if (weekendToggleBtn) {
+        weekendToggleBtn.textContent = showWeekend ? "주말 숨기기" : "주말 보이기";
+      }
+    };
 
     function toggleMonthDropdown() {
       if (!monthDropdown || !monthPickerToggle) return;
@@ -493,8 +502,15 @@ export default function Page() {
       const endDate = new Date(lastOfRange);
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
-      // 월요일을 주 시작으로 맞추기 위한 앞쪽 빈 칸 수
-      const leadingEmpty = (startDate.getDay() + 6) % 7;
+      const columns = showWeekend ? 7 : 5;
+      let leadingEmpty = 0;
+      if (showWeekend) {
+        leadingEmpty = (startDate.getDay() + 6) % 7; // Monday-first
+      } else {
+        const wd = startDate.getDay();
+        leadingEmpty = wd >= 1 && wd <= 5 ? wd - 1 : 0; // Monday-first, weekends hidden
+      }
+      let renderedCount = 0;
 
       // 앞쪽 빈 셀로 요일 정렬
       for (let i = 0; i < leadingEmpty; i++) {
@@ -523,6 +539,11 @@ export default function Page() {
 
         const thisDate = new Date(startDate);
         thisDate.setDate(startDate.getDate() + dayIndex);
+
+        const jsDay = thisDate.getDay();
+        if (!showWeekend && (jsDay === 0 || jsDay === 6)) {
+          continue; // 주말 숨김
+        }
 
         if (thisDate.getMonth() !== viewMonth) {
           cell.classList.add("other-month");
@@ -682,8 +703,8 @@ export default function Page() {
       }
 
       // 뒷쪽 빈 셀로 마지막 주 채우기
-      const totalCells = leadingEmpty + totalDays;
-      const trailing = (7 - (totalCells % 7)) % 7;
+      const totalCells = leadingEmpty + renderedCount;
+      const trailing = (columns - (totalCells % columns)) % columns;
       for (let i = 0; i < trailing; i++) {
         const placeholder = document.createElement("div");
         placeholder.className = "day-cell placeholder";
@@ -1142,6 +1163,16 @@ export default function Page() {
     } else {
       window.addEventListener("scroll", onCalendarScroll);
     }
+
+    if (weekendToggleBtn) {
+      weekendToggleBtn.addEventListener("click", () => {
+        showWeekend = !showWeekend;
+        toggleWeekendUI();
+        renderCalendar();
+      });
+    }
+
+    toggleWeekendUI();
   }, []);
 
   return (
@@ -1223,6 +1254,9 @@ export default function Page() {
           {/* 오늘 버튼 추가 */}
           <button className="btn btn-today" id="todayBtn">
             오늘
+          </button>
+          <button className="btn" id="weekendToggle">
+            주말 숨기기
           </button>
 
           <div className="search-wrap">

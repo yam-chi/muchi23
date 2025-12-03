@@ -396,6 +396,20 @@
       min-width: 1680px; /* 230px*7 + gaps */
     }
 
+    .weekend-hidden .calendar-grid {
+      grid-template-columns: repeat(5, minmax(230px, 1fr));
+      min-width: 1200px;
+    }
+
+    .weekend-hidden .weekday-row {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .weekend-hidden .weekday-row div:nth-child(6),
+    .weekend-hidden .weekday-row div:nth-child(7) {
+      display: none;
+    }
+
     .week-row-outside .week-row-title {
       color: rgba(156, 163, 175, 0.8);
       font-weight: 600;

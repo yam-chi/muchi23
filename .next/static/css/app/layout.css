@@ -23,6 +23,8 @@
 
       /* Typography */
       --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --cell-min-width: 230px;
+      --ui-scale: 1;
     }
 
     * {
@@ -155,6 +157,14 @@
       background: #f8fafc;
       transform: translateY(-1px);
       box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+    }
+
+    .scale-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #4b5563;
     }
 
     .btn-green {
@@ -406,6 +416,9 @@
       grid-gap: 10px;
       gap: 10px;
       min-width: 1680px; /* 230px*7 + gaps */
+      transform: scale(var(--ui-scale));
+      transform-origin: top left;
+      width: calc(100% / var(--ui-scale));
     }
 
     .weekend-hidden .calendar-grid {
@@ -420,6 +433,11 @@
     .weekend-hidden .weekday-row div:nth-child(6),
     .weekend-hidden .weekday-row div:nth-child(7) {
       display: none;
+    }
+
+    .weekend-hidden .calendar-grid {
+      grid-template-columns: repeat(5, minmax(230px, 1fr));
+      min-width: 1200px;
     }
 
     .week-row-outside .week-row-title {

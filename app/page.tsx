@@ -67,9 +67,10 @@ export default function Page() {
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
+    const scaleIndicator = document.getElementById("scaleIndicator") as HTMLElement | null;
+    const scaleResetBtn = document.getElementById("scaleReset") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
-    const backupBtn = document.getElementById("backupBtn") as HTMLButtonElement | null;
     const airtableSaveBtn = document.getElementById(
       "airtableSaveBtn",
     ) as HTMLButtonElement | null;
@@ -88,7 +89,6 @@ export default function Page() {
       !calendarGrid ||
       !searchInput ||
       !searchBtn ||
-      !backupBtn ||
       !scopeMonthBtn ||
       !scopeAllBtn ||
       !toastContainer
@@ -110,6 +110,10 @@ export default function Page() {
     let marqueeBox: HTMLDivElement | null = null;
     let marqueeStart: { x: number; y: number } | null = null;
     let marqueeActive = false;
+    const SCALE_KEY = "muchi-ui-scale";
+    const COL_WIDTH_KEY = "muchi-cell-widths";
+    const DEFAULT_CELL_WIDTH = 230;
+    let columnWidths = Array(7).fill(DEFAULT_CELL_WIDTH);
     let draggingCards: HTMLDivElement[] = [];
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
@@ -166,6 +170,44 @@ export default function Page() {
       }
     };
 
+    function loadScale() {
+      try {
+        const raw = localStorage.getItem(SCALE_KEY);
+        if (!raw) return;
+        const v = Number(raw);
+        if (Number.isFinite(v) && v >= 0.8 && v <= 1.3) {
+          document.documentElement.style.setProperty("--ui-scale", String(v));
+          updateScaleIndicator();
+        }
+      } catch (e) {
+        console.error("loadScale error", e);
+      }
+    }
+
+    function saveScale(v: number) {
+      try {
+        localStorage.setItem(SCALE_KEY, String(v));
+      } catch (e) {
+        console.error("saveScale error", e);
+      }
+    }
+
+    function adjustScale(delta: number) {
+      const current = Number(
+        getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
+      );
+      const next = Math.max(0.8, Math.min(1.3, current + delta));
+      document.documentElement.style.setProperty("--ui-scale", String(next));
+      saveScale(next);
+    }
+
+    function onWheelScale(e: WheelEvent) {
+      if (!(e.metaKey || e.altKey)) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.05 : -0.05;
+      adjustScale(delta);
+    }
+
     function toggleMonthDropdown() {
       if (!monthDropdown || !monthPickerToggle) return;
       const willOpen = !monthDropdown.classList.contains("open");
@@ -178,6 +220,71 @@ export default function Page() {
         monthDropdown.classList.remove("open");
         monthPickerToggle.classList.remove("open");
       }
+    }
+
+    function loadColumnWidths() {
+      try {
+        const raw = localStorage.getItem(COL_WIDTH_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length >= 5) {
+          columnWidths = parsed.slice(0, 7).map((v) => (Number.isFinite(v) ? Number(v) : DEFAULT_CELL_WIDTH));
+        }
+      } catch (e) {
+        console.error("loadColumnWidths error", e);
+      }
+    }
+
+    function saveColumnWidths() {
+      try {
+        localStorage.setItem(COL_WIDTH_KEY, JSON.stringify(columnWidths));
+      } catch (e) {
+        console.error("saveColumnWidths error", e);
+      }
+    }
+
+    function applyColumnWidths() {
+      const cols = columnWidths.slice(0, showWeekend ? 7 : 5);
+      const template = cols.map((w) => `${w}px`).join(" ");
+      const totalWidth = cols.reduce((a, b) => a + b, 0) + (cols.length - 1) * 10;
+      if (calendarGrid) {
+        calendarGrid.style.gridTemplateColumns = template;
+        calendarGrid.style.minWidth = `${totalWidth}px`;
+      }
+      const weekdayRowEl = document.querySelector<HTMLElement>(".weekday-row");
+      if (weekdayRowEl) {
+        weekdayRowEl.style.gridTemplateColumns = template;
+      }
+    }
+
+    function loadScale() {
+      try {
+        const raw = localStorage.getItem(SCALE_KEY);
+        if (!raw) return;
+        const v = Number(raw);
+        if (Number.isFinite(v) && v >= 0.8 && v <= 1.3) {
+          document.documentElement.style.setProperty("--ui-scale", String(v));
+        }
+      } catch (e) {
+        console.error("loadScale error", e);
+      }
+    }
+
+    function saveScale(v: number) {
+      try {
+        localStorage.setItem(SCALE_KEY, String(v));
+      } catch (e) {
+        console.error("saveScale error", e);
+      }
+    }
+
+    function adjustScale(delta: number) {
+      const current = Number(
+        getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
+      );
+      const next = Math.max(0.8, Math.min(1.3, current + delta));
+      document.documentElement.style.setProperty("--ui-scale", String(next));
+      saveScale(next);
     }
 
     function closeMonthDropdown() {
@@ -979,6 +1086,7 @@ export default function Page() {
     }
 
     loadState();
+    loadScale();
     renderCalendar();
 
     // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
@@ -1019,28 +1127,6 @@ export default function Page() {
         });
       });
     }
-
-    backupBtn.addEventListener("click", () => {
-      try {
-        const dataStr = JSON.stringify(state, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, "0");
-        const d = String(now.getDate());
-        a.href = url;
-        a.download = `muchi-note-safe-${y}${m}${d}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        console.error("백업 오류", e);
-        alert("백업 중 오류가 발생했습니다.");
-      }
-    });
 
     scopeMonthBtn.addEventListener("click", () => switchSearchScope("month"));
     scopeAllBtn.addEventListener("click", () => switchSearchScope("all"));
@@ -1271,6 +1357,15 @@ export default function Page() {
       });
     }
 
+    (calendarWrapper || window).addEventListener("wheel", onWheelScale, { passive: false });
+
+    if (scaleResetBtn) {
+      scaleResetBtn.addEventListener("click", () => {
+        document.documentElement.style.setProperty("--ui-scale", "1");
+        saveScale(1);
+      });
+    }
+
     toggleWeekendUI();
   }, []);
 
@@ -1371,11 +1466,13 @@ export default function Page() {
             <button className="btn" id="searchBtn">
               검색
             </button>
-            <button className="btn btn-green" id="backupBtn">
-              데이터 백업
+          <div className="scale-control">
+            <button className="btn" id="scaleReset" type="button">
+              🔍 100%
             </button>
           </div>
         </div>
+      </div>
 
         <div className="calendar-wrapper">
           <div className="weekday-row">

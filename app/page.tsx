@@ -736,6 +736,11 @@ export default function Page() {
           if (dragPlaceholder && dragPlaceholder.parentElement) {
             dragPlaceholder.parentElement.removeChild(dragPlaceholder);
           }
+          if (draggingCards) {
+            draggingCards.forEach((c) => {
+              c.style.opacity = "1";
+            });
+          }
           dragPlaceholder = null;
           draggingCards = [];
         });

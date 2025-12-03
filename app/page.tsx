@@ -354,8 +354,8 @@ export default function Page() {
       if (done) card.classList.add("done");
 
       card.appendChild(handle);
-      card.appendChild(toolbar);
       card.appendChild(content);
+      card.appendChild(toolbar);
       container.appendChild(card);
 
       card.addEventListener("click", (e) => {

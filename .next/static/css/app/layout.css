@@ -550,7 +550,7 @@
     .card {
       position: relative;
       margin-bottom: 10px;
-      padding: 10px 12px 10px 22px;
+      padding: 10px 12px 10px 18px;
       border-radius: 10px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
@@ -559,7 +559,7 @@
       line-height: 1.4;
       cursor: default;
       overflow-wrap: break-word;
-      min-height: 40px;
+      min-height: 36px;
       font-weight: 500;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
@@ -636,16 +636,16 @@
 
     .card-toolbar {
       position: absolute;
-      top: 6px;
-      right: 8px;
+      top: -12px;
+      right: -8px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
+      justify-content: flex-start;
       gap: 4px;
       opacity: 0;
       transition: opacity 0.15s;
-      z-index: 2;
-      max-width: 80px;
+      z-index: 3;
     }
 
     .card:hover .card-toolbar {
@@ -653,13 +653,13 @@
     }
 
     .card-btn {
-      border: none;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      border-radius: 8px;
       font-size: 9px;
       padding: 0 8px;
-      min-width: 40px;
-      height: 16px;
+      min-width: 38px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;

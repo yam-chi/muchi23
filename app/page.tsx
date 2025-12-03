@@ -44,7 +44,17 @@ const FIXED_HOLIDAYS: Record<string, string> = {
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
 const EMOJI_STORE_KEY = "muchi-emoji-store";
 const EMOJI_ORDER_KEY = "muchi-emoji-order";
-const DEFAULT_EMOJI_CHARS = ["✅", "🔥", "⭐️", "📌", "❤️", "👍", "💡", "❗️", "💪"];
+const DEFAULT_EMOJIS = [
+  { id: "default-check", ch: "✅" },
+  { id: "default-fire", ch: "🔥" },
+  { id: "default-star", ch: "⭐️" },
+  { id: "default-pin", ch: "📌" },
+  { id: "default-heart", ch: "❤️" },
+  { id: "default-thumb", ch: "👍" },
+  { id: "default-idea", ch: "💡" },
+  { id: "default-bang", ch: "❗️" },
+  { id: "default-strong", ch: "💪" },
+];
 
 export default function Page() {
   useEffect(() => {
@@ -128,7 +138,7 @@ export default function Page() {
     let cardClipboard: CardData[] = [];
     let emojiList: Array<{ id: string; src: string; name: string }> = [];
     let emojiOrder: string[] = [];
-    let draggingUploadId: string | null = null;
+    let draggingEmojiId: string | null = null;
     const HISTORY_LIMIT = 200;
     let history: State[] = [];
     let historyIndex = -1;
@@ -1694,19 +1704,31 @@ export default function Page() {
 
       const seen = new Set<string>();
 
-      const orderedUploadEmojis = (() => {
-        const map = new Map(emojiList.map((e) => [e.id, e]));
-        const ordered: typeof emojiList = [];
-        emojiOrder.forEach((id) => {
-          const item = map.get(id);
-          if (item) {
-            ordered.push(item);
-            map.delete(id);
-          }
-        });
-        map.forEach((item) => ordered.push(item));
-        return ordered;
-      })();
+      // 전체 이모지 풀: 기본 + 업로드
+      const allEmojis: Array<
+        | { type: "default"; id: string; ch: string }
+        | { type: "upload"; id: string; src: string; name: string }
+      > = [
+        ...DEFAULT_EMOJIS.map((d) => ({ type: "default" as const, id: d.id, ch: d.ch })),
+        ...emojiList.map((u) => ({ type: "upload" as const, id: u.id, src: u.src, name: u.name })),
+      ];
+
+      // 순서 적용
+      const mapAll = new Map(allEmojis.map((e) => [e.id, e]));
+      const ordered: typeof allEmojis = [];
+      emojiOrder.forEach((id) => {
+        const item = mapAll.get(id);
+        if (item) {
+          ordered.push(item);
+          mapAll.delete(id);
+        }
+      });
+      mapAll.forEach((item) => ordered.push(item));
+      // 저장된 순서가 비어있다면 기본 순서로 초기화
+      if (!emojiOrder.length) {
+        emojiOrder = ordered.map((e) => e.id);
+        saveEmojiOrder();
+      }
 
       let placeholder: HTMLDivElement | null = null;
 
@@ -1718,28 +1740,24 @@ export default function Page() {
         return ph;
       }
 
-      const buildBtn = (
-        type: "default" | "upload",
-        payload: { ch?: string; item?: { id: string; src: string; name: string } },
-      ) => {
+      const buildBtn = (emoji: (typeof ordered)[number]) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "emoji-btn";
-        btn.draggable = type === "upload";
+        btn.draggable = true;
 
         btn.addEventListener("dragstart", (e) => {
-          if (type !== "upload") return;
           btn.classList.add("dragging");
-          draggingUploadId = payload.item?.id ?? null;
+          draggingEmojiId = emoji.id;
           if (e.dataTransfer) {
-            e.dataTransfer.setData("text/plain", payload.item?.id ?? "");
+            e.dataTransfer.setData("text/plain", emoji.id);
             e.dataTransfer.effectAllowed = "move";
           }
         });
 
         btn.addEventListener("dragend", () => {
           btn.classList.remove("dragging");
-          draggingUploadId = null;
+          draggingEmojiId = null;
           if (placeholder && placeholder.parentElement) placeholder.parentElement.removeChild(placeholder);
           placeholder = null;
         });
@@ -1771,57 +1789,41 @@ export default function Page() {
           if (focusedCard) syncOneCardFromDom(focusedCard as HTMLDivElement);
         };
 
-        if (type === "default" && payload.ch) {
-          btn.textContent = payload.ch;
-          btn.addEventListener("click", () => runInsert(payload.ch ?? ""));
-        } else if (type === "upload" && payload.item) {
+        if (emoji.type === "default") {
+          btn.textContent = emoji.ch;
+          btn.addEventListener("click", () => runInsert(emoji.ch));
+        } else {
           const img = document.createElement("img");
-          img.src = payload.item.src;
-          img.alt = payload.item.name || "emoji";
+          img.src = emoji.src;
+          img.alt = emoji.name || "emoji";
           btn.appendChild(img);
           btn.addEventListener("click", () =>
-            runInsert(`<img class="emoji-img" src="${payload.item?.src || ""}">`),
+            runInsert(`<img class="emoji-img" src="${emoji.src}">`),
           );
         }
         return btn;
       };
 
-      DEFAULT_EMOJI_CHARS.forEach((ch) => {
-        if (seen.has(ch)) return;
-        seen.add(ch);
-        listEl.appendChild(buildBtn("default", { ch }));
-      });
-
-      orderedUploadEmojis.forEach((item) => {
-        if (seen.has(item.src)) return;
-        seen.add(item.src);
-        listEl.appendChild(buildBtn("upload", { item }));
+      ordered.forEach((emoji) => {
+        if (emoji.type === "upload" && seen.has(emoji.src)) return;
+        if (emoji.type === "default" && seen.has(emoji.ch)) return;
+        seen.add(emoji.type === "upload" ? emoji.src : emoji.ch);
+        listEl.appendChild(buildBtn(emoji));
       });
 
       listEl.addEventListener("dragover", (e) => {
-        if (!draggingUploadId) return;
+        if (!draggingEmojiId) return;
         e.preventDefault();
         const ph = ensurePlaceholder();
         const target = (e.target as HTMLElement).closest(".emoji-btn");
         const children = Array.from(listEl.children);
         if (target && target.parentElement === listEl) {
-          const idx = children.indexOf(target);
-          const isDefault = idx > -1 && idx < DEFAULT_EMOJI_CHARS.length;
-          if (isDefault) {
-            const anchor = children[DEFAULT_EMOJI_CHARS.length - 1];
-            if (anchor) {
-              listEl.insertBefore(ph, anchor.nextSibling);
-            } else {
-              listEl.appendChild(ph);
-            }
+          const rect = target.getBoundingClientRect();
+          const before = e.clientY < rect.top + rect.height / 2;
+          if (before) {
+            listEl.insertBefore(ph, target);
           } else {
-            const rect = target.getBoundingClientRect();
-            const before = e.clientY < rect.top + rect.height / 2;
-            if (before) {
-              listEl.insertBefore(ph, target);
-            } else {
-              listEl.insertBefore(ph, target.nextSibling);
-            }
+            listEl.insertBefore(ph, target.nextSibling);
           }
         } else if (!ph.parentElement) {
           listEl.appendChild(ph);
@@ -1829,27 +1831,25 @@ export default function Page() {
       });
 
       listEl.addEventListener("drop", (e) => {
-        if (!draggingUploadId) return;
+        if (!draggingEmojiId) return;
         e.preventDefault();
         const ph = placeholder;
         const children = Array.from(listEl.children);
-        const uploads = children.slice(DEFAULT_EMOJI_CHARS.length);
-        let uploadTargetIndex = ph ? uploads.indexOf(ph) : uploads.length;
-        if (uploadTargetIndex < 0) uploadTargetIndex = uploads.length;
+        let targetIndex = ph ? children.indexOf(ph) : children.length;
+        if (targetIndex < 0) targetIndex = children.length;
         if (ph && ph.parentElement) ph.parentElement.removeChild(ph);
         placeholder = null;
 
-        const order = emojiOrder.filter((id) => id !== draggingUploadId);
-        const uploadsCount = emojiOrder.length;
-        const clamped = Math.max(0, Math.min(uploadTargetIndex, uploadsCount));
-        order.splice(clamped, 0, draggingUploadId);
+        const order = emojiOrder.filter((id) => id !== draggingEmojiId);
+        const clamped = Math.max(0, Math.min(targetIndex, order.length));
+        order.splice(clamped, 0, draggingEmojiId);
         emojiOrder = order;
         saveEmojiOrder();
         renderEmojiPalette();
       });
 
       listEl.addEventListener("dragleave", (e) => {
-        if (!draggingUploadId) return;
+        if (!draggingEmojiId) return;
         const related = e.relatedTarget as HTMLElement | null;
         if (related && listEl.contains(related)) return;
         if (placeholder && placeholder.parentElement) placeholder.parentElement.removeChild(placeholder);
@@ -1874,7 +1874,7 @@ export default function Page() {
         emojiList.unshift({ id, src, name: file.name });
         emojiList = emojiList.slice(0, 40); // 제한
         emojiOrder.unshift(id);
-        emojiOrder = emojiOrder.slice(0, 40);
+        emojiOrder = emojiOrder.slice(0, DEFAULT_EMOJIS.length + 40);
         saveEmojis();
         saveEmojiOrder();
         renderEmojiPalette();

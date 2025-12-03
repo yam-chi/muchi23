@@ -133,6 +133,9 @@ export default function Page() {
     let dragPlaceholder: HTMLDivElement | null = null;
     let searchMode: "month" | "all" = "month";
     let lastFocusedContent: HTMLDivElement | null = null;
+    let lastRange: Range | null = null;
+    let lastActiveCardContent: HTMLDivElement | null = null;
+    let keepFocusFromPalette = false;
 
     function toggleSelection(card: HTMLDivElement) {
       card.classList.toggle("selected");
@@ -172,16 +175,24 @@ export default function Page() {
       const strictCard = opts?.strictCard ?? false;
       let range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
 
-      if (!range && lastFocusedContent) {
+      if (!range && lastRange) {
+        range = lastRange.cloneRange();
+        selection?.removeAllRanges();
+        if (selection && range) selection.addRange(range);
+      }
+
+      const targetContent = lastFocusedContent || lastActiveCardContent;
+
+      if (!range && targetContent) {
         range = document.createRange();
-        range.selectNodeContents(lastFocusedContent);
+        range.selectNodeContents(targetContent);
         range.collapse(false);
         selection?.removeAllRanges();
         if (selection && range) selection.addRange(range);
       }
 
       if (!range) return false;
-      if (strictCard && (!lastFocusedContent || !lastFocusedContent.closest(".card"))) return false;
+      if (strictCard && (!targetContent || !targetContent.closest(".card"))) return false;
 
       range.deleteContents();
       const temp = document.createElement("div");
@@ -194,6 +205,7 @@ export default function Page() {
       range.collapse(false);
       selection?.removeAllRanges();
       if (selection) selection.addRange(range);
+      lastRange = range.cloneRange();
       return true;
     }
 
@@ -589,15 +601,35 @@ export default function Page() {
 
       content.addEventListener("focus", () => {
         lastFocusedContent = content;
+        lastActiveCardContent = content;
+      });
+
+      content.addEventListener("mouseup", () => {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          lastRange = sel.getRangeAt(0).cloneRange();
+        }
+        lastActiveCardContent = content;
+      });
+
+      content.addEventListener("keyup", () => {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          lastRange = sel.getRangeAt(0).cloneRange();
+        }
+        lastActiveCardContent = content;
       });
 
       content.addEventListener("blur", () => {
         setTimeout(() => {
+          if (keepFocusFromPalette) return;
           const active = document.activeElement as HTMLElement | null;
           if (active && (active.closest(".emoji-palette") || active.closest(".card-content"))) {
             return;
           }
           lastFocusedContent = null;
+          lastRange = null;
+          lastActiveCardContent = null;
         }, 0);
       });
 
@@ -1290,6 +1322,8 @@ export default function Page() {
       clearSelection();
       if (!target.closest(".card-content")) {
         lastFocusedContent = null;
+        lastRange = null;
+        lastActiveCardContent = null;
       }
 
       if (!monthDropdown || !monthPickerToggle) return;
@@ -1601,6 +1635,21 @@ export default function Page() {
       });
     }
 
+    // selectionchange로 마지막 커서 위치 추적
+    document.addEventListener("selectionchange", () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const anchor = range.startContainer as HTMLElement | null;
+      const el = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor) : null;
+      if (el && el.closest(".card-content")) {
+        lastRange = range.cloneRange();
+        const cont = el.closest(".card-content") as HTMLDivElement | null;
+        lastFocusedContent = cont;
+        lastActiveCardContent = cont;
+      }
+    });
+
     // ========== 이모지 업로드 & 팔레트 ==========
     const emojiTrigger = document.getElementById("emojiTrigger") as HTMLButtonElement | null;
     const emojiUploadTrigger = document.getElementById(
@@ -1632,6 +1681,24 @@ export default function Page() {
         btn.className = "emoji-btn";
         btn.textContent = ch;
         btn.addEventListener("click", () => {
+          const targetContent = lastFocusedContent || lastActiveCardContent;
+          if (!targetContent || !targetContent.closest(".card")) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          // 커서 복구
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          targetContent.focus();
+          if (lastRange) {
+            sel?.addRange(lastRange);
+          } else if (targetContent) {
+            const r = document.createRange();
+            r.selectNodeContents(targetContent);
+            r.collapse(false);
+            sel?.addRange(r);
+            lastRange = r.cloneRange();
+          }
           const ok = insertAtSelection(ch, { strictCard: true });
           if (!ok) {
             showToast("카드를 먼저 클릭해 주세요.");
@@ -1654,6 +1721,23 @@ export default function Page() {
         img.alt = item.name || "emoji";
         btn.appendChild(img);
         btn.addEventListener("click", () => {
+          const targetContent = lastFocusedContent || lastActiveCardContent;
+          if (!targetContent || !targetContent.closest(".card")) {
+            showToast("카드를 먼저 클릭해 주세요.");
+            return;
+          }
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          targetContent.focus();
+          if (lastRange) {
+            sel?.addRange(lastRange);
+          } else if (targetContent) {
+            const r = document.createRange();
+            r.selectNodeContents(targetContent);
+            r.collapse(false);
+            sel?.addRange(r);
+            lastRange = r.cloneRange();
+          }
           const ok = insertAtSelection(`<img class="emoji-img" src="${item.src}">`, { strictCard: true });
           if (!ok) {
             showToast("카드를 먼저 클릭해 주세요.");
@@ -1703,15 +1787,43 @@ export default function Page() {
     }
 
     if (emojiTrigger && emojiPalette) {
+      // 트리거 클릭 시 포커스가 카드에서 이동하지 않도록 mousedown 막기
+      emojiTrigger.addEventListener("mousedown", (e) => {
+        keepFocusFromPalette = true;
+        e.preventDefault();
+        if (lastActiveCardContent) {
+          lastActiveCardContent.focus();
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          if (lastRange) sel?.addRange(lastRange);
+        }
+      });
+
       emojiTrigger.addEventListener("click", () => {
         emojiPalette.classList.toggle("open");
+        // 클릭 직후에도 포커스/커서 복원
+        if (lastActiveCardContent) {
+          lastActiveCardContent.focus();
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          if (lastRange) sel?.addRange(lastRange);
+        }
+        keepFocusFromPalette = false;
       });
-      emojiPalette.addEventListener("mousedown", (e) => {
-        // 팔레트 클릭 시 카드 포커스 유지
+      emojiPalette.addEventListener("pointerdown", (e) => {
+        keepFocusFromPalette = true;
         e.preventDefault();
         if (lastFocusedContent) {
           lastFocusedContent.focus();
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          if (lastRange) sel?.addRange(lastRange);
         }
+      });
+      emojiPalette.addEventListener("pointerup", () => {
+        setTimeout(() => {
+          keepFocusFromPalette = false;
+        }, 0);
       });
       document.addEventListener("click", (e) => {
         const t = e.target as HTMLElement;

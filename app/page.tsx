@@ -149,6 +149,49 @@ export default function Page() {
       cell.classList.add("active-day");
     }
 
+    function deleteCards(targets: HTMLDivElement[]) {
+      if (!targets.length) return;
+      if (targets.length > 1 && !confirm(`선택된 ${targets.length}개 카드를 삭제할까요?`)) {
+        return;
+      }
+      pushHistory();
+
+      const affectedDates = new Set<string>();
+
+      targets.forEach((c) => {
+        const dateKey = c.dataset.date;
+        const idStr = c.dataset.cardId;
+        const parent = c.parentElement;
+        c.remove();
+        if (dateKey && idStr) {
+          const numericId = Number(idStr);
+          if (Number.isFinite(numericId)) {
+            let deleted = deleteCardFromState(dateKey, numericId);
+            if (!deleted) {
+              for (const key of Object.keys(state.cards)) {
+                if (deleteCardFromState(key, numericId)) {
+                  affectedDates.add(key);
+                  deleted = true;
+                  break;
+                }
+              }
+            }
+            affectedDates.add(dateKey);
+          }
+        }
+        if (parent && parent.classList.contains("day-body")) {
+          if (!parent.querySelector(".card")) {
+            const hintEl = parent.querySelector(".day-empty-hint") as HTMLElement | null;
+            if (hintEl) hintEl.style.display = "block";
+          }
+        }
+      });
+
+      affectedDates.forEach((dk) => updateDayBadge(dk));
+      clearSelection();
+      syncCurrentMonthFromDom();
+    }
+
     function ensureMarqueeBox() {
       if (marqueeBox) return marqueeBox;
       const box = document.createElement("div");
@@ -529,48 +572,7 @@ export default function Page() {
         e.stopPropagation();
         const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
         const targets = selectedCards.length ? selectedCards : [card];
-        if (
-          selectedCards.length &&
-          !confirm(`선택된 ${targets.length}개 카드를 삭제할까요?`)
-        ) {
-          return;
-        }
-        pushHistory();
-
-        const affectedDates = new Set<string>();
-
-        targets.forEach((c) => {
-          const dateKey = c.dataset.date;
-          const idStr = c.dataset.cardId;
-          const parent = c.parentElement;
-          c.remove();
-          if (dateKey && idStr) {
-            const numericId = Number(idStr);
-            if (Number.isFinite(numericId)) {
-              let deleted = deleteCardFromState(dateKey, numericId);
-              if (!deleted) {
-                for (const key of Object.keys(state.cards)) {
-                  if (deleteCardFromState(key, numericId)) {
-                    affectedDates.add(key);
-                    deleted = true;
-                    break;
-                  }
-                }
-              }
-              affectedDates.add(dateKey);
-            }
-          }
-          if (parent && parent.classList.contains("day-body")) {
-            if (!parent.querySelector(".card")) {
-              const hintEl = parent.querySelector(".day-empty-hint") as HTMLElement | null;
-              if (hintEl) hintEl.style.display = "block";
-            }
-          }
-        });
-
-        affectedDates.forEach((dk) => updateDayBadge(dk));
-        clearSelection();
-        syncCurrentMonthFromDom();
+        deleteCards(targets);
       });
 
       btnColor.addEventListener("click", (e) => {
@@ -1193,6 +1195,14 @@ export default function Page() {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
         undo();
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (isEditableTarget(e.target as HTMLElement)) return;
+        const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
+        if (!selectedCards.length) return;
+        e.preventDefault();
+        deleteCards(selectedCards);
       }
     });
 

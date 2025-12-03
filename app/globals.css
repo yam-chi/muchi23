@@ -324,6 +324,7 @@
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
       max-height: calc(100vh - 190px);
       overflow-y: auto;
+      overflow-x: auto;
       position: relative;
     }
 
@@ -390,8 +391,9 @@
     /* 주별 레이아웃 + 접기/펼치기 */
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(195px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(7, minmax(230px, 1fr));
+      gap: 10px;
+      min-width: 1680px; /* 230px*7 + gaps */
     }
 
     .week-row-outside .week-row-title {

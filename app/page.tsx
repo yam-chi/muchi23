@@ -1111,7 +1111,9 @@ export default function Page() {
       document.querySelectorAll(".card.search-hit").forEach((c) => {
         c.classList.remove("search-hit");
       });
-      searchInput.classList.remove("error");
+      if (searchInput) {
+        searchInput.classList.remove("error");
+      }
     }
 
     function highlightCard(card: HTMLElement) {

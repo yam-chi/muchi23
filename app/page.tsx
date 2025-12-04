@@ -1125,10 +1125,14 @@ export default function Page() {
     }
 
     function handleSearchFail() {
-      searchInput.classList.add("error");
+      if (searchInput) {
+        searchInput.classList.add("error");
+      }
       showToast("검색 결과 없음");
       setTimeout(() => {
-        searchInput.classList.remove("error");
+        if (searchInput) {
+          searchInput.classList.remove("error");
+        }
       }, 1500);
     }
 

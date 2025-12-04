@@ -356,6 +356,7 @@ export default function Page() {
       `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
     function updateMonthTitle(date: Date = current) {
+      if (!monthTitle) return;
       monthTitle.textContent = `${date.getFullYear()}년 ${MONTH_NAMES[date.getMonth()]}`;
       pickerYear = date.getFullYear();
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;

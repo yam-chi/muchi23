@@ -564,11 +564,12 @@ export default function Page() {
     function makeEditable(card: HTMLDivElement) {
       const content = card.querySelector(".card-content") as HTMLDivElement | null;
       if (!content || content.isContentEditable) return;
+      const safeContent: HTMLDivElement = content;
 
-      content.contentEditable = "true";
-      content.focus();
+      safeContent.contentEditable = "true";
+      safeContent.focus();
       const range = document.createRange();
-      range.selectNodeContents(content);
+      range.selectNodeContents(safeContent);
       range.collapse(false);
       const sel = window.getSelection();
       if (sel) {
@@ -577,19 +578,19 @@ export default function Page() {
       }
 
       function onBlur() {
-        content.removeEventListener("blur", onBlur);
-        content.removeEventListener("keydown", onKey);
-        content.contentEditable = "false";
+        safeContent.removeEventListener("blur", onBlur);
+        safeContent.removeEventListener("keydown", onKey);
+        safeContent.contentEditable = "false";
         syncOneCardFromDom(card);
       }
       function onKey(e: KeyboardEvent) {
         if (e.key === "Escape") {
           e.preventDefault();
-          content.blur();
+          safeContent.blur();
         }
       }
-      content.addEventListener("blur", onBlur);
-      content.addEventListener("keydown", onKey);
+      safeContent.addEventListener("blur", onBlur);
+      safeContent.addEventListener("keydown", onKey);
     }
 
     function createCard(

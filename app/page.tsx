@@ -1589,6 +1589,7 @@ export default function Page() {
           }
       if (!data.length && cardClipboard.length) {
         data = cardClipboard.map((c) => ({
+          id: state.nextId++,
           text: c.text,
           done: c.done,
           color: c.color,

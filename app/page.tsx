@@ -807,6 +807,7 @@ export default function Page() {
     }
 
     function renderCalendar() {
+      if (!calendarGrid) return;
       calendarGrid.innerHTML = "";
       lastActiveDayCell = null;
 

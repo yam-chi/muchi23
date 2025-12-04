@@ -105,6 +105,11 @@ export default function Page() {
     const toastContainer = document.getElementById(
       "toastContainer",
     ) as HTMLElement | null;
+    const expandedOverlay = document.getElementById("expandedOverlay") as HTMLElement | null;
+    const expandedContainer = document.getElementById("expandedContainer") as HTMLElement | null;
+    const collapseExpandedBtn = document.getElementById(
+      "collapseExpandedBtn",
+    ) as HTMLButtonElement | null;
 
     if (
       !monthTitle ||
@@ -148,6 +153,8 @@ export default function Page() {
     let lastFocusedContent: HTMLDivElement | null = null;
     let lastRange: Range | null = null;
     let lastActiveCardContent: HTMLDivElement | null = null;
+    let expandedCell: HTMLElement | null = null;
+    let expandedPlaceholder: HTMLElement | null = null;
     let keepFocusFromPalette = false;
 
     function toggleSelection(card: HTMLDivElement) {
@@ -808,6 +815,7 @@ export default function Page() {
 
     function renderCalendar() {
       if (!calendarGrid) return;
+      collapseExpandedCell();
       calendarGrid.innerHTML = "";
       lastActiveDayCell = null;
 
@@ -854,6 +862,11 @@ export default function Page() {
         numEl.className = "day-number";
         const metaEl = document.createElement("div");
         metaEl.className = "day-meta";
+        const expandBtn = document.createElement("button");
+        expandBtn.className = "day-expand-btn";
+        expandBtn.type = "button";
+        expandBtn.textContent = "↗";
+        expandBtn.title = "확대";
 
         const body = document.createElement("div");
         body.className = "day-body";
@@ -908,6 +921,7 @@ export default function Page() {
 
         header.appendChild(numEl);
         header.appendChild(metaEl);
+        header.appendChild(expandBtn);
         cell.appendChild(header);
         cell.appendChild(body);
         calendarGrid.appendChild(cell);
@@ -922,6 +936,15 @@ export default function Page() {
 
         cell.addEventListener("click", () => {
           setActiveDay(cell);
+        });
+
+        expandBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (expandedCell === cell) {
+            collapseExpandedCell();
+          } else {
+            expandDayCell(cell);
+          }
         });
 
         cell.addEventListener("dblclick", () => {
@@ -1105,6 +1128,29 @@ export default function Page() {
           toast.remove();
         });
       }, 3000);
+    }
+
+    function collapseExpandedCell() {
+      if (expandedOverlay) expandedOverlay.classList.remove("open");
+      if (expandedCell && expandedPlaceholder && expandedPlaceholder.parentElement) {
+        expandedPlaceholder.parentElement.replaceChild(expandedCell, expandedPlaceholder);
+      }
+      if (expandedCell) expandedCell.classList.remove("expanded");
+      expandedCell = null;
+      expandedPlaceholder = null;
+    }
+
+    function expandDayCell(cell: HTMLElement) {
+      if (!expandedOverlay || !expandedContainer) return;
+      collapseExpandedCell();
+      expandedPlaceholder = document.createElement("div");
+      expandedPlaceholder.className = "day-placeholder-slot";
+      cell.parentElement?.insertBefore(expandedPlaceholder, cell);
+      cell.classList.add("expanded");
+      expandedContainer.innerHTML = "";
+      expandedContainer.appendChild(cell);
+      expandedCell = cell;
+      expandedOverlay.classList.add("open");
     }
 
     function clearSearchHighlights() {
@@ -1349,12 +1395,23 @@ export default function Page() {
       if (e.key === "Enter") runSearch();
     });
 
-    if (monthPickerToggle) {
-      monthPickerToggle.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleMonthDropdown();
+    if (collapseExpandedBtn) {
+      collapseExpandedBtn.addEventListener("click", () => collapseExpandedCell());
+    }
+    if (expandedOverlay) {
+      expandedOverlay.addEventListener("click", (e) => {
+        if (e.target === expandedOverlay) {
+          collapseExpandedCell();
+        }
       });
     }
+
+      if (monthPickerToggle) {
+        monthPickerToggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleMonthDropdown();
+        });
+      }
 
     document.addEventListener("click", (e) => {
       if (marqueeActive) return;
@@ -1379,6 +1436,9 @@ export default function Page() {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         clearSelection();
+        if (expandedCell) {
+          collapseExpandedCell();
+        }
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -2099,6 +2159,17 @@ export default function Page() {
             <div>일</div>
           </div>
           <div className="calendar-grid" id="calendarGrid" />
+        </div>
+      </div>
+
+      <div className="expanded-overlay" id="expandedOverlay">
+        <div className="expanded-overlay-inner">
+          <div className="expanded-overlay-bar">
+            <button className="btn" id="collapseExpandedBtn" type="button">
+              축소
+            </button>
+          </div>
+          <div className="expanded-container" id="expandedContainer" />
         </div>
       </div>
 

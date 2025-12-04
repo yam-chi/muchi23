@@ -110,6 +110,9 @@ export default function Page() {
     const collapseExpandedBtn = document.getElementById(
       "collapseExpandedBtn",
     ) as HTMLButtonElement | null;
+    const helpButton = document.getElementById("helpButton") as HTMLButtonElement | null;
+    const helpModal = document.getElementById("helpModal") as HTMLElement | null;
+    const helpClose = document.getElementById("helpClose") as HTMLButtonElement | null;
 
     if (
       !monthTitle ||
@@ -1395,6 +1398,34 @@ export default function Page() {
       if (e.key === "Enter") runSearch();
     });
 
+    const closeHelp = () => {
+      if (helpModal) helpModal.classList.remove("open");
+    };
+
+    const openHelp = () => {
+      if (helpModal) helpModal.classList.add("open");
+    };
+
+    if (helpButton) {
+      helpButton.addEventListener("click", () => {
+        if (helpModal?.classList.contains("open")) {
+          closeHelp();
+        } else {
+          openHelp();
+        }
+      });
+    }
+
+    if (helpClose) {
+      helpClose.addEventListener("click", () => closeHelp());
+    }
+
+    if (helpModal) {
+      helpModal.addEventListener("click", (e) => {
+        if (e.target === helpModal) closeHelp();
+      });
+    }
+
     if (collapseExpandedBtn) {
       collapseExpandedBtn.addEventListener("click", () => collapseExpandedCell());
     }
@@ -1406,12 +1437,12 @@ export default function Page() {
       });
     }
 
-      if (monthPickerToggle) {
-        monthPickerToggle.addEventListener("click", (e) => {
-          e.stopPropagation();
-          toggleMonthDropdown();
-        });
-      }
+    if (monthPickerToggle) {
+      monthPickerToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleMonthDropdown();
+      });
+    }
 
     document.addEventListener("click", (e) => {
       if (marqueeActive) return;
@@ -1438,6 +1469,9 @@ export default function Page() {
         clearSelection();
         if (expandedCell) {
           collapseExpandedCell();
+        }
+        if (helpModal?.classList.contains("open")) {
+          helpModal.classList.remove("open");
         }
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
@@ -2038,9 +2072,10 @@ export default function Page() {
         </button>
         <header>
           <div className="title">MUCHI NOTE</div>
-          <div className="hint">
-            💡 날짜 더블클릭 = 새 카드 · 카드 클릭 = 수정 · 카드 더블클릭 = 완료 토글 · 드래그로 이월 · 주 제목 클릭
-            = 주별 접기/펼치기 · 카드 색상 버튼으로 슬롯 색 바꾸기
+          <div className="top-actions">
+            <button className="btn" id="helpButton" type="button">
+              💡 사용법
+            </button>
           </div>
         </header>
 
@@ -2175,14 +2210,29 @@ export default function Page() {
 
       <div id="toastContainer" className="toast-container" />
 
-      <div className="help-bar">
-        ✏️ 날짜 칸 <b>더블클릭</b> → 새 카드 · 카드 <b>클릭</b> → 내용 수정 · 카드 <b>더블클릭</b> → 완료/해제 · 카드{" "}
-        <b>왼쪽 막대 드래그</b> → 다른 날짜로 이동 · <b>주 제목 클릭</b>으로 주별 접기/펼치기 · 카드 툴바의 <b>색상</b>{" "}
-        버튼으로 슬롯 색상 변경
-        <span className="debug-hint">
-          (💾 / 📥 버튼이 동작하지 않으면 브라우저 콘솔의 에러 메시지를 함께 확인해 주세요)
-        </span>
+      <div className="help-modal" id="helpModal">
+        <div className="help-modal-inner">
+          <div className="help-modal-header">
+            <div className="help-modal-title">사용법</div>
+            <button className="btn" id="helpClose" type="button">
+              닫기
+            </button>
+          </div>
+          <div className="help-modal-body">
+            <ul>
+              <li>날짜 더블클릭 → 새 카드 추가</li>
+              <li>카드 클릭 → 수정, 카드 더블클릭 → 완료 토글</li>
+              <li>카드 왼쪽 막대 드래그 → 다른 날짜로 이동</li>
+              <li>카드 색상/삭제 버튼은 카드 하단 툴바에서</li>
+              <li>↗ 버튼 → 날짜를 크게 보기 (ESC/배경 클릭으로 닫기)</li>
+              <li>이모지 패널 → 이모지 추가/업로드, 드래그로 순서 변경</li>
+              <li>검색: 이번 달/전체 전환 후 검색</li>
+              <li>주말 숨기기/보이기, 스크롤로 이전/다음 달 자동 로드</li>
+            </ul>
+          </div>
+        </div>
       </div>
+
     </div>
   );
 }

@@ -1570,22 +1570,23 @@ export default function Page() {
 
       let data: CardData[] = [];
       const jsonStr = e.clipboardData?.getData("application/json");
-      if (jsonStr) {
-        try {
-          const parsed = JSON.parse(jsonStr);
-          if (Array.isArray(parsed)) {
-            data = parsed
-              .map((c) => ({
-                text: c.text ?? "",
-                done: !!c.done,
-                color: c.color ?? "default",
-              }))
-              .filter((c) => typeof c.text === "string");
+          if (jsonStr) {
+            try {
+              const parsed = JSON.parse(jsonStr);
+              if (Array.isArray(parsed)) {
+                data = parsed
+                  .map((c) => ({
+                    id: state.nextId++,
+                    text: c.text ?? "",
+                    done: !!c.done,
+                    color: c.color ?? "default",
+                  }))
+                  .filter((c) => typeof c.text === "string");
+              }
+            } catch {
+              /* ignore */
+            }
           }
-        } catch {
-          /* ignore */
-        }
-      }
       if (!data.length && cardClipboard.length) {
         data = cardClipboard.map((c) => ({
           text: c.text,

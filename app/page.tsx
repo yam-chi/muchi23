@@ -1137,6 +1137,7 @@ export default function Page() {
     }
 
     function runSearch() {
+      if (!searchInput) return;
       const q = searchInput.value.trim().toLowerCase();
       clearSearchHighlights();
 

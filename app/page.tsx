@@ -1558,7 +1558,7 @@ export default function Page() {
       if (isEditableTarget(e.target as HTMLElement)) return;
       const targetCell =
         lastActiveDayCell ||
-        (lastActiveDateKey
+        (lastActiveDateKey && calendarGrid
           ? calendarGrid.querySelector<HTMLElement>(`.day-cell[data-date="${lastActiveDateKey}"]`)
           : null);
       if (!targetCell) {

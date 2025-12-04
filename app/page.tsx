@@ -1094,6 +1094,7 @@ export default function Page() {
     };
 
     function showToast(message: string) {
+      if (!toastContainer) return;
       const toast = document.createElement("div");
       toast.className = "toast";
       toast.textContent = message;

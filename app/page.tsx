@@ -1565,7 +1565,7 @@ export default function Page() {
         showToast("붙여넣기할 날짜 칸을 먼저 클릭하세요.");
         return;
       }
-      const bodyEl = targetCell.querySelector(".day-body");
+      const bodyEl = targetCell.querySelector(".day-body") as HTMLElement | null;
       if (!bodyEl) return;
 
       let data: CardData[] = [];

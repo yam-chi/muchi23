@@ -1669,7 +1669,12 @@ export default function Page() {
       });
     }
 
-    (calendarWrapper || window).addEventListener("wheel", onWheelScale, { passive: false });
+    const wheelTarget: HTMLElement | (Window & typeof globalThis) = calendarWrapper || window;
+    wheelTarget.addEventListener(
+      "wheel",
+      (e) => onWheelScale(e as WheelEvent),
+      { passive: false },
+    );
     document.addEventListener("copy", copySelectedCards);
     document.addEventListener("paste", pasteCards);
 

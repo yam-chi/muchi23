@@ -460,6 +460,11 @@ header {
   border-top: none;
 }
 
+.header-collapsed .calendar-wrapper {
+  border-top: 1px solid #e5e7eb;
+  border-radius: 18px;
+}
+
     /* 헤더/탑바 토글 */
     .header-toggle {
       position: absolute;

@@ -87,6 +87,9 @@ export default function Page() {
     const calendarGrid = document.getElementById("calendarGrid") as HTMLElement | null;
     const calendarWrapper = document.querySelector(".calendar-wrapper") as HTMLElement | null;
     const headerToggle = document.getElementById("headerToggle") as HTMLButtonElement | null;
+    const headerToggleFloating = document.getElementById(
+      "headerToggleFloating",
+    ) as HTMLButtonElement | null;
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
@@ -1536,13 +1539,16 @@ export default function Page() {
     function setHeaderVisibility(collapsed: boolean) {
       headerCollapsed = collapsed;
       document.body.classList.toggle("header-collapsed", collapsed);
-      if (headerToggle) {
-        headerToggle.textContent = collapsed ? "헤더 보이기" : "헤더 숨기기";
-      }
+      const label = collapsed ? "헤더 보이기" : "헤더 숨기기";
+      if (headerToggle) headerToggle.textContent = label;
+      if (headerToggleFloating) headerToggleFloating.textContent = label;
     }
     if (headerToggle) {
       headerToggle.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
       setHeaderVisibility(false);
+    }
+    if (headerToggleFloating) {
+      headerToggleFloating.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
     }
 
     // ===== 스크롤 동기화: 화면 상단에 보이는 일(또는 카드)의 월로 헤더 업데이트 =====
@@ -2067,17 +2073,23 @@ export default function Page() {
   return (
     <div className="app">
       <div className="main-glass-panel">
-        <button className="btn header-toggle" id="headerToggle">
-          헤더 숨기기
-        </button>
         <header>
           <div className="title">MUCHI NOTE</div>
           <div className="top-actions">
             <button className="btn" id="helpButton" type="button">
               💡 사용법
             </button>
+            <button className="btn header-toggle" id="headerToggle" type="button">
+              헤더 숨기기
+            </button>
           </div>
         </header>
+
+        <div className="floating-toggle-wrap">
+          <button className="btn header-toggle" id="headerToggleFloating" type="button">
+            헤더 보이기
+          </button>
+        </div>
 
         <div className="top-bar">
           <button className="btn" id="prevMonth">
@@ -2181,18 +2193,9 @@ export default function Page() {
             </button>
           </div>
         </div>
-      </div>
+        </div>
 
         <div className="calendar-wrapper">
-          <div className="weekday-row">
-            <div>월</div>
-            <div>화</div>
-            <div>수</div>
-            <div>목</div>
-            <div>금</div>
-            <div>토</div>
-            <div>일</div>
-          </div>
           <div className="calendar-grid" id="calendarGrid" />
         </div>
       </div>

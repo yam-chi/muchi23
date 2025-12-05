@@ -4,10 +4,10 @@
 /* === Global layout & background (Glassmorphism) === */
     :root {
       /* === Reference Image Color Palette === */
-      --bg-gradient: linear-gradient(135deg, #e9edf2 0%, #f6f8fb 100%);
-      --panel-bg: rgba(255, 255, 255, 0.9);
-      --text-main: #2f3842;
-      --text-sub: #7c8594;
+      --bg-gradient: linear-gradient(135deg, #f6f8fb 0%, #e9edf4 100%);
+      --panel-bg: rgba(255, 255, 255, 0.92);
+      --text-main: #0f172a;
+      --text-sub: #4b5563;
 
       /* Pastel Card Colors */
       --c-yellow: #FAF2B1;
@@ -17,8 +17,8 @@
       --c-purple: #DCE1FA;
 
       /* Shadows (Soft Neumorphism) */
-      --shadow-soft: 0 8px 18px -10px rgba(15, 23, 42, 0.18);
-      --shadow-card: 0 2px 8px -4px rgba(15, 23, 42, 0.14);
+      --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --shadow-card: 0 6px 18px rgba(15, 23, 42, 0.08);
       --shadow-inset: inset 0 1px 2px 0 rgba(0, 0, 0, 0.04);
 
       /* Typography */
@@ -57,49 +57,72 @@
     }
 
     /* === Main Glass Panel Wrapper (flattened) === */
-    .main-glass-panel {
-      width: 100%;
-      max-width: 100%;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      -webkit-backdrop-filter: none;
-              backdrop-filter: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      position: relative;
-    }
+.main-glass-panel {
+  width: 100%;
+  max-width: 100%;
+  background: var(--panel-bg);
+  border: 1px solid #e6ebf5;
+  box-shadow: var(--shadow-soft);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  border-radius: 18px;
+  padding: 8px;
+}
 
-    header {
-      position: -webkit-sticky;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      padding: 10px 12px;
-      padding-right: 120px; /* 토글 버튼 공간 확보 */
-      background: rgba(255, 255, 255, 0.9);
-      color: #111827;
-      font-size: 18px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-      -webkit-backdrop-filter: blur(6px);
-              backdrop-filter: blur(6px);
-      max-height: 120px;
-      transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
-      position: sticky;
-    }
+header {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 10px 12px;
+  padding-right: 120px; /* 토글 버튼 공간 확보 */
+  background: var(--panel-bg);
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e6ebf5;
+  border-radius: 18px 18px 0 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
+  max-height: 120px;
+  transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+  position: sticky;
+}
 
-    .header-left {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-    }
+.top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-toggle-wrap {
+  display: none;
+  width: 100%;
+  justify-content: flex-end;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 12px;
+  z-index: 25;
+  padding: 0 8px 8px;
+}
+
+.floating-toggle-wrap .header-toggle {
+  position: static;
+}
+
+.header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
 
     header .hint {
       font-size: 13px;
@@ -107,24 +130,25 @@
       font-weight: 500;
     }
 
-    .top-bar {
-      position: -webkit-sticky;
-      position: sticky;
-      top: 58px;
-      z-index: 18;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-      -webkit-backdrop-filter: blur(6px);
-              backdrop-filter: blur(6px);
-      max-height: 90px;
-      transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
-    }
+.top-bar {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 58px;
+  z-index: 18;
+  padding: 10px;
+  background: var(--panel-bg);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
+  max-height: 90px;
+  transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+  border-top: none;
+}
 
     /* prev/next 버튼 숨김 */
     #prevMonth,
@@ -140,24 +164,29 @@
     }
 
     /* === Buttons (Neo-brutal pill style) === */
-    .btn {
-      border-radius: 12px;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #3b82f6;
-      cursor: pointer;
-      box-shadow: var(--shadow-card);
-      transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    }
+.btn {
+  border-radius: 12px;
+  border: 1px solid #e6ebf5;
+  background: #ffffff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3a6be0;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-    .btn:hover {
-      background: #f8fafc;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
-    }
+.btn:hover {
+  background: #f5f7fb;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+/* 헤더 토글 버튼 (행 내 배치) */
+.header-toggle {
+  position: static;
+}
 
     .scale-control {
       display: inline-flex;
@@ -417,18 +446,19 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    .calendar-wrapper {
-      flex: 1 1;
-      padding: 12px;
-      background: #f7f9fb;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-      max-height: calc(100vh - 190px);
-      overflow-y: auto;
-      overflow-x: auto;
-      position: relative;
-    }
+.calendar-wrapper {
+  flex: 1 1;
+  padding: 12px;
+  background: var(--panel-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 18px 18px;
+  box-shadow: none;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+  border-top: none;
+}
 
     /* 헤더/탑바 토글 */
     .header-toggle {
@@ -445,33 +475,25 @@
       box-shadow: var(--shadow-card);
     }
 
-    .header-collapsed header {
-      max-height: 0;
-      opacity: 0;
-      transform: translateY(-12px);
-      padding-top: 0;
-      padding-bottom: 0;
-      border-width: 0;
-      box-shadow: none;
-      overflow: hidden;
-      pointer-events: none;
-    }
+.header-collapsed header {
+  display: none;
+}
 
-    .header-collapsed .top-bar {
-      max-height: 0;
-      opacity: 0;
-      transform: translateY(-12px);
-      padding-top: 0;
-      padding-bottom: 0;
-      border-width: 0;
-      box-shadow: none;
-      overflow: hidden;
-      pointer-events: none;
-    }
+.header-collapsed .top-bar {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-12px);
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  box-shadow: none;
+  overflow: hidden;
+  pointer-events: none;
+}
 
-    .header-collapsed .top-bar {
-      top: 0;
-    }
+.header-collapsed .floating-toggle-wrap {
+  display: inline-flex;
+}
 
     .header-collapsed .calendar-wrapper {
       max-height: calc(100vh - 80px);

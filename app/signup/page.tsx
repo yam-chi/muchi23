@@ -32,6 +32,10 @@ export default function SignupPage() {
 
   return (
     <div className="auth-page">
+      <div className="auth-hero auth-hero-top">
+        <div className="auth-logo">MUCHI NOTE</div>
+        <div className="auth-tagline">월간 플래너 보드</div>
+      </div>
       <div className="auth-card">
         <h1 className="auth-title">회원가입</h1>
         <form className="auth-form" onSubmit={onSubmit}>

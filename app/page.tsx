@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type CardData = {
   id: number;
@@ -57,7 +58,37 @@ const DEFAULT_EMOJIS = [
 ];
 
 export default function Page() {
+  const [authReady, setAuthReady] = useState(false);
+
   useEffect(() => {
+    let mounted = true;
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (!data.session) {
+        window.location.href = "/login";
+        return;
+      }
+      setAuthReady(true);
+    }
+    checkSession();
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      if (!session) {
+        setAuthReady(false);
+        window.location.href = "/login";
+      } else {
+        setAuthReady(true);
+      }
+    });
+    return () => {
+      mounted = false;
+      authSub.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
     // React 18 StrictMode 초기 mount 중복 실행을 방지하기 위한 플래그
     if ((window as typeof window & { __MUCHI_NOTE_INIT__?: boolean }).__MUCHI_NOTE_INIT__) {
       return;
@@ -96,6 +127,7 @@ export default function Page() {
     const scaleResetBtn = document.getElementById("scaleReset") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
+    const logoutBtn = document.getElementById("logoutBtn") as HTMLButtonElement | null;
     const airtableSaveBtn = document.getElementById(
       "airtableSaveBtn",
     ) as HTMLButtonElement | null;
@@ -1401,6 +1433,13 @@ export default function Page() {
       if (e.key === "Enter") runSearch();
     });
 
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/login";
+      });
+    }
+
     const closeHelp = () => {
       if (helpModal) helpModal.classList.remove("open");
     };
@@ -2068,13 +2107,20 @@ export default function Page() {
     renderEmojiPalette();
 
     toggleWeekendUI();
-  }, []);
+  }, [authReady]);
+
+  if (!authReady) return null;
 
   return (
     <div className="app">
       <div className="main-glass-panel">
         <header>
-          <div className="title">MUCHI NOTE</div>
+          <div className="title-with-logout">
+            <span className="title">MUCHI NOTE</span>
+            <button className="logout-link" id="logoutBtn" type="button">
+              log out
+            </button>
+          </div>
           <div className="top-actions">
             <button className="btn" id="helpButton" type="button">
               💡 사용법

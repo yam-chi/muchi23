@@ -156,12 +156,40 @@ header {
       display: none;
     }
 
-    .month-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: #111827;
-      letter-spacing: -0.5px;
-    }
+.month-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.5px;
+}
+
+/* Header title & logout */
+.title-with-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-with-logout .title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.logout-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.logout-link:hover {
+  color: #111827;
+  text-decoration: underline;
+}
 
     /* === Buttons (Neo-brutal pill style) === */
 .btn {
@@ -260,10 +288,110 @@ header {
       transition: transform 0.15s;
     }
 
-    .month-display.open .month-caret {
-      transform: rotate(180deg);
-    }
+.month-display.open .month-caret {
+  transform: rotate(180deg);
+}
 
+/* === Auth Pages === */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-gradient);
+  padding: 24px;
+}
+
+.auth-card {
+  background: #ffffff;
+  border: 1px solid #e6ebf5;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 28px;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.auth-input {
+  border: 1px solid #e6ebf5;
+  border-radius: 12px;
+  padding: 8px 12px;
+  height: 38px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #3a6be0;
+  box-shadow: 0 0 0 3px rgba(58, 107, 224, 0.15);
+}
+
+.auth-error {
+  color: #dc2626;
+  font-size: 13px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.auth-success {
+  color: #15803d;
+  font-size: 13px;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.auth-submit {
+  width: 100%;
+}
+
+.auth-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.auth-link {
+  color: #3a6be0;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
     .month-dropdown {
       position: absolute;
       top: 110%;

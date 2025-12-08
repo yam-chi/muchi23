@@ -60,10 +60,19 @@ const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toS
 
 export default function Page() {
   const [authReady, setAuthReady] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const isPreview = search.includes("preview=1");
+    setPreviewMode(isPreview);
+    if (isPreview) {
+      setAuthReady(true);
+      return;
+    }
+
     async function checkSession() {
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
@@ -497,6 +506,7 @@ export default function Page() {
     }
 
     async function fetchCardsFromSupabase() {
+      if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
       const { data, error } = await supabase
@@ -523,6 +533,7 @@ export default function Page() {
     }
 
     async function loadState() {
+      if (previewMode) return;
       await fetchCardsFromSupabase();
     }
 
@@ -531,6 +542,7 @@ export default function Page() {
     }
 
     async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
+      if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
       const { error } = await supabase.from("cards").upsert({
@@ -545,6 +557,7 @@ export default function Page() {
     }
 
     async function deleteCardInSupabase(id: string) {
+      if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
       const { error } = await supabase.from("cards").delete().eq("id", id).eq("user_id", uid);
@@ -2145,7 +2158,7 @@ export default function Page() {
     renderEmojiPalette();
 
     toggleWeekendUI();
-  }, [authReady]);
+  }, [authReady, previewMode]);
 
   if (!authReady) return null;
 

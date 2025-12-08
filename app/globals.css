@@ -414,6 +414,18 @@ header {
 .auth-link:hover {
   text-decoration: underline;
 }
+
+.auth-secondary {
+  width: 100%;
+  margin-top: 6px;
+  color: #1f2937;
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.auth-secondary:hover {
+  background: #f1f5f9;
+}
     .month-dropdown {
       position: absolute;
       top: 110%;

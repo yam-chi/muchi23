@@ -65,6 +65,13 @@ export default function LoginPage() {
             회원가입
           </Link>
         </div>
+        <button
+          type="button"
+          className="btn auth-secondary"
+          onClick={() => (window.location.href = "/?preview=1")}
+        >
+          미리보기
+        </button>
       </div>
     </div>
   );

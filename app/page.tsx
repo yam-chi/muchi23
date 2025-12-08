@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type CardData = {
-  id: number;
+  id: string; // uuid string
   text: string; // HTML-safe string (text + optional <img class="emoji-img" src="data:image/...">)
   done: boolean;
   color: string;
 };
 
 type State = {
-  nextId: number;
   cards: Record<string, CardData[]>;
   weekVisibility: Record<string, boolean[]>;
 };
@@ -57,8 +56,11 @@ const DEFAULT_EMOJIS = [
   { id: "default-strong", ch: "💪" },
 ];
 
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10));
+
 export default function Page() {
   const [authReady, setAuthReady] = useState(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -69,6 +71,7 @@ export default function Page() {
         window.location.href = "/login";
         return;
       }
+      currentUserIdRef.current = data.session.user.id;
       setAuthReady(true);
     }
     checkSession();
@@ -78,6 +81,7 @@ export default function Page() {
         setAuthReady(false);
         window.location.href = "/login";
       } else {
+        currentUserIdRef.current = session.user.id;
         setAuthReady(true);
       }
     });
@@ -169,7 +173,7 @@ export default function Page() {
     let startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
     let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
-    let state: State = { nextId: 1, cards: {}, weekVisibility: {} };
+    let state: State = { cards: {}, weekVisibility: {} };
     let headerCollapsed = false;
     let showWeekend = true;
     let marqueeBox: HTMLDivElement | null = null;
@@ -333,20 +337,18 @@ export default function Page() {
         const parent = c.parentElement;
         c.remove();
         if (dateKey && idStr) {
-          const numericId = Number(idStr);
-          if (Number.isFinite(numericId)) {
-            let deleted = deleteCardFromState(dateKey, numericId);
-            if (!deleted) {
-              for (const key of Object.keys(state.cards)) {
-                if (deleteCardFromState(key, numericId)) {
-                  affectedDates.add(key);
-                  deleted = true;
-                  break;
-                }
+          let deleted = deleteCardFromState(dateKey, idStr);
+          if (!deleted) {
+            for (const key of Object.keys(state.cards)) {
+              if (deleteCardFromState(key, idStr)) {
+                affectedDates.add(key);
+                deleted = true;
+                break;
               }
             }
-            affectedDates.add(dateKey);
           }
+          affectedDates.add(dateKey);
+          deleteCardInSupabase(idStr);
         }
         if (parent && parent.classList.contains("day-body")) {
           if (!parent.querySelector(".card")) {
@@ -494,30 +496,59 @@ export default function Page() {
       monthPickerToggle.classList.remove("open");
     }
 
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw) as Partial<State>;
-        if (parsed && typeof parsed === "object") {
-          if (parsed.cards && typeof parsed.cards === "object") state.cards = parsed.cards;
-          if (parsed.weekVisibility && typeof parsed.weekVisibility === "object") {
-            state.weekVisibility = parsed.weekVisibility;
-          }
-          if (typeof parsed.nextId === "number" && parsed.nextId > 0) state.nextId = parsed.nextId;
-        }
-      } catch (e) {
-        console.error("loadState error", e);
-        state = { nextId: 1, cards: {}, weekVisibility: {} };
+    async function fetchCardsFromSupabase() {
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { data, error } = await supabase
+        .from("cards")
+        .select("id, date_key, text, done, color")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: true });
+      if (error) {
+        console.error("supabase load error", error);
+        return;
       }
+      const grouped: Record<string, CardData[]> = {};
+      data?.forEach((row) => {
+        const dk = row.date_key;
+        if (!grouped[dk]) grouped[dk] = [];
+        grouped[dk].push({
+          id: row.id,
+          text: row.text ?? "",
+          done: !!row.done,
+          color: row.color ?? "default",
+        });
+      });
+      state.cards = grouped;
+    }
+
+    async function loadState() {
+      await fetchCardsFromSupabase();
     }
 
     function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.error("saveState error", e);
-      }
+      // Supabase를 단일 저장소로 사용 중이므로 로컬 스토리지 저장은 생략
+    }
+
+    async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { error } = await supabase.from("cards").upsert({
+        id: cardObj.id,
+        user_id: uid,
+        date_key: dateKey,
+        text: cardObj.text,
+        done: cardObj.done,
+        color: cardObj.color,
+      });
+      if (error) console.error("supabase upsert error", error);
+    }
+
+    async function deleteCardInSupabase(id: string) {
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { error } = await supabase.from("cards").delete().eq("id", id).eq("user_id", uid);
+      if (error) console.error("supabase delete error", error);
     }
 
     const getCardsForDate = (dateKey: string) => {
@@ -530,16 +561,18 @@ export default function Page() {
       return state.cards[dateKey];
     };
 
-    function upsertCard(dateKey: string, cardObj: CardData) {
+    function upsertCard(dateKey: string, cardObj: CardData, persist = false) {
       const list = ensureCardList(dateKey);
       const id = cardObj.id;
       const idx = list.findIndex((c) => c.id === id);
       if (idx >= 0) list[idx] = cardObj;
       else list.push(cardObj);
-      saveState();
+      if (persist) {
+        void upsertCardToSupabase(dateKey, cardObj);
+      }
     }
 
-    function deleteCardFromState(dateKey: string, id: number) {
+    function deleteCardFromState(dateKey: string, id: string) {
       const list = state.cards[dateKey];
       if (!Array.isArray(list)) return false;
       const initLen = list.length;
@@ -570,14 +603,13 @@ export default function Page() {
       const dateKey = card.dataset.date;
       const idStr = card.dataset.cardId;
       if (!dateKey || !idStr) return;
-      const id = Number(idStr);
-      if (!Number.isFinite(id)) return;
+      const id = idStr;
 
       const content = card.querySelector(".card-content");
       const text = content ? content.innerHTML ?? "" : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
-      upsertCard(dateKey, { id, text, done, color });
+      upsertCard(dateKey, { id, text, done, color }, true);
     }
 
     function syncCurrentMonthFromDom() {
@@ -593,17 +625,15 @@ export default function Page() {
         const list: CardData[] = [];
         cards.forEach((card) => {
           const idStr = card.dataset.cardId;
-          const id = Number(idStr);
-          if (!Number.isFinite(id)) return;
+          if (!idStr) return;
           const content = card.querySelector(".card-content");
           const text = content ? content.innerHTML ?? "" : "";
           const done = card.classList.contains("done");
           const color = card.dataset.color || "default";
-          list.push({ id, text, done, color });
+          list.push({ id: idStr, text, done, color });
         });
         state.cards[dateKey] = list;
       });
-      saveState();
     }
 
     function makeEditable(card: HTMLDivElement) {
@@ -669,8 +699,7 @@ export default function Page() {
       const text = cardData?.text ?? "";
       const done = !!cardData?.done;
       const color = cardData?.color ?? "default";
-      let id = typeof cardData?.id === "number" ? cardData.id : null;
-      if (!Number.isFinite(id) || (id ?? 0) <= 0) id = state.nextId++;
+      const id = typeof cardData?.id === "string" ? cardData.id : newId();
 
       card.dataset.cardId = String(id);
       card.id = `card-${id}`;
@@ -746,12 +775,13 @@ export default function Page() {
         const key = dayCell.dataset.date;
         card.dataset.date = key;
         if (!opts.fromState) {
-          upsertCard(key, {
-            id: id ?? 0,
+          const payload: CardData = {
+            id,
             text,
             done,
             color,
-          });
+          };
+          upsertCard(key, payload, true);
         }
       }
 
@@ -1064,9 +1094,8 @@ export default function Page() {
               card.dataset.date = newKey;
 
               if (oldKey && oldKey !== newKey) {
-                const idStr = card.dataset.cardId;
-                const id = Number(idStr);
-                if (Number.isFinite(id)) {
+                const id = card.dataset.cardId;
+                if (id) {
                   const oldList = getCardsForDate(oldKey);
                   const idx = oldList.findIndex((c) => c.id === id);
                   let obj: CardData | null = null;
@@ -1077,12 +1106,13 @@ export default function Page() {
 
                   if (obj) {
                     const newList = ensureCardList(newKey);
-                    newList.push(obj);
+                    newList.push({ ...obj, id: obj.id });
                   }
                 }
               }
             });
 
+            draggingCards.forEach((card) => syncOneCardFromDom(card));
             saveState();
 
             affectedDateKeys.forEach((key) => {
@@ -1245,7 +1275,7 @@ export default function Page() {
         }
       } else {
         let foundDateKey: string | null = null;
-        let foundCardId: number | null = null;
+        let foundCardId: string | null = null;
         const dateKeys = Object.keys(state.cards).sort();
 
         for (const key of dateKeys) {
@@ -1365,14 +1395,16 @@ export default function Page() {
           return;
         }
 
-        const parsed = JSON.parse(rawJson) as State;
-        if (!parsed || typeof parsed !== "object" || !parsed.cards || typeof parsed.nextId !== "number") {
+        const parsed = JSON.parse(rawJson) as Partial<State>;
+        if (!parsed || typeof parsed !== "object" || !parsed.cards) {
           alert("스냅샷 구조가 예상과 다릅니다.");
           return;
         }
 
-        state = parsed;
-        saveState();
+        state = {
+          cards: parsed.cards ?? {},
+          weekVisibility: parsed.weekVisibility ?? {},
+        };
         renderCalendar();
         alert("에어테이블 스냅샷을 불러왔습니다!");
       } catch (e) {
@@ -1381,10 +1413,16 @@ export default function Page() {
       }
     }
 
-    loadState();
-    pushHistory();
-    loadScale();
-    renderCalendar();
+    loadState()
+      .then(() => {
+        pushHistory();
+        loadScale();
+        renderCalendar();
+      })
+      .catch((err) => {
+        console.error("loadState error", err);
+        renderCalendar();
+      });
 
     // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
     // prev/next 버튼은 숨김 상태 (동작 비활성)
@@ -1676,7 +1714,7 @@ export default function Page() {
       const data: CardData[] = selected.map((card) => {
         const content = card.querySelector(".card-content");
         return {
-          id: Number(card.dataset.cardId) || 0,
+          id: card.dataset.cardId || newId(),
           text: content ? content.textContent ?? "" : "",
           done: card.classList.contains("done"),
           color: card.dataset.color || "default",
@@ -1715,7 +1753,7 @@ export default function Page() {
               if (Array.isArray(parsed)) {
                 data = parsed
                   .map((c) => ({
-                    id: state.nextId++,
+                    id: newId(),
                     text: c.text ?? "",
                     done: !!c.done,
                     color: c.color ?? "default",
@@ -1728,7 +1766,7 @@ export default function Page() {
           }
       if (!data.length && cardClipboard.length) {
         data = cardClipboard.map((c) => ({
-          id: state.nextId++,
+          id: newId(),
           text: c.text,
           done: c.done,
           color: c.color,

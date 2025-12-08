@@ -159,7 +159,7 @@ header {
 /* Header title & logout */
 .title-with-logout {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline; /* 텍스트 기준선 정렬로 하단을 맞춤 */
   gap: 12px;
 }
 

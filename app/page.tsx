@@ -1567,6 +1567,29 @@ export default function Page() {
           helpModal.classList.remove("open");
         }
       }
+      // Enter: 카드 편집 또는 활성 데이셀에 새 카드 추가
+      if (e.key === "Enter") {
+        if (isEditableTarget(e.target as HTMLElement)) return;
+        const firstSelected = document.querySelector<HTMLDivElement>(".card.selected");
+        if (firstSelected) {
+          e.preventDefault();
+          makeEditable(firstSelected);
+          return;
+        }
+        const activeCell =
+          lastActiveDayCell || calendarGrid?.querySelector<HTMLElement>(".day-cell.active-day");
+        if (activeCell) {
+          const body = activeCell.querySelector(".day-body") as HTMLElement | null;
+          if (body) {
+            e.preventDefault();
+            pushHistory();
+            createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+            const key = activeCell.dataset.date;
+            if (key) updateDayBadge(key);
+            setActiveDay(activeCell);
+          }
+        }
+      }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
         undo();

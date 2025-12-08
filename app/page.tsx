@@ -330,6 +330,34 @@ export default function Page() {
       lastActiveDateKey = key;
       cell.classList.add("active-day");
     }
+    function moveActiveDay(deltaX: number, deltaY: number) {
+      const grid = calendarGrid;
+      if (!grid) return;
+      const cells = Array.from(grid.querySelectorAll<HTMLElement>(".day-cell"));
+      const datedCells = cells.filter((c) => c.dataset.date);
+      if (!datedCells.length) return;
+      const active = lastActiveDayCell && cells.includes(lastActiveDayCell)
+        ? lastActiveDayCell
+        : datedCells[0];
+
+      const cols = showWeekend ? 7 : 5;
+      const activeIdx = cells.indexOf(active);
+      if (activeIdx < 0) return;
+      const step = deltaY * cols + deltaX;
+      if (step === 0) return;
+
+      let targetIdx = activeIdx + step;
+      const dir = step > 0 ? 1 : -1;
+      while (targetIdx >= 0 && targetIdx < cells.length) {
+        const candidate = cells[targetIdx];
+        if (candidate.dataset.date) {
+          setActiveDay(candidate);
+          candidate.scrollIntoView({ block: "center", behavior: "smooth" });
+          break;
+        }
+        targetIdx += dir;
+      }
+    }
 
     function deleteCards(targets: HTMLDivElement[]) {
       if (!targets.length) return;
@@ -1601,6 +1629,21 @@ export default function Page() {
         if (!selectedCards.length) return;
         e.preventDefault();
         deleteCards(selectedCards);
+      }
+      if (!isEditableTarget(e.target as HTMLElement)) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          moveActiveDay(-1, 0);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          moveActiveDay(1, 0);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          moveActiveDay(0, -1);
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          moveActiveDay(0, 1);
+        }
       }
     });
 

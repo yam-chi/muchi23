@@ -2252,71 +2252,87 @@ export default function Page() {
         </div>
 
         <div className="top-bar">
-          <div className="month-picker">
-            <button className="month-display link-btn" id="monthPickerToggle" type="button">
-              <span className="month-title" id="monthTitle" />
-              <span className="month-caret">▾</span>
-            </button>
-            <div className="month-dropdown" id="monthDropdown">
-              <div className="ym-header">
-                <button type="button" className="ym-year-btn" id="ymPrevYear">
-                  ‹
-                </button>
-                <span className="ym-year-label" id="ymYearLabel" />
-                <button type="button" className="ym-year-btn" id="ymNextYear">
-                  ›
-                </button>
-              </div>
-              <div className="ym-month-grid">
-                <button type="button" className="ym-month-btn" data-month="0">
-                  1월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="1">
-                  2월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="2">
-                  3월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="3">
-                  4월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="4">
-                  5월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="5">
-                  6월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="6">
-                  7월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="7">
-                  8월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="8">
-                  9월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="9">
-                  10월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="10">
-                  11월
-                </button>
-                <button type="button" className="ym-month-btn" data-month="11">
-                  12월
-                </button>
+          <div className="top-left-actions">
+            <div className="month-picker">
+              <button className="month-display" id="monthPickerToggle" type="button">
+                <span className="month-title" id="monthTitle" />
+                <span className="month-caret">▾</span>
+              </button>
+              <div className="month-dropdown" id="monthDropdown">
+                <div className="ym-header">
+                  <button type="button" className="ym-year-btn" id="ymPrevYear">
+                    ‹
+                  </button>
+                  <span className="ym-year-label" id="ymYearLabel" />
+                  <button type="button" className="ym-year-btn" id="ymNextYear">
+                    ›
+                  </button>
+                </div>
+                <div className="ym-month-grid">
+                  <button type="button" className="ym-month-btn" data-month="0">
+                    1월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="1">
+                    2월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="2">
+                    3월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="3">
+                    4월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="4">
+                    5월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="5">
+                    6월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="6">
+                    7월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="7">
+                    8월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="8">
+                    9월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="9">
+                    10월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="10">
+                    11월
+                  </button>
+                  <button type="button" className="ym-month-btn" data-month="11">
+                    12월
+                  </button>
+                </div>
               </div>
             </div>
+            <button className="btn btn-today" id="todayBtn">
+              오늘
+            </button>
+            <button className="btn" id="weekendToggle">
+              주말 숨기기
+            </button>
+            <div className="emoji-panel">
+              <button className="btn" id="emojiTrigger" type="button">
+                이모지
+              </button>
+              <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
+              <div className="emoji-palette" id="emojiPalette">
+                <div className="emoji-upload-row">
+                  <button className="btn" id="emojiUploadTrigger" type="button">
+                    업로드
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="scale-control">
+              <button className="btn" id="scaleReset" type="button">
+                🔍 100%
+              </button>
+            </div>
           </div>
-          <button className="btn" id="nextMonth">
-            다음 달 &gt;
-          </button>
-          {/* 오늘 버튼 추가 */}
-          <button className="btn btn-today" id="todayBtn">
-            오늘
-          </button>
-          <button className="btn" id="weekendToggle">
-            주말 숨기기
-          </button>
 
           <div className="search-wrap">
             <div className="search-scope-toggles">
@@ -2328,28 +2344,10 @@ export default function Page() {
               </button>
             </div>
             <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
-          <button className="btn" id="searchBtn">
-            검색
-          </button>
-          <div className="emoji-panel">
-            <button className="btn" id="emojiTrigger" type="button">
-              이모지
-            </button>
-            <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
-            <div className="emoji-palette" id="emojiPalette">
-              <div className="emoji-upload-row">
-                <button className="btn" id="emojiUploadTrigger" type="button">
-                  업로드
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="scale-control">
-            <button className="btn" id="scaleReset" type="button">
-              🔍 100%
+            <button className="btn" id="searchBtn">
+              검색
             </button>
           </div>
-        </div>
         </div>
 
         <div className="calendar-wrapper">

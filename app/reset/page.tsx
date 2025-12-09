@@ -4,7 +4,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function ResetPage() {
-  const [code, setCode] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -21,7 +21,11 @@ export default function ResetPage() {
       supabase.auth
         .setSession({ access_token, refresh_token })
         .then(({ error: sessErr }) => {
-          if (sessErr) setError(sessErr.message);
+          if (sessErr) {
+            setError(sessErr.message);
+          } else {
+            setSessionReady(true);
+          }
           setLoading(false);
         });
       return;
@@ -34,9 +38,12 @@ export default function ResetPage() {
       setLoading(false);
       return;
     }
-    setCode(c);
     supabase.auth.exchangeCodeForSession(c).then(({ error: exErr }) => {
-      if (exErr) setError(exErr.message);
+      if (exErr) {
+        setError(exErr.message);
+      } else {
+        setSessionReady(true);
+      }
       setLoading(false);
     });
   }, []);
@@ -49,7 +56,7 @@ export default function ResetPage() {
       setError("비밀번호가 서로 같지 않습니다.");
       return;
     }
-    if (!code) {
+    if (!sessionReady) {
       setError("유효하지 않은 요청입니다.");
       return;
     }

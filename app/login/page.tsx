@@ -16,6 +16,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingReset, setLoadingReset] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -70,25 +73,15 @@ export default function LoginPage() {
         <button
           type="button"
           className="btn auth-secondary auth-reset"
-          disabled={loadingReset}
-          onClick={async () => {
+          onClick={() => {
             setError(null);
             setInfo(null);
-            if (!email) {
-              setError("비밀번호 재설정 이메일을 보내려면 이메일을 입력하세요.");
-              return;
-            }
-            setLoadingReset(true);
-            const { error: resetErr } = await requestPasswordReset(email);
-            setLoadingReset(false);
-            if (resetErr) {
-              setError(resetErr.message);
-            } else {
-              setInfo("재설정 이메일을 보냈어요. 메일함을 확인해주세요.");
-            }
+            setResetMessage(null);
+            setResetEmail(email);
+            setResetModalOpen(true);
           }}
         >
-          {loadingReset ? "메일 보내는 중..." : "비밀번호 찾기"}
+          비밀번호 찾기
         </button>
         <button
           type="button"
@@ -119,6 +112,55 @@ export default function LoginPage() {
         </button>
         {info && <div className="auth-success">{info}</div>}
       </div>
+
+      {resetModalOpen && (
+        <div className="auth-modal-overlay" onClick={() => setResetModalOpen(false)}>
+          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="auth-title">비밀번호 찾기</h2>
+            <p className="auth-helper">가입한 이메일로 재설정 링크를 보내드려요.</p>
+            <form
+              className="auth-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setResetMessage(null);
+                setError(null);
+                setLoadingReset(true);
+                const { error: resetErr } = await requestPasswordReset(resetEmail);
+                setLoadingReset(false);
+                if (resetErr) {
+                  setError(resetErr.message);
+                } else {
+                  setResetMessage("재설정 이메일을 보냈습니다. 메일함을 확인해주세요.");
+                }
+              }}
+            >
+              <label className="auth-field">
+                <span>이메일</span>
+                <input
+                  className="auth-input"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <div className="auth-modal-actions">
+                <button
+                  type="button"
+                  className="btn auth-secondary"
+                  onClick={() => setResetModalOpen(false)}
+                >
+                  닫기
+                </button>
+                <button className="btn auth-submit" type="submit" disabled={loadingReset}>
+                  {loadingReset ? "보내는 중..." : "이메일 보내기"}
+                </button>
+              </div>
+              {resetMessage && <div className="auth-success">{resetMessage}</div>}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

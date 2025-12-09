@@ -2234,14 +2234,11 @@ export default function Page() {
         <header>
           <div className="title-with-logout">
             <span className="title">MUCHI NOTE</span>
-            <button className="logout-link" id="logoutBtn" type="button">
+            <button className="top-link" id="logoutBtn" type="button">
               log out
             </button>
           </div>
           <div className="top-actions">
-            <button className="btn" id="helpButton" type="button">
-              💡 사용법
-            </button>
             <button className="btn header-toggle" id="headerToggle" type="button">
               헤더 숨기기
             </button>

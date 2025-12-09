@@ -68,15 +68,14 @@
   gap: 0;
   position: relative;
   border-radius: 18px;
-  padding: 8px;
+  padding: 16px;
 }
 
 header {
   position: sticky;
   top: 0;
   z-index: 20;
-  padding: 10px 12px;
-  padding-right: 120px; /* 토글 버튼 공간 확보 */
+  padding: 14px 16px;
   background: var(--panel-bg);
   color: var(--text-main);
   font-size: 18px;
@@ -84,6 +83,7 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   border: 1px solid #e6ebf5;
   border-radius: 18px 18px 0 0;
   box-shadow: none;
@@ -94,9 +94,12 @@ header {
 }
 
 .top-actions {
+  position: static;
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  margin-left: auto;
 }
 
 .floating-toggle-wrap {
@@ -169,7 +172,7 @@ header {
   color: #1f2937;
 }
 
-.logout-link {
+.top-link {
   background: transparent;
   border: none;
   padding: 0;
@@ -179,7 +182,7 @@ header {
   text-decoration: none;
 }
 
-.logout-link:hover {
+.top-link:hover {
   color: #111827;
   text-decoration: underline;
 }
@@ -1096,13 +1099,6 @@ header {
       font-size: 11px;
   color: rgba(107, 114, 128, 0.8);
   margin-left: 4px;
-}
-
-/* Top action (help) */
-.top-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 6px;
 }
 
 /* Help modal */

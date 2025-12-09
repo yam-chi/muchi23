@@ -381,8 +381,6 @@ export default function Page() {
       if (targets.length > 1 && !confirm(`선택된 ${targets.length}개 카드를 삭제할까요?`)) {
         return;
       }
-      pushHistory();
-
       const affectedDates = new Set<string>();
 
       targets.forEach((c) => {
@@ -415,6 +413,7 @@ export default function Page() {
       affectedDates.forEach((dk) => updateDayBadge(dk));
       clearSelection();
       syncCurrentMonthFromDom();
+      pushHistory();
     }
 
     function ensureMarqueeBox() {
@@ -491,7 +490,9 @@ export default function Page() {
       const prev = history[historyIndex];
       state = JSON.parse(JSON.stringify(prev));
       saveState();
-      renderCalendar();
+      void syncAllCardsToSupabase().then(() => {
+        renderCalendar();
+      });
     }
 
     function loadScale() {
@@ -587,6 +588,41 @@ export default function Page() {
       // Supabase를 단일 저장소로 사용 중이므로 로컬 스토리지 저장은 생략
     }
 
+    async function syncAllCardsToSupabase() {
+      if (previewMode) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const rows: Array<{
+        id: string;
+        user_id: string;
+        date_key: string;
+        text: string;
+        done: boolean;
+        color: string;
+      }> = [];
+      Object.entries(state.cards).forEach(([date_key, list]) => {
+        (list ?? []).forEach((c) => {
+          rows.push({
+            id: c.id,
+            user_id: uid,
+            date_key,
+            text: c.text,
+            done: c.done,
+            color: c.color,
+          });
+        });
+      });
+      const { error: delErr } = await supabase.from("cards").delete().eq("user_id", uid);
+      if (delErr) {
+        console.error("supabase sync delete error", delErr);
+        return;
+      }
+      if (rows.length) {
+        const { error: insErr } = await supabase.from("cards").upsert(rows);
+        if (insErr) console.error("supabase sync upsert error", insErr);
+      }
+    }
+
     async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
@@ -658,7 +694,7 @@ export default function Page() {
       (metaEl as HTMLElement).textContent = isToday ? "오늘" : "";
     }
 
-    function syncOneCardFromDom(card: HTMLDivElement) {
+    function syncOneCardFromDom(card: HTMLDivElement, shouldPush = true) {
       const dateKey = card.dataset.date;
       const idStr = card.dataset.cardId;
       if (!dateKey || !idStr) return;
@@ -668,7 +704,14 @@ export default function Page() {
       const text = content ? content.innerHTML ?? "" : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
+      const list = getCardsForDate(dateKey);
+      const prev = list.find((c) => c.id === id);
+      const changed =
+        !prev || prev.text !== text || prev.done !== done || prev.color !== color;
       upsertCard(dateKey, { id, text, done, color }, true);
+      if (changed && shouldPush) {
+        pushHistory();
+      }
     }
 
     function syncCurrentMonthFromDom() {
@@ -866,7 +909,6 @@ export default function Page() {
 
       card.addEventListener("dblclick", (e) => {
         e.stopPropagation();
-        pushHistory();
         card.classList.toggle("done");
         syncOneCardFromDom(card);
         // 안전망: DOM 기준으로 재저장
@@ -884,7 +926,6 @@ export default function Page() {
 
       btnColor.addEventListener("click", (e) => {
         e.stopPropagation();
-        pushHistory();
         const currentColor = card.dataset.color || "default";
         const idx = CARD_COLORS.indexOf(currentColor as (typeof CARD_COLORS)[number]);
         const nextColor = CARD_COLORS[(idx + 1 + CARD_COLORS.length) % CARD_COLORS.length];
@@ -1076,10 +1117,10 @@ export default function Page() {
 
         cell.addEventListener("dblclick", () => {
           if (!cell.dataset.date) return;
-          pushHistory();
           createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
           updateDayBadge(cell.dataset.date);
           setActiveDay(cell);
+          pushHistory();
         });
 
           cell.addEventListener("dragover", (e) => {
@@ -1132,7 +1173,6 @@ export default function Page() {
           cell.addEventListener("drop", (e) => {
             e.preventDefault();
             if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
-            pushHistory();
             const newKey = cell.dataset.date;
             const bodyEl = cell.querySelector(".day-body");
             if (!bodyEl) return;
@@ -1171,7 +1211,7 @@ export default function Page() {
               }
             });
 
-            draggingCards.forEach((card) => syncOneCardFromDom(card));
+            draggingCards.forEach((card) => syncOneCardFromDom(card, false));
             saveState();
 
             affectedDateKeys.forEach((key) => {
@@ -1200,6 +1240,7 @@ export default function Page() {
             }
             dragPlaceholder = null;
             draggingCards = [];
+            pushHistory();
           });
         }
 
@@ -1707,11 +1748,11 @@ export default function Page() {
           const body = activeCell.querySelector(".day-body") as HTMLElement | null;
           if (body) {
             e.preventDefault();
-            pushHistory();
             createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
             const key = activeCell.dataset.date;
             if (key) updateDayBadge(key);
             setActiveDay(activeCell);
+            pushHistory();
           }
         }
       }
@@ -1950,7 +1991,6 @@ export default function Page() {
       }
       if (!data.length) return;
       e.preventDefault();
-      pushHistory();
 
       data.forEach((c) => {
         const created = createCard(
@@ -1962,6 +2002,7 @@ export default function Page() {
       const key = targetCell.dataset.date;
       if (key) updateDayBadge(key);
       syncCurrentMonthFromDom();
+      pushHistory();
     }
 
     // 인피니트 스크롤: 상/하단 근접 시 범위 확장

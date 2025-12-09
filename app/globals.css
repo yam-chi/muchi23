@@ -435,6 +435,10 @@ header {
 .auth-secondary:hover {
   background: #f1f5f9;
 }
+
+.auth-google {
+  margin-top: -8px; /* tighten only 로그인 ↔ 구글 로그인 간격 */
+}
     .month-dropdown {
       position: absolute;
       top: 110%;

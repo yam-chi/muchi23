@@ -62,7 +62,7 @@ export default function LoginPage() {
         </form>
         <button
           type="button"
-          className="btn auth-secondary"
+          className="btn auth-secondary auth-google"
           disabled={loadingGoogle}
           onClick={async () => {
             setError(null);

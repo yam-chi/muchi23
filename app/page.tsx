@@ -2435,11 +2435,11 @@ export default function Page() {
       <div className="expanded-overlay" id="expandedOverlay">
         <div className="expanded-overlay-inner">
           <div className="expanded-overlay-bar">
-            <button className="link-btn" id="emojiTriggerExpanded" type="button">
-              EMOJI
+            <button className="btn icon-btn" id="emojiTriggerExpanded" type="button" title="Emoji">
+              😊
             </button>
-            <button className="btn" id="collapseExpandedBtn" type="button">
-              축소
+            <button className="btn icon-btn" id="collapseExpandedBtn" type="button" title="Close">
+              ✕
             </button>
           </div>
           <div className="expanded-container" id="expandedContainer" />

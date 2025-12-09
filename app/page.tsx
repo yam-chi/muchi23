@@ -172,6 +172,12 @@ export default function Page() {
     const settingsPwdConfirm = document.getElementById("settingsPwdConfirm") as HTMLInputElement | null;
     const settingsPwdBtn = document.getElementById("settingsPwdBtn") as HTMLButtonElement | null;
     const settingsPwdMsg = document.getElementById("settingsPwdMsg") as HTMLElement | null;
+    const settingsTabButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]")
+    );
+    const settingsPanels = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-settings-panel]")
+    );
 
     if (
       !monthTitle ||
@@ -1563,11 +1569,25 @@ export default function Page() {
       if (settingsModal) settingsModal.classList.remove("open");
     };
 
+    const switchSettingsTab = (tab: string) => {
+      settingsTabButtons.forEach((btn) => {
+        if (btn.dataset.settingsTab === tab) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+      settingsPanels.forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.settingsPanel === tab);
+      });
+    };
+
     const openSettings = () => {
       if (settingsEmail && currentUserEmailRef.current) {
         settingsEmail.textContent = currentUserEmailRef.current;
       }
       if (settingsModal) settingsModal.classList.add("open");
+      switchSettingsTab("profile");
     };
 
     async function handlePasswordChange() {
@@ -1606,6 +1626,13 @@ export default function Page() {
     if (settingsClose) {
       settingsClose.addEventListener("click", () => closeSettings());
     }
+
+    settingsTabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.settingsTab;
+        if (tab) switchSettingsTab(tab);
+      });
+    });
 
     if (settingsPwdBtn) {
       settingsPwdBtn.addEventListener("click", () => handlePasswordChange());
@@ -2489,25 +2516,73 @@ export default function Page() {
               닫기
             </button>
           </div>
+          <div className="settings-tabs">
+            <button className="settings-tab active" data-settings-tab="profile" type="button">
+              프로필
+            </button>
+            <button className="settings-tab" data-settings-tab="password" type="button">
+              비밀번호 변경
+            </button>
+            <button className="settings-tab" data-settings-tab="tips" type="button">
+              팁
+            </button>
+          </div>
           <div className="settings-body">
-            <div className="settings-item">
-              <div className="settings-label">Profile</div>
-              <div className="settings-value" id="settingsEmail">-</div>
+            <div className="settings-panel active" data-settings-panel="profile">
+              <div className="settings-item">
+                <div className="settings-label">프로필</div>
+                <div className="settings-value" id="settingsEmail">-</div>
+              </div>
             </div>
-            <div className="settings-item column">
-              <div className="settings-label">Password</div>
-              <div className="settings-fields">
-                <input type="password" id="settingsPwdNew" placeholder="새 비밀번호" />
-                <input type="password" id="settingsPwdConfirm" placeholder="비밀번호 확인" />
-                <div className="settings-actions">
-                  <button className="btn" id="settingsPwdBtn" type="button">변경</button>
-                  <span className="settings-msg" id="settingsPwdMsg"></span>
+            <div className="settings-panel" data-settings-panel="password">
+              <div className="settings-item column">
+                <div className="settings-label">비밀번호 변경</div>
+                <div className="settings-fields">
+                  <input type="password" id="settingsPwdNew" placeholder="새 비밀번호" />
+                  <input type="password" id="settingsPwdConfirm" placeholder="비밀번호 확인" />
+                  <div className="settings-actions">
+                    <button className="btn" id="settingsPwdBtn" type="button">변경</button>
+                    <span className="settings-msg" id="settingsPwdMsg"></span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="settings-item">
-              <div className="settings-label">Help</div>
-              <div className="settings-value">도움말은 추후 추가</div>
+            <div className="settings-panel" data-settings-panel="tips">
+              <div className="settings-item column">
+                <div className="settings-label">날짜 선택/이동</div>
+                <ul className="settings-tips">
+                  <li>방향키로 날짜 이동(좌우/상하)</li>
+                  <li>WEEKEND 토글로 주말 숨김/보임</li>
+                </ul>
+              </div>
+              <div className="settings-item column">
+                <div className="settings-label">카드 추가/편집</div>
+                <ul className="settings-tips">
+                  <li>날짜 선택 후 Enter : 새 카드 생성 후 바로 편집</li>
+                  <li>카드 선택 후 Enter : 편집 / Esc : 편집 취소</li>
+                  <li>카드 선택 후 EMOJI 버튼으로 이모지 삽입</li>
+                </ul>
+              </div>
+              <div className="settings-item column">
+                <div className="settings-label">카드 복사/붙여넣기/이동</div>
+                <ul className="settings-tips">
+                  <li>복사/붙여넣기: Shift+클릭 or 드래그로 다중 선택 → Ctrl/Cmd+C → 날짜 클릭 → Ctrl/Cmd+V</li>
+                  <li>이동: 선택 카드 드래그로 위치 이동</li>
+                </ul>
+              </div>
+              <div className="settings-item column">
+                <div className="settings-label">삭제</div>
+                <ul className="settings-tips">
+                  <li>선택된 카드(다중 포함)에서 Delete/Backspace → 확인 후 삭제</li>
+                </ul>
+              </div>
+              <div className="settings-item column">
+                <div className="settings-label">보기/확대</div>
+                <ul className="settings-tips">
+                  <li>Alt/Cmd + 휠로 줌, ZOOM 버튼으로 100% 리셋</li>
+                  <li>날짜 확대 버튼으로 1장 메모장처럼 사용</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

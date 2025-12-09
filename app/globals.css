@@ -1351,7 +1351,7 @@ header {
   background: #fff;
   border-radius: 14px;
   padding: 16px;
-  width: min(360px, 90%);
+  width: min(480px, 95%);
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
   border: 1px solid #e5e7eb;
   display: flex;
@@ -1377,6 +1377,47 @@ header {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.settings-tab {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-tab.active {
+  background: #e8efff;
+  border-color: #c7d2fe;
+  color: #1e3a8a;
+}
+
+.settings-panel {
+  display: none;
+}
+
+.settings-panel.active {
+  display: block;
+}
+
+.settings-tips {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #4b5563;
+  font-size: 13px;
 }
 
 .settings-item {

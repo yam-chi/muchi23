@@ -1261,3 +1261,24 @@ header {
         transform: translateY(-20px);
       }
     }
+.link-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.link-btn:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+.link-btn.faded {
+  opacity: 0.4;
+}

@@ -449,7 +449,8 @@ export default function Page() {
     const toggleWeekendUI = () => {
       document.body.classList.toggle("weekend-hidden", !showWeekend);
       if (weekendToggleBtn) {
-        weekendToggleBtn.textContent = showWeekend ? "주말 숨기기" : "주말 보이기";
+        weekendToggleBtn.textContent = "WEEKEND";
+        weekendToggleBtn.classList.toggle("faded", !showWeekend);
       }
     };
 
@@ -2308,15 +2309,15 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            <button className="btn btn-today" id="todayBtn">
-              오늘
+            <button className="link-btn" id="todayBtn">
+              TODAY
             </button>
-            <button className="btn" id="weekendToggle">
-              주말 숨기기
+            <button className="link-btn" id="weekendToggle">
+              WEEKEND
             </button>
             <div className="emoji-panel">
-              <button className="btn" id="emojiTrigger" type="button">
-                이모지
+              <button className="link-btn" id="emojiTrigger" type="button">
+                EMOJI
               </button>
               <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
               <div className="emoji-palette" id="emojiPalette">
@@ -2328,8 +2329,8 @@ export default function Page() {
               </div>
             </div>
             <div className="scale-control">
-              <button className="btn" id="scaleReset" type="button">
-                🔍 100%
+              <button className="link-btn" id="scaleReset" type="button">
+                ZOOM
               </button>
             </div>
           </div>

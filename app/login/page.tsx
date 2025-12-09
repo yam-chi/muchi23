@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { signInWithEmail } from "@/lib/supabase";
+import { signInWithEmail, signInWithGoogle } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -59,6 +60,20 @@ export default function LoginPage() {
             {loading ? "로그인 중..." : "로그인"}
           </button>
         </form>
+        <button
+          type="button"
+          className="btn auth-secondary"
+          disabled={loadingGoogle}
+          onClick={async () => {
+            setError(null);
+            setLoadingGoogle(true);
+            const { error: err } = await signInWithGoogle();
+            setLoadingGoogle(false);
+            if (err) setError(err.message);
+          }}
+        >
+          {loadingGoogle ? "구글로 이동 중..." : "Google로 로그인"}
+        </button>
         <div className="auth-actions">
           <span>계정이 없나요?</span>
           <Link href="/signup" className="auth-link">

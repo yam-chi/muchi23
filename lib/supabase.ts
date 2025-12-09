@@ -25,3 +25,12 @@ export async function getSession() {
   const { data } = await supabase.auth.getSession();
   return data.session;
 }
+
+export async function signInWithGoogle(redirectTo?: string) {
+  return supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectTo ?? (typeof window !== "undefined" ? window.location.origin : undefined),
+    },
+  });
+}

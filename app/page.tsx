@@ -62,6 +62,7 @@ export default function Page() {
   const [authReady, setAuthReady] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const currentUserIdRef = useRef<string | null>(null);
+  const currentUserEmailRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -81,6 +82,7 @@ export default function Page() {
         return;
       }
       currentUserIdRef.current = data.session.user.id;
+      currentUserEmailRef.current = data.session.user.email ?? null;
       setAuthReady(true);
     }
     checkSession();
@@ -91,6 +93,7 @@ export default function Page() {
         window.location.href = "/login";
       } else {
         currentUserIdRef.current = session.user.id;
+        currentUserEmailRef.current = session.user.email ?? null;
         setAuthReady(true);
       }
     });
@@ -161,6 +164,10 @@ export default function Page() {
     const helpButton = document.getElementById("helpButton") as HTMLButtonElement | null;
     const helpModal = document.getElementById("helpModal") as HTMLElement | null;
     const helpClose = document.getElementById("helpClose") as HTMLButtonElement | null;
+    const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement | null;
+    const settingsModal = document.getElementById("settingsModal") as HTMLElement | null;
+    const settingsClose = document.getElementById("settingsClose") as HTMLButtonElement | null;
+    const settingsEmail = document.getElementById("settingsEmail") as HTMLElement | null;
 
     if (
       !monthTitle ||
@@ -1548,6 +1555,34 @@ export default function Page() {
       });
     }
 
+    const closeSettings = () => {
+      if (settingsModal) settingsModal.classList.remove("open");
+    };
+
+    const openSettings = () => {
+      if (settingsEmail && currentUserEmailRef.current) {
+        settingsEmail.textContent = currentUserEmailRef.current;
+      }
+      if (settingsModal) settingsModal.classList.add("open");
+    };
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener("click", () => {
+        if (settingsModal?.classList.contains("open")) closeSettings();
+        else openSettings();
+      });
+    }
+
+    if (settingsClose) {
+      settingsClose.addEventListener("click", () => closeSettings());
+    }
+
+    if (settingsModal) {
+      settingsModal.addEventListener("click", (e) => {
+        if (e.target === settingsModal) closeSettings();
+      });
+    }
+
     if (collapseExpandedBtn) {
       collapseExpandedBtn.addEventListener("click", () => collapseExpandedCell());
     }
@@ -2333,6 +2368,9 @@ export default function Page() {
                 ZOOM
               </button>
             </div>
+            <button className="link-btn" id="settingsBtn" type="button">
+              SETTING
+            </button>
           </div>
 
           <div className="search-wrap">
@@ -2364,6 +2402,32 @@ export default function Page() {
             </button>
           </div>
           <div className="expanded-container" id="expandedContainer" />
+        </div>
+      </div>
+
+      
+      <div className="settings-modal" id="settingsModal">
+        <div className="settings-content">
+          <div className="settings-header">
+            <h3>Settings</h3>
+            <button className="btn" id="settingsClose" type="button">
+              닫기
+            </button>
+          </div>
+          <div className="settings-body">
+            <div className="settings-item">
+              <div className="settings-label">Profile</div>
+              <div className="settings-value" id="settingsEmail">-</div>
+            </div>
+            <div className="settings-item">
+              <div className="settings-label">Password</div>
+              <div className="settings-value">추후 업데이트</div>
+            </div>
+            <div className="settings-item">
+              <div className="settings-label">Help</div>
+              <div className="settings-value">도움말은 추후 추가</div>
+            </div>
+          </div>
         </div>
       </div>
 

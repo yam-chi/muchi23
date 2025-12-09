@@ -1,3 +1,6 @@
+/*!*************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./app/globals.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************/
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap");
 
 /* === Global layout & background (Glassmorphism) === */
@@ -62,7 +65,8 @@
   background: var(--panel-bg);
   border: 1px solid #e6ebf5;
   box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -72,6 +76,7 @@
 }
 
 header {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -87,7 +92,8 @@ header {
   border: 1px solid #e6ebf5;
   border-radius: 18px 18px 0 0;
   box-shadow: none;
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
   max-height: 120px;
   transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
   position: sticky;
@@ -106,6 +112,7 @@ header {
   display: none;
   width: 100%;
   justify-content: flex-end;
+  position: -webkit-sticky;
   position: sticky;
   top: 12px;
   z-index: 25;
@@ -129,6 +136,7 @@ header {
     }
 
 .top-bar {
+  position: -webkit-sticky;
   position: sticky;
   top: 52px; /* 헤더와 높이 맞추기 위해 상단 간격 축소 */
   z-index: 18;
@@ -140,7 +148,8 @@ header {
   gap: 8px;
   border-radius: 0;
   box-shadow: none;
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
   max-height: 90px;
   transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
   border-top: none;
@@ -276,7 +285,9 @@ header {
       color: #1f2937;
       cursor: pointer;
       box-shadow: none;
+      transition: color 0.15s ease, -webkit-text-decoration 0.15s ease;
       transition: color 0.15s ease, text-decoration 0.15s ease;
+      transition: color 0.15s ease, text-decoration 0.15s ease, -webkit-text-decoration 0.15s ease;
     }
 
     .month-display:hover {
@@ -443,7 +454,8 @@ header {
       margin-top: 4px;
       padding: 16px;
       background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+              backdrop-filter: blur(16px);
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 1);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -485,6 +497,7 @@ header {
     .ym-month-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-gap: 6px;
       gap: 6px;
     }
 
@@ -555,6 +568,7 @@ header {
     .emoji-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      grid-gap: 6px;
       gap: 6px;
     }
 
@@ -615,7 +629,7 @@ header {
     }
 
 .calendar-wrapper {
-  flex: 1;
+  flex: 1 1;
   padding: 12px;
   background: var(--panel-bg);
   border: 1px solid #e5e7eb;
@@ -676,6 +690,7 @@ header {
     .weekday-row {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
+      grid-gap: 8px;
       gap: 8px;
       margin-bottom: 12px;
       font-size: 12px;
@@ -689,6 +704,7 @@ header {
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, minmax(230px, 1fr));
+      grid-gap: 10px;
       gap: 10px;
       min-width: 1680px; /* 230px*7 + gaps */
       transform: scale(var(--ui-scale));
@@ -748,7 +764,7 @@ header {
     }
 
     .expanded-container {
-      flex: 1;
+      flex: 1 1;
       overflow: auto;
       display: flex;
     }
@@ -798,6 +814,7 @@ header {
     .week-row-body {
       display: grid;
       grid-template-columns: repeat(7, minmax(150px, 1fr));
+      grid-gap: 12px;
       gap: 12px;
     }
 
@@ -941,7 +958,7 @@ header {
 
     .day-body {
       position: relative;
-      flex: 1;
+      flex: 1 1;
       padding-top: 4px;
     }
 
@@ -1023,6 +1040,7 @@ header {
       width: 4px;
       border-radius: 999px;
       background: rgba(15, 23, 42, 0.2);
+      cursor: -webkit-grab;
       cursor: grab;
     }
 
@@ -1151,6 +1169,7 @@ header {
   margin: 0;
   padding-left: 18px;
   display: grid;
+  grid-gap: 6px;
   gap: 6px;
   font-size: 13px;
   color: #374151;
@@ -1242,7 +1261,8 @@ header {
       font-size: 14px;
       font-weight: 500;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+              backdrop-filter: blur(8px);
       animation: toast-in 0.3s ease forwards;
       opacity: 0;
       transform: translateY(20px);
@@ -1351,3 +1371,4 @@ header {
 .link-btn.faded {
   opacity: 0.4;
 }
+

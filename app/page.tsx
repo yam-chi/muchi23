@@ -1994,11 +1994,14 @@ export default function Page() {
 
     // ========== 이모지 업로드 & 팔레트 ==========
     const emojiTrigger = document.getElementById("emojiTrigger") as HTMLButtonElement | null;
+    const emojiTriggerExpanded = document.getElementById("emojiTriggerExpanded") as HTMLButtonElement | null;
     const emojiUploadTrigger = document.getElementById(
       "emojiUploadTrigger",
     ) as HTMLButtonElement | null;
     const emojiUpload = document.getElementById("emojiUpload") as HTMLInputElement | null;
     const emojiPalette = document.getElementById("emojiPalette") as HTMLElement | null;
+    const emojiPaletteOriginalParent = emojiPalette?.parentElement || null;
+    const emojiPaletteOriginalNext = emojiPalette?.nextElementSibling || null;
 
     function renderEmojiPalette() {
       if (!emojiPalette) return;
@@ -2204,35 +2207,70 @@ export default function Page() {
       emojiUploadTrigger.addEventListener("click", () => emojiUpload.click());
     }
 
-    if (emojiTrigger && emojiPalette) {
-      // 트리거 클릭 시 포커스가 카드에서 이동하지 않도록 mousedown 막기
-      emojiTrigger.addEventListener("mousedown", (e) => {
-        keepFocusFromPalette = true;
-        e.preventDefault();
-        if (lastActiveCardContent) {
-          lastActiveCardContent.focus();
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          if (lastRange) sel?.addRange(lastRange);
+    const emojiTriggers = [emojiTrigger, emojiTriggerExpanded].filter(Boolean) as HTMLButtonElement[];
+    const closeEmojiPalette = () => {
+      if (!emojiPalette) return;
+      emojiPalette.classList.remove("open");
+      emojiPalette.removeAttribute("style");
+      if (emojiPaletteOriginalParent && emojiPalette.parentElement !== emojiPaletteOriginalParent) {
+        if (emojiPaletteOriginalNext && emojiPaletteOriginalNext.parentElement === emojiPaletteOriginalParent) {
+          emojiPaletteOriginalParent.insertBefore(emojiPalette, emojiPaletteOriginalNext);
+        } else {
+          emojiPaletteOriginalParent.appendChild(emojiPalette);
         }
+      }
+    };
+
+    if (emojiTriggers.length && emojiPalette) {
+      emojiTriggers.forEach((trg) => {
+        trg.addEventListener("mousedown", (e) => {
+          keepFocusFromPalette = true;
+          e.preventDefault();
+          e.stopPropagation();
+          if (lastActiveCardContent) {
+            lastActiveCardContent.focus();
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            if (lastRange) sel?.addRange(lastRange);
+          }
+        });
+
+        trg.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isExpandedTrigger = trg === emojiTriggerExpanded;
+          const willOpen = !emojiPalette.classList.contains("open");
+
+          if (!willOpen) {
+            closeEmojiPalette();
+            keepFocusFromPalette = false;
+            return;
+          }
+
+          const rect = trg.getBoundingClientRect();
+          document.body.appendChild(emojiPalette);
+          emojiPalette.style.position = "fixed";
+          emojiPalette.style.top = `${rect.bottom + 8}px`;
+          emojiPalette.style.left = `${rect.left}px`;
+          emojiPalette.style.right = "auto";
+          emojiPalette.style.zIndex = isExpandedTrigger ? "5000" : "4000";
+          emojiPalette.style.display = "block";
+          emojiPalette.classList.add("open");
+
+          if (lastActiveCardContent) {
+            lastActiveCardContent.focus();
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            if (lastRange) sel?.addRange(lastRange);
+          }
+          keepFocusFromPalette = false;
+        });
       });
 
-      emojiTrigger.addEventListener("click", () => {
-        emojiPalette.classList.toggle("open");
-        // 클릭 직후에도 포커스/커서 복원
-        if (lastActiveCardContent) {
-          lastActiveCardContent.focus();
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          if (lastRange) sel?.addRange(lastRange);
-        }
-        keepFocusFromPalette = false;
-      });
       emojiPalette.addEventListener("pointerdown", (e) => {
         const dragBtn = (e.target as HTMLElement).closest(".emoji-btn");
         if (dragBtn && dragBtn instanceof HTMLButtonElement && dragBtn.draggable) {
           keepFocusFromPalette = true;
-          return; // 드래그를 막지 않음
+          return;
         }
         keepFocusFromPalette = true;
         e.preventDefault();
@@ -2250,8 +2288,8 @@ export default function Page() {
       });
       document.addEventListener("click", (e) => {
         const t = e.target as HTMLElement;
-        if (emojiPalette.contains(t) || emojiTrigger.contains(t)) return;
-        emojiPalette.classList.remove("open");
+        if (emojiPalette.contains(t) || emojiTriggers.some((btn) => btn.contains(t))) return;
+        closeEmojiPalette();
       });
     }
 
@@ -2397,6 +2435,9 @@ export default function Page() {
       <div className="expanded-overlay" id="expandedOverlay">
         <div className="expanded-overlay-inner">
           <div className="expanded-overlay-bar">
+            <button className="link-btn" id="emojiTriggerExpanded" type="button">
+              EMOJI
+            </button>
             <button className="btn" id="collapseExpandedBtn" type="button">
               축소
             </button>

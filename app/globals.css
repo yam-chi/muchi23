@@ -534,7 +534,7 @@ header {
       background: #ffffff;
       box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
       display: none;
-      z-index: 30;
+      z-index: 400; /* overlay 위에서도 보이도록 높게 */
     }
 
     .emoji-upload-row {
@@ -744,7 +744,8 @@ header {
 
     .expanded-overlay-bar {
       display: flex;
-      justify-content: flex-end;
+      justify-content: flex-start;
+      gap: 10px;
     }
 
     .expanded-container {

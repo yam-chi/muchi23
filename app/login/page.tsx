@@ -2,19 +2,26 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { signInWithEmail, signInWithGoogle } from "@/lib/supabase";
+import {
+  signInWithEmail,
+  signInWithGoogle,
+  requestPasswordReset,
+} from "@/lib/supabase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingReset, setLoadingReset] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setInfo(null);
     const { error: err } = await signInWithEmail(email, password);
     setLoading(false);
     if (err) {
@@ -62,6 +69,29 @@ export default function LoginPage() {
         </form>
         <button
           type="button"
+          className="btn auth-secondary auth-reset"
+          disabled={loadingReset}
+          onClick={async () => {
+            setError(null);
+            setInfo(null);
+            if (!email) {
+              setError("비밀번호 재설정 이메일을 보내려면 이메일을 입력하세요.");
+              return;
+            }
+            setLoadingReset(true);
+            const { error: resetErr } = await requestPasswordReset(email);
+            setLoadingReset(false);
+            if (resetErr) {
+              setError(resetErr.message);
+            } else {
+              setInfo("재설정 이메일을 보냈어요. 메일함을 확인해주세요.");
+            }
+          }}
+        >
+          {loadingReset ? "메일 보내는 중..." : "비밀번호 찾기"}
+        </button>
+        <button
+          type="button"
           className="btn auth-secondary auth-google"
           disabled={loadingGoogle}
           onClick={async () => {
@@ -87,6 +117,7 @@ export default function LoginPage() {
         >
           미리보기
         </button>
+        {info && <div className="auth-success">{info}</div>}
       </div>
     </div>
   );

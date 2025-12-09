@@ -439,6 +439,10 @@ header {
 .auth-google {
   margin-top: -8px; /* tighten only 로그인 ↔ 구글 로그인 간격 */
 }
+
+.auth-reset {
+  margin-top: -8px; /* 같은 간격으로 비밀번호 찾기 붙이기 */
+}
     .month-dropdown {
       position: absolute;
       top: 110%;

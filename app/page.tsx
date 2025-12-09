@@ -168,6 +168,10 @@ export default function Page() {
     const settingsModal = document.getElementById("settingsModal") as HTMLElement | null;
     const settingsClose = document.getElementById("settingsClose") as HTMLButtonElement | null;
     const settingsEmail = document.getElementById("settingsEmail") as HTMLElement | null;
+    const settingsPwdNew = document.getElementById("settingsPwdNew") as HTMLInputElement | null;
+    const settingsPwdConfirm = document.getElementById("settingsPwdConfirm") as HTMLInputElement | null;
+    const settingsPwdBtn = document.getElementById("settingsPwdBtn") as HTMLButtonElement | null;
+    const settingsPwdMsg = document.getElementById("settingsPwdMsg") as HTMLElement | null;
 
     if (
       !monthTitle ||
@@ -1566,6 +1570,32 @@ export default function Page() {
       if (settingsModal) settingsModal.classList.add("open");
     };
 
+    async function handlePasswordChange() {
+      if (!settingsPwdNew || !settingsPwdConfirm || !settingsPwdBtn) return;
+      const newPwd = settingsPwdNew.value.trim();
+      const confirm = settingsPwdConfirm.value.trim();
+      if (newPwd.length < 6) {
+        if (settingsPwdMsg) settingsPwdMsg.textContent = "비밀번호는 6자 이상 입력해주세요.";
+        return;
+      }
+      if (newPwd !== confirm) {
+        if (settingsPwdMsg) settingsPwdMsg.textContent = "비밀번호가 일치하지 않습니다.";
+        return;
+      }
+      settingsPwdBtn.disabled = true;
+      if (settingsPwdMsg) settingsPwdMsg.textContent = "";
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      settingsPwdBtn.disabled = false;
+      if (error) {
+        if (settingsPwdMsg) settingsPwdMsg.textContent = error.message;
+      } else {
+        settingsPwdNew.value = "";
+        settingsPwdConfirm.value = "";
+        if (settingsPwdMsg) settingsPwdMsg.textContent = "비밀번호가 변경되었습니다.";
+        showToast("비밀번호 변경 완료");
+      }
+    }
+
     if (settingsBtn) {
       settingsBtn.addEventListener("click", () => {
         if (settingsModal?.classList.contains("open")) closeSettings();
@@ -1575,6 +1605,10 @@ export default function Page() {
 
     if (settingsClose) {
       settingsClose.addEventListener("click", () => closeSettings());
+    }
+
+    if (settingsPwdBtn) {
+      settingsPwdBtn.addEventListener("click", () => handlePasswordChange());
     }
 
     if (settingsModal) {
@@ -2460,9 +2494,16 @@ export default function Page() {
               <div className="settings-label">Profile</div>
               <div className="settings-value" id="settingsEmail">-</div>
             </div>
-            <div className="settings-item">
+            <div className="settings-item column">
               <div className="settings-label">Password</div>
-              <div className="settings-value">추후 업데이트</div>
+              <div className="settings-fields">
+                <input type="password" id="settingsPwdNew" placeholder="새 비밀번호" />
+                <input type="password" id="settingsPwdConfirm" placeholder="비밀번호 확인" />
+                <div className="settings-actions">
+                  <button className="btn" id="settingsPwdBtn" type="button">변경</button>
+                  <span className="settings-msg" id="settingsPwdMsg"></span>
+                </div>
+              </div>
             </div>
             <div className="settings-item">
               <div className="settings-label">Help</div>

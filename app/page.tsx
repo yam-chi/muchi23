@@ -2252,11 +2252,8 @@ export default function Page() {
         </div>
 
         <div className="top-bar">
-          <button className="btn" id="prevMonth">
-            &lt; 이전 달
-          </button>
           <div className="month-picker">
-            <button className="month-display" id="monthPickerToggle" type="button">
+            <button className="month-display link-btn" id="monthPickerToggle" type="button">
               <span className="month-title" id="monthTitle" />
               <span className="month-caret">▾</span>
             </button>

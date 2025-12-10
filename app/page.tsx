@@ -16,6 +16,7 @@ type State = {
 };
 
 const STORAGE_KEY = "muchi-note-safe-v3";
+const LOCAL_STATE_KEY = "muchi-note-state-v3";
 const MONTH_NAMES = [
   "1월",
   "2월",
@@ -63,6 +64,7 @@ export default function Page() {
   const [previewMode, setPreviewMode] = useState(false);
   const currentUserIdRef = useRef<string | null>(null);
   const currentUserEmailRef = useRef<string | null>(null);
+  let periodicSyncTimer: number | null = null;
 
   useEffect(() => {
     let mounted = true;
@@ -100,6 +102,7 @@ export default function Page() {
     return () => {
       mounted = false;
       authSub.subscription.unsubscribe();
+      if (periodicSyncTimer) window.clearInterval(periodicSyncTimer);
     };
   }, []);
 
@@ -224,6 +227,7 @@ export default function Page() {
     let expandedCell: HTMLElement | null = null;
     let expandedPlaceholder: HTMLElement | null = null;
     let keepFocusFromPalette = false;
+    // moved to component scope
 
     function toggleSelection(card: HTMLDivElement) {
       card.classList.toggle("selected");
@@ -413,7 +417,11 @@ export default function Page() {
       affectedDates.forEach((dk) => updateDayBadge(dk));
       clearSelection();
       syncCurrentMonthFromDom();
+<<<<<<< HEAD
       pushHistory();
+=======
+      saveLocalState();
+>>>>>>> 725b0ba (미친 오류 해결)
     }
 
     function ensureMarqueeBox() {
@@ -577,17 +585,28 @@ export default function Page() {
         });
       });
       state.cards = grouped;
+      saveLocalState();
     }
 
     async function loadState() {
-      if (previewMode) return;
-      await fetchCardsFromSupabase();
+      // Supabase 데이터 우선
+      if (!previewMode) {
+        await fetchCardsFromSupabase();
+      }
+      // Supabase에 아무 것도 없을 때만 로컬 캐시 복구
+      if (!Object.keys(state.cards).length) {
+        const local = loadLocalState();
+        if (local && Object.keys(local).length) {
+          state.cards = local;
+        }
+      }
     }
 
     function saveState() {
       // Supabase를 단일 저장소로 사용 중이므로 로컬 스토리지 저장은 생략
     }
 
+<<<<<<< HEAD
     async function syncAllCardsToSupabase() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
@@ -623,27 +642,115 @@ export default function Page() {
       }
     }
 
+=======
+    function saveLocalState() {
+      try {
+        const payload = { cards: state.cards };
+        localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.error("saveLocalState error", e);
+      }
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(LOCAL_STATE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Partial<State>;
+        if (parsed && parsed.cards) {
+          return parsed.cards as Record<string, CardData[]>;
+        }
+      } catch (e) {
+        console.error("loadLocalState error", e);
+      }
+      return undefined;
+    }
+
+>>>>>>> 725b0ba (미친 오류 해결)
     async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
-      const { error } = await supabase.from("cards").upsert({
-        id: cardObj.id,
-        user_id: uid,
-        date_key: dateKey,
-        text: cardObj.text,
-        done: cardObj.done,
-        color: cardObj.color,
-      });
+      console.log("[supabase] upsert single", { dateKey, id: cardObj.id });
+      const { error } = await supabase
+        .from("cards")
+        .upsert({
+          id: cardObj.id,
+          user_id: uid,
+          date_key: dateKey,
+          text: cardObj.text,
+          done: cardObj.done,
+          color: cardObj.color,
+        });
       if (error) console.error("supabase upsert error", error);
+    }
+
+    // 주기적 전체 동기화: DOM -> state -> Supabase
+    function buildInList(arr: string[]) {
+      // PostgREST not.in expects (id1,id2,...) with quotes for text
+      return `(${arr.map((id) => `"${id}"`).join(",")})`;
+    }
+
+    async function periodicSync() {
+      if (previewMode) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+
+      // DOM 기준으로 state 갱신
+      syncCurrentMonthFromDom();
+
+      // 현재 상태를 Supabase에 upsert
+      const rows: Array<{
+        id: string;
+        user_id: string;
+        date_key: string;
+        text: string;
+        done: boolean;
+        color: string;
+      }> = [];
+      const ids: string[] = [];
+      Object.entries(state.cards).forEach(([dateKey, list]) => {
+        list.forEach((c) => {
+          ids.push(c.id);
+          rows.push({
+            id: c.id,
+            user_id: uid,
+            date_key: dateKey,
+            text: c.text,
+            done: c.done,
+            color: c.color,
+          });
+        });
+      });
+
+      if (!rows.length) return;
+      const { error: upErr } = await supabase.from("cards").upsert(rows);
+      if (upErr) {
+        console.error("supabase periodic upsert error", upErr);
+      }
+      // Supabase에는 있는데 state에는 없는 카드 제거
+      if (ids.length) {
+        const inList = buildInList(ids);
+        const { error: delErr, data: delData } = await supabase
+          .from("cards")
+          .delete()
+          .eq("user_id", uid)
+          .not("id", "in", inList);
+        if (delErr) {
+          console.error("supabase periodic delete error", delErr);
+        } else if (delData && delData.length) {
+          console.log("supabase periodic pruned", delData.length);
+        }
+      }
     }
 
     async function deleteCardInSupabase(id: string) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
-      const { error } = await supabase.from("cards").delete().eq("id", id).eq("user_id", uid);
+      const { error, data } = await supabase.from("cards").delete().eq("id", id).eq("user_id", uid);
       if (error) console.error("supabase delete error", error);
+      else console.log("supabase delete ok", id, data);
     }
 
     const getCardsForDate = (dateKey: string) => {
@@ -662,6 +769,7 @@ export default function Page() {
       const idx = list.findIndex((c) => c.id === id);
       if (idx >= 0) list[idx] = cardObj;
       else list.push(cardObj);
+      saveLocalState();
       if (persist) {
         void upsertCardToSupabase(dateKey, cardObj);
       }
@@ -674,7 +782,7 @@ export default function Page() {
       state.cards[dateKey] = list.filter((c) => c.id !== id);
       const deleted = state.cards[dateKey].length < initLen;
       if (state.cards[dateKey].length === 0) delete state.cards[dateKey];
-      if (deleted) saveState();
+      if (deleted) saveLocalState();
       return deleted;
     }
 
@@ -913,6 +1021,7 @@ export default function Page() {
         syncOneCardFromDom(card);
         // 안전망: DOM 기준으로 재저장
         syncCurrentMonthFromDom();
+        saveLocalState();
         const dKey = card.dataset.date;
         if (dKey) updateDayBadge(dKey);
       });
@@ -934,6 +1043,7 @@ export default function Page() {
         syncOneCardFromDom(card);
         // 안전망: DOM 기준으로 재저장
         syncCurrentMonthFromDom();
+        saveLocalState();
       });
 
       card.draggable = true;
@@ -971,8 +1081,8 @@ export default function Page() {
         if (dragPlaceholder && dragPlaceholder.parentElement) {
           dragPlaceholder.parentElement.removeChild(dragPlaceholder);
         }
-        dragPlaceholder = null;
-      });
+      dragPlaceholder = null;
+    });
 
       if (opts.autoEdit) {
         makeEditable(card);
@@ -1518,6 +1628,12 @@ export default function Page() {
         pushHistory();
         loadScale();
         renderCalendar();
+        // 5초마다 주기 동기화 (Supabase + 로컬)
+        if (!previewMode) {
+          periodicSyncTimer = window.setInterval(() => {
+            void periodicSync();
+          }, 5000);
+        }
       })
       .catch((err) => {
         console.error("loadState error", err);

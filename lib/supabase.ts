@@ -7,7 +7,19 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("Supabase 환경변수가 설정되지 않았습니다. .env.local을 확인하세요.");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: "sb-ndayxojdgsolszqamzbq-auth-token",
+  },
+});
+
+// 디버그용으로 브라우저 콘솔에서 접근 가능하게 노출
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).supabase = supabase;
+}
 
 export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });

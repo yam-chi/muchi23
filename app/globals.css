@@ -480,6 +480,127 @@ header {
   gap: 8px;
   justify-content: flex-end;
 }
+
+/* === Responsive tweaks === */
+@media (max-width: 1024px) {
+  header {
+    padding: 12px 12px;
+    gap: 10px;
+  }
+  .top-bar {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 10px;
+  }
+  .top-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .search-wrap {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .search-input {
+    width: 100%;
+    min-width: auto;
+  }
+  .calendar-wrapper {
+    max-height: none;
+    padding: 10px;
+  }
+  .calendar-grid {
+    min-width: 1180px;
+    grid-template-columns: repeat(7, minmax(160px, 1fr));
+    gap: 8px;
+  }
+  .weekend-hidden .calendar-grid {
+    min-width: 850px;
+    grid-template-columns: repeat(5, minmax(160px, 1fr));
+  }
+  .weekday-row {
+    gap: 6px;
+  }
+  .day-cell {
+    padding: 14px;
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 20px 10px 32px;
+  }
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 14px 14px 0 0;
+  }
+  .title-with-logout {
+    width: 100%;
+  }
+  .top-bar {
+    position: static;
+    border-radius: 0 0 14px 14px;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .top-left-actions {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+  }
+  .top-left-actions > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  .search-wrap {
+    width: auto;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .btn,
+  .month-display,
+  .search-input {
+    font-size: 12px;
+  }
+  .btn {
+    padding: 6px 10px;
+  }
+  .search-input {
+    width: 180px;
+    min-width: 140px;
+    flex: 0 0 180px;
+  }
+  .calendar-grid {
+    min-width: 980px;
+    grid-template-columns: repeat(7, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .weekend-hidden .calendar-grid {
+    min-width: 720px;
+    grid-template-columns: repeat(5, minmax(140px, 1fr));
+  }
+  .day-cell {
+    padding: 12px;
+    min-height: 170px;
+  }
+  .day-header {
+    font-size: 9px;
+  }
+  .card {
+    font-size: 10px;
+  }
+  .expanded-overlay {
+    padding: 12px;
+  }
+  .expanded-overlay-inner {
+    width: 100%;
+    height: 95vh;
+  }
+}
     .month-dropdown {
       position: absolute;
       top: 110%;

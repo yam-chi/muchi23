@@ -602,7 +602,6 @@ export default function Page() {
       // Supabase를 단일 저장소로 사용 중이므로 로컬 스토리지 저장은 생략
     }
 
-<<<<<<< HEAD
     function saveLocalState() {
       try {
         const payload = { cards: state.cards };

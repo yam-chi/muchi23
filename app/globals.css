@@ -540,39 +540,62 @@ header {
   }
   .top-bar {
     position: static;
-    border-radius: 0 0 14px 14px;
-    gap: 8px;
-    padding: 8px 10px;
+    border-radius: 0;
+    gap: 2px;
+    padding: 2px 2px;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
   }
   .top-left-actions {
-    width: 100%;
+    width: auto;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    gap: 8px;
+    gap: 6px; /* 버튼들 간 기본 여백 유지 */
   }
   .top-left-actions > * {
     flex-shrink: 0;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 11px;
+  }
+  .month-display {
+    min-width: auto;
+    padding: 0;
+    gap: 2px; /* 월 표기 내부만 살짝 압축 */
+  }
+  .month-display {
+    min-width: auto;
+    padding: 0 2px;
+    gap: 2px;
   }
   .search-wrap {
     width: auto;
-    flex: 1;
-    justify-content: flex-end;
+    flex: 0 0 auto;
+    justify-content: flex-start;
   }
   .btn,
   .month-display,
   .search-input {
-    font-size: 12px;
+    font-size: 11px;
   }
   .btn {
-    padding: 6px 10px;
+    padding: 5px 8px;
   }
   .search-input {
-    width: 180px;
-    min-width: 140px;
-    flex: 0 0 180px;
+    width: 60px;
+    min-width: 60px;
+    flex: 0 0 60px;
+  }
+  .month-title {
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
   }
   .calendar-grid {
     min-width: 980px;

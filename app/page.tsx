@@ -461,8 +461,17 @@ export default function Page() {
 
     function updateMonthTitle(date: Date = current) {
       if (!monthTitle) return;
-      monthTitle.textContent = `${date.getFullYear()}년 ${MONTH_NAMES[date.getMonth()]}`;
-      pickerYear = date.getFullYear();
+      const year = date.getFullYear();
+      const monthIdx = date.getMonth();
+      const isMobileView = window.innerWidth <= 768;
+      if (isMobileView) {
+        const yy = String(year).slice(-2);
+        const mm = String(monthIdx + 1).padStart(2, "0");
+        monthTitle.textContent = `${yy}/${mm}`;
+      } else {
+        monthTitle.textContent = `${year}년 ${MONTH_NAMES[monthIdx]}`;
+      }
+      pickerYear = year;
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
     }
 

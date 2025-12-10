@@ -1590,11 +1590,11 @@ export default function Page() {
         pushHistory();
         loadScale();
         renderCalendar();
-        // 5초마다 주기 동기화 (Supabase + 로컬)
+        // 3초마다 주기 동기화 (Supabase + 로컬)
         if (!previewMode) {
           periodicSyncTimer.current = window.setInterval(() => {
             void periodicSync();
-          }, 5000);
+          }, 3000);
         }
       })
       .catch((err) => {

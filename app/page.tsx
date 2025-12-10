@@ -417,11 +417,7 @@ export default function Page() {
       affectedDates.forEach((dk) => updateDayBadge(dk));
       clearSelection();
       syncCurrentMonthFromDom();
-<<<<<<< HEAD
-      pushHistory();
-=======
       saveLocalState();
->>>>>>> 725b0ba (미친 오류 해결)
     }
 
     function ensureMarqueeBox() {
@@ -607,42 +603,6 @@ export default function Page() {
     }
 
 <<<<<<< HEAD
-    async function syncAllCardsToSupabase() {
-      if (previewMode) return;
-      const uid = currentUserIdRef.current;
-      if (!uid) return;
-      const rows: Array<{
-        id: string;
-        user_id: string;
-        date_key: string;
-        text: string;
-        done: boolean;
-        color: string;
-      }> = [];
-      Object.entries(state.cards).forEach(([date_key, list]) => {
-        (list ?? []).forEach((c) => {
-          rows.push({
-            id: c.id,
-            user_id: uid,
-            date_key,
-            text: c.text,
-            done: c.done,
-            color: c.color,
-          });
-        });
-      });
-      const { error: delErr } = await supabase.from("cards").delete().eq("user_id", uid);
-      if (delErr) {
-        console.error("supabase sync delete error", delErr);
-        return;
-      }
-      if (rows.length) {
-        const { error: insErr } = await supabase.from("cards").upsert(rows);
-        if (insErr) console.error("supabase sync upsert error", insErr);
-      }
-    }
-
-=======
     function saveLocalState() {
       try {
         const payload = { cards: state.cards };
@@ -666,7 +626,6 @@ export default function Page() {
       return undefined;
     }
 
->>>>>>> 725b0ba (미친 오류 해결)
     async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;

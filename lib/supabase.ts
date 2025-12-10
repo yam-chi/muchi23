@@ -38,10 +38,14 @@ export async function getSession() {
 }
 
 export async function signInWithGoogle(redirectTo?: string) {
+  const siteUrl =
+    redirectTo ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (typeof window !== "undefined" ? window.location.origin : undefined);
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: redirectTo ?? (typeof window !== "undefined" ? window.location.origin : undefined),
+      redirectTo: siteUrl,
     },
   });
 }

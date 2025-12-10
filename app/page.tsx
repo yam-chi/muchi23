@@ -64,7 +64,7 @@ export default function Page() {
   const [previewMode, setPreviewMode] = useState(false);
   const currentUserIdRef = useRef<string | null>(null);
   const currentUserEmailRef = useRef<string | null>(null);
-  let periodicSyncTimer: number | null = null;
+  const periodicSyncTimer = useRef<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -102,7 +102,7 @@ export default function Page() {
     return () => {
       mounted = false;
       authSub.subscription.unsubscribe();
-      if (periodicSyncTimer) window.clearInterval(periodicSyncTimer);
+      if (periodicSyncTimer.current) window.clearInterval(periodicSyncTimer.current);
     };
   }, []);
 
@@ -494,9 +494,12 @@ export default function Page() {
       const prev = history[historyIndex];
       state = JSON.parse(JSON.stringify(prev));
       saveState();
-      void syncAllCardsToSupabase().then(() => {
-        renderCalendar();
-      });
+      renderCalendar();
+      if (!previewMode) {
+        requestAnimationFrame(() => {
+          void periodicSync();
+        });
+      }
     }
 
     function loadScale() {
@@ -693,10 +696,11 @@ export default function Page() {
           .from("cards")
           .delete()
           .eq("user_id", uid)
-          .not("id", "in", inList);
+          .not("id", "in", inList)
+          .select("*");
         if (delErr) {
           console.error("supabase periodic delete error", delErr);
-        } else if (delData && delData.length) {
+        } else if (Array.isArray(delData) && delData.length) {
           console.log("supabase periodic pruned", delData.length);
         }
       }
@@ -1588,7 +1592,7 @@ export default function Page() {
         renderCalendar();
         // 5초마다 주기 동기화 (Supabase + 로컬)
         if (!previewMode) {
-          periodicSyncTimer = window.setInterval(() => {
+          periodicSyncTimer.current = window.setInterval(() => {
             void periodicSync();
           }, 5000);
         }

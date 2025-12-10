@@ -17,8 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 
 // 디버그용으로 브라우저 콘솔에서 접근 가능하게 노출
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).supabase = supabase;
+  (window as typeof window & { supabase?: typeof supabase }).supabase = supabase;
 }
 
 export async function signInWithEmail(email: string, password: string) {

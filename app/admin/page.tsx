@@ -10,6 +10,13 @@ type Stats = {
 };
 
 type TrendPoint = { date: string; count: number };
+type LogEntry = {
+  id: string;
+  level: string;
+  message: string;
+  context: any;
+  created_at: string;
+};
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats>({ cardsTotal: null, cardsRecent7: null, usersTotal: null });
@@ -21,6 +28,7 @@ export default function AdminDashboardPage() {
     start.setDate(end.getDate() - 29);
     return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
   });
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -46,6 +54,15 @@ export default function AdminDashboardPage() {
         if (mounted) setStats({ cardsTotal: cardsTotal ?? null, cardsRecent7: cardsRecent7 ?? null, usersTotal });
       } catch (e: any) {
         if (mounted) setError(e?.message ?? "통계 조회 중 오류");
+      }
+      try {
+        const res = await fetch("/api/admin/logs");
+        if (res.ok) {
+          const json = await res.json();
+          if (mounted) setLogs(json.logs ?? []);
+        }
+      } catch (e) {
+        console.error("log fetch error", e);
       }
     })();
     // 선택한 기간의 카드 생성 추이
@@ -133,10 +150,8 @@ export default function AdminDashboardPage() {
           boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
         }}
       >
-        <h3 style={{ margin: "0 0 8px" }}>에러/동기화 로그</h3>
-        <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
-          수집 스토어(테이블/로그 서비스)와 연결 필요. 현재는 콘솔 수집만.
-        </p>
+        <h3 style={{ margin: "0 0 8px" }}>에러/동기화 로그 (최근 50건)</h3>
+        <LogList logs={logs} />
       </section>
 
       <section
@@ -300,6 +315,42 @@ function UsageChart({ trend }: { trend: TrendPoint[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function LogList({ logs }: { logs: LogEntry[] }) {
+  if (!logs.length) {
+    return <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>로그 없음</p>;
+  }
+  return (
+    <div style={{ maxHeight: "240px", overflow: "auto", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: "13px",
+        }}
+      >
+        <thead>
+          <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
+            <th style={{ padding: "8px 6px", width: "80px" }}>레벨</th>
+            <th style={{ padding: "8px 6px" }}>메시지</th>
+            <th style={{ padding: "8px 6px", width: "160px" }}>시간</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs.map((l) => (
+            <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+              <td style={{ padding: "8px 6px", color: l.level === "error" ? "#dc2626" : "#111827" }}>{l.level}</td>
+              <td style={{ padding: "8px 6px" }}>{l.message}</td>
+              <td style={{ padding: "8px 6px", color: "#6b7280" }}>
+                {l.created_at ? new Date(l.created_at).toLocaleString() : "-"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

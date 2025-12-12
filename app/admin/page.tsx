@@ -6,12 +6,21 @@ import { supabase, signOut } from "@/lib/supabase";
 type Stats = {
   cardsTotal: number | null;
   cardsRecent7: number | null;
-  usersTotal: string | null;
+  usersTotal: number | null;
 };
+
+type TrendPoint = { date: string; count: number };
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats>({ cardsTotal: null, cardsRecent7: null, usersTotal: null });
   const [error, setError] = useState<string | null>(null);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [range, setRange] = useState<{ start: string; end: string }>(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 29);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -26,17 +35,59 @@ export default function AdminDashboardPage() {
           .from("cards")
           .select("*", { count: "exact", head: true })
           .gte("created_at", seven.toISOString());
-        // 사용자 총합 (auth.users 직접 접근이 안 될 수 있으니 null 처리)
-        const usersTotal = null; // 연결 필요 시 RPC/뷰 사용
+        // 사용자 총합은 admin API 경유
+        const usersRes = await fetch("/api/admin/users");
+        let usersTotal = null;
+        if (usersRes.ok) {
+          const json = await usersRes.json();
+          if (Array.isArray(json.users)) usersTotal = json.users.length;
+        }
+
         if (mounted) setStats({ cardsTotal: cardsTotal ?? null, cardsRecent7: cardsRecent7 ?? null, usersTotal });
       } catch (e: any) {
         if (mounted) setError(e?.message ?? "통계 조회 중 오류");
       }
     })();
+    // 선택한 기간의 카드 생성 추이
+    (async () => {
+      try {
+        const startDate = new Date(range.start);
+        const endDate = new Date(range.end);
+        // endDate 포함되도록 하루 더
+        const endPlus = new Date(endDate);
+        endPlus.setDate(endPlus.getDate() + 1);
+
+        const { data, error: trendErr } = await supabase
+          .from("cards")
+          .select("created_at")
+          .gte("created_at", startDate.toISOString())
+          .lt("created_at", endPlus.toISOString());
+        if (trendErr) throw trendErr;
+
+        const days = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+        const counts = new Map<string, number>();
+        for (let i = 0; i < days; i++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + i);
+          const key = d.toISOString().slice(0, 10);
+          counts.set(key, 0);
+        }
+        data?.forEach((row) => {
+          const key = row.created_at?.slice(0, 10);
+          if (key && counts.has(key)) {
+            counts.set(key, (counts.get(key) || 0) + 1);
+          }
+        });
+        const points: TrendPoint[] = Array.from(counts.entries()).map(([date, count]) => ({ date, count }));
+        if (mounted) setTrend(points);
+      } catch (e) {
+        console.error("trend fetch error", e);
+      }
+    })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [range]);
 
   return (
     <div style={{ display: "grid", gap: "16px" }}>
@@ -86,6 +137,61 @@ export default function AdminDashboardPage() {
         <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
           수집 스토어(테이블/로그 서비스)와 연결 필요. 현재는 콘솔 수집만.
         </p>
+      </section>
+
+      <section
+        style={{
+          background: "#fff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "14px",
+          padding: "16px",
+          boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+        }}
+      >
+        <h3 style={{ margin: "0 0 8px" }}>카드 생성 추이</h3>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", fontSize: "13px", color: "#374151" }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontWeight: 600, color: "#f97316" }}>시작일</span>
+            <input
+              type="date"
+              value={range.start}
+              onChange={(e) => setRange((prev) => ({ ...prev, start: e.target.value }))}
+              max={range.end}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "10px",
+                padding: "6px 8px",
+                fontSize: "12px",
+                color: "#111827",
+                background: "#fff",
+                cursor: "pointer",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+              onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+            />
+          </label>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontWeight: 600, color: "#f97316" }}>종료일</span>
+            <input
+              type="date"
+              value={range.end}
+              onChange={(e) => setRange((prev) => ({ ...prev, end: e.target.value }))}
+              min={range.start}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "10px",
+                padding: "6px 8px",
+                fontSize: "12px",
+                color: "#111827",
+                background: "#fff",
+                cursor: "pointer",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+              onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+            />
+          </label>
+        </div>
+        <UsageChart trend={trend} />
       </section>
 
       <section
@@ -152,6 +258,48 @@ function StatCard({ label, value, helper }: { label: string; value: number | str
         {value ?? "확인 필요"}
       </div>
       {helper && <div style={{ fontSize: "12px", color: "#9ca3af" }}>{helper}</div>}
+    </div>
+  );
+}
+
+function UsageChart({ trend }: { trend: TrendPoint[] }) {
+  if (!trend.length) {
+    return <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>데이터 없음</p>;
+  }
+  const max = Math.max(...trend.map((p) => p.count), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", height: "140px" }}>
+      {trend.map((p) => {
+        const h = (p.count / max) * 120;
+        return (
+          <div
+            key={p.date}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              minWidth: "8px",
+              cursor: "default",
+            }}
+          >
+            {p.count > 0 && (
+              <div style={{ fontSize: "10px", color: "#111827", marginBottom: "2px" }}>{p.count}</div>
+            )}
+            <div
+              style={{
+                width: "10px",
+                height: `${h}px`,
+                background: "#f97316",
+                borderRadius: "4px 4px 0 0",
+                transition: "opacity 0.15s",
+                opacity: 0.9,
+              }}
+              title={`${p.date} : ${p.count}`}
+            />
+            <div style={{ fontSize: "10px", color: "#9ca3af", marginTop: "4px" }}>{p.date.slice(5)}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }

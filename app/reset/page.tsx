@@ -12,35 +12,11 @@ export default function ResetPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
 
   useEffect(() => {
-    const hash = window.location.hash.replace(/^#/, "");
-    const hashParams = new URLSearchParams(hash);
-    const access_token = hashParams.get("access_token");
-    const refresh_token = hashParams.get("refresh_token");
-
-    if (access_token && refresh_token) {
-      supabase.auth
-        .setSession({ access_token, refresh_token })
-        .then(({ error: sessErr }) => {
-          if (sessErr) {
-            setError(sessErr.message);
-          } else {
-            setSessionReady(true);
-          }
-          setLoading(false);
-        });
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const c = params.get("code");
-    if (!c) {
-      setError("유효하지 않은 링크입니다. 메일의 최신 링크를 다시 확인해주세요.");
-      setLoading(false);
-      return;
-    }
-    supabase.auth.exchangeCodeForSession(c).then(({ error: exErr }) => {
-      if (exErr) {
-        setError(exErr.message);
+    supabase.auth.getSession().then(({ data, error: sessErr }) => {
+      if (sessErr) {
+        setError(sessErr.message);
+      } else if (!data.session) {
+        setError("로그인 후 비밀번호를 변경할 수 있습니다.");
       } else {
         setSessionReady(true);
       }
@@ -74,9 +50,9 @@ export default function ResetPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">비밀번호 재설정</h1>
+        <h1 className="auth-title">비밀번호 변경</h1>
         {loading ? (
-          <div className="auth-actions">링크 확인 중...</div>
+          <div className="auth-actions">세션 확인 중...</div>
         ) : error ? (
           <div className="auth-error">{error}</div>
         ) : (

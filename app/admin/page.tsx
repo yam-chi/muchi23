@@ -7,6 +7,7 @@ type Stats = {
   cardsTotal: number | null;
   cardsRecent7: number | null;
   usersTotal: number | null;
+  feedbackTotal: number | null;
 };
 
 type TrendPoint = { date: string; count: number };
@@ -18,8 +19,20 @@ type LogEntry = {
   created_at: string;
 };
 
+type FeedbackEntry = {
+  id: string;
+  text: string;
+  user_id: string | null;
+  created_at: string | null;
+};
+
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<Stats>({ cardsTotal: null, cardsRecent7: null, usersTotal: null });
+  const [stats, setStats] = useState<Stats>({
+    cardsTotal: null,
+    cardsRecent7: null,
+    usersTotal: null,
+    feedbackTotal: null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [range, setRange] = useState<{ start: string; end: string }>(() => {
@@ -29,6 +42,7 @@ export default function AdminDashboardPage() {
     return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
   });
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackEntry[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -50,8 +64,25 @@ export default function AdminDashboardPage() {
           const json = await usersRes.json();
           if (Array.isArray(json.users)) usersTotal = json.users.length;
         }
+        // 문의/제보 총합 + 최신 5건
+        const { count: feedbackTotal } = await supabase
+          .from("feedback")
+          .select("*", { count: "exact", head: true });
+        const { data: feedbackRows } = await supabase
+          .from("feedback")
+          .select("id,text,created_at,user_id")
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-        if (mounted) setStats({ cardsTotal: cardsTotal ?? null, cardsRecent7: cardsRecent7 ?? null, usersTotal });
+        if (mounted) {
+          setStats({
+            cardsTotal: cardsTotal ?? null,
+            cardsRecent7: cardsRecent7 ?? null,
+            usersTotal,
+            feedbackTotal: feedbackTotal ?? null,
+          });
+          setFeedbacks(feedbackRows ?? []);
+        }
       } catch (e: any) {
         if (mounted) setError(e?.message ?? "통계 조회 중 오류");
       }
@@ -122,36 +153,9 @@ export default function AdminDashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
           <StatCard label="총 카드 수" value={stats.cardsTotal} />
           <StatCard label="최근 7일 카드" value={stats.cardsRecent7} />
-          <StatCard label="총 유저 수" value={stats.usersTotal} helper="auth.users RPC 필요" />
+          <StatCard label="총 유저 수" value={stats.usersTotal} />
+          <StatCard label="총 문의/제보" value={stats.feedbackTotal} />
         </div>
-      </section>
-
-      <section
-        style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "14px",
-          padding: "16px",
-          boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
-        }}
-      >
-        <h3 style={{ margin: "0 0 8px" }}>문의/제보</h3>
-        <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
-          feedback 테이블 연결 후 노출 예정. 무치노트 본편에 제보 입력 UI 추가 필요.
-        </p>
-      </section>
-
-      <section
-        style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "14px",
-          padding: "16px",
-          boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
-        }}
-      >
-        <h3 style={{ margin: "0 0 8px" }}>에러/동기화 로그 (최근 50건)</h3>
-        <LogList logs={logs} />
       </section>
 
       <section
@@ -216,43 +220,60 @@ export default function AdminDashboardPage() {
           borderRadius: "14px",
           padding: "16px",
           boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
-          display: "flex",
-          gap: "8px",
-          alignItems: "center",
         }}
       >
-        <button
-          type="button"
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            borderRadius: "10px",
-            padding: "8px 12px",
-            cursor: "pointer",
-          }}
-          onClick={async () => {
-            await signOut();
-            window.location.href = "/login";
-          }}
-        >
-          로그아웃
-        </button>
-        <button
-          type="button"
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            borderRadius: "10px",
-            padding: "8px 12px",
-            cursor: "pointer",
-          }}
-          onClick={() => {
-            window.location.href = "/reset";
-          }}
-        >
-          비밀번호 변경
-        </button>
+        <h3 style={{ margin: "0 0 8px" }}>문의/제보</h3>
+        {feedbacks.length === 0 ? (
+          <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>최근 문의/제보가 없습니다.</p>
+        ) : (
+          <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", overflow: "hidden" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: "13px",
+              }}
+            >
+              <thead>
+                <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
+                  <th style={{ padding: "8px 10px", width: "140px" }}>작성일</th>
+                  <th style={{ padding: "8px 10px" }}>내용 (앞부분)</th>
+                  <th style={{ padding: "8px 10px", width: "160px" }}>user_id</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feedbacks.map((f) => (
+                  <tr key={f.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "8px 10px", color: "#6b7280" }}>
+                      {f.created_at ? new Date(f.created_at).toLocaleString() : "-"}
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "#111827" }}>
+                      {f.text?.length ? `${f.text.slice(0, 60)}${f.text.length > 60 ? "…" : ""}` : "-"}
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "#6b7280", wordBreak: "break-all" }}>
+                      {f.user_id ?? "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
+
+      <section
+        style={{
+          background: "#fff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "14px",
+          padding: "16px",
+          boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+        }}
+      >
+        <h3 style={{ margin: "0 0 8px" }}>에러/동기화 로그 (최근 50건)</h3>
+        <LogList logs={logs} />
+      </section>
+
     </div>
   );
 }

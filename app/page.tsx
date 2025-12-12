@@ -175,6 +175,10 @@ export default function Page() {
     const settingsPwdConfirm = document.getElementById("settingsPwdConfirm") as HTMLInputElement | null;
     const settingsPwdBtn = document.getElementById("settingsPwdBtn") as HTMLButtonElement | null;
     const settingsPwdMsg = document.getElementById("settingsPwdMsg") as HTMLElement | null;
+    const settingsFeedbackTab = document.querySelector<HTMLButtonElement>('[data-settings-tab="feedback"]');
+    const settingsFeedbackPanel = document.querySelector<HTMLElement>('[data-settings-panel="feedback"]');
+    const feedbackTextarea = document.getElementById("feedbackTextarea") as HTMLTextAreaElement | null;
+    const feedbackSubmit = document.getElementById("feedbackSubmit") as HTMLButtonElement | null;
     const settingsTabButtons = Array.from(
       document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]")
     );
@@ -1714,6 +1718,7 @@ export default function Page() {
       if (settingsEmail && currentUserEmailRef.current) {
         settingsEmail.textContent = currentUserEmailRef.current;
       }
+      if (feedbackTextarea) feedbackTextarea.value = "";
       if (settingsModal) settingsModal.classList.add("open");
       switchSettingsTab("profile");
     };
@@ -1764,6 +1769,30 @@ export default function Page() {
 
     if (settingsPwdBtn) {
       settingsPwdBtn.addEventListener("click", () => handlePasswordChange());
+    }
+
+    const handleFeedbackSubmit = async () => {
+      if (!feedbackTextarea || previewMode) return;
+      const text = feedbackTextarea.value.trim();
+      if (!text) {
+        showToast("내용을 입력해주세요.");
+        return;
+      }
+      const uid = currentUserIdRef.current;
+      const { error } = await supabase.from("feedback").insert({
+        text,
+        user_id: uid,
+      });
+      if (error) {
+        showToast("전송에 실패했습니다.");
+      } else {
+        feedbackTextarea.value = "";
+        showToast("문의/제보가 전송되었습니다.");
+      }
+    };
+
+    if (feedbackSubmit) {
+      feedbackSubmit.addEventListener("click", () => handleFeedbackSubmit());
     }
 
     if (settingsModal) {
@@ -2654,6 +2683,9 @@ export default function Page() {
             <button className="settings-tab" data-settings-tab="tips" type="button">
               팁
             </button>
+            <button className="settings-tab" data-settings-tab="feedback" type="button">
+              문의/제보
+            </button>
           </div>
           <div className="settings-body">
             <div className="settings-panel active" data-settings-panel="profile">
@@ -2710,6 +2742,21 @@ export default function Page() {
                   <li>Alt/Cmd + 휠로 줌, ZOOM 버튼으로 100% 리셋</li>
                   <li>날짜 확대 버튼으로 1장 메모장처럼 사용</li>
                 </ul>
+              </div>
+            </div>
+            <div className="settings-panel" data-settings-panel="feedback">
+              <div className="settings-item column">
+                <div className="settings-label">문의/제보</div>
+                <textarea
+                  id="feedbackTextarea"
+                  placeholder="불편 사항이나 건의 내용을 입력해주세요."
+                  style={{ width: "100%", minHeight: "90px", resize: "vertical" }}
+                />
+                <div className="settings-actions" style={{ marginTop: "8px" }}>
+                  <button className="btn" id="feedbackSubmit" type="button">
+                    보내기
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -55,7 +55,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { href: "/admin", label: "대시보드" },
     { href: "/admin/users", label: "사용자" },
-    { href: "/admin/cards", label: "카드" },
     { href: "/admin/feedback", label: "문의/제보" },
   ];
 
@@ -98,24 +97,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </nav>
         </div>
-        <button
-          type="button"
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            borderRadius: "10px",
-            padding: "6px 10px",
-            cursor: "pointer",
-            color: "#374151",
-            alignSelf: "flex-end",
-          }}
-          onClick={async () => {
-            await signOut();
-            window.location.href = "/login";
-          }}
-        >
-          로그아웃
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+          <button
+            type="button"
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              borderRadius: "10px",
+              padding: "6px 10px",
+              cursor: "pointer",
+              color: "#374151",
+              alignSelf: "flex-end",
+            }}
+            onClick={() => {
+              window.location.href = "/reset";
+            }}
+          >
+            비밀번호 변경
+          </button>
+          <button
+            type="button"
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              borderRadius: "10px",
+              padding: "6px 10px",
+              cursor: "pointer",
+              color: "#374151",
+              alignSelf: "flex-end",
+            }}
+            onClick={async () => {
+              await signOut();
+              window.location.href = "/login";
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
       </header>
       <main>{children}</main>
     </div>

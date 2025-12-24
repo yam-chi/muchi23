@@ -38,10 +38,15 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-hero auth-hero-top">
         <div className="auth-logo">MUCHI NOTE</div>
-        <div className="auth-tagline">월간 플래너 보드</div>
+        <div className="auth-tagline">슥슥 쓰고 지우는 To do list</div>
       </div>
       <div className="auth-card">
-        <h1 className="auth-title">로그인</h1>
+        <div className="auth-header-row">
+          <h1 className="auth-title">로그인</h1>
+          <Link href="/?preview=1" className="auth-preview-link">
+            미리 써보기
+          </Link>
+        </div>
         <form className="auth-form" onSubmit={onSubmit}>
           <label className="auth-field">
             <span>이메일</span>
@@ -103,13 +108,6 @@ export default function LoginPage() {
             회원가입
           </Link>
         </div>
-        <button
-          type="button"
-          className="btn auth-secondary"
-          onClick={() => (window.location.href = "/?preview=1")}
-        >
-          미리보기
-        </button>
         {info && <div className="auth-success">{info}</div>}
       </div>
 

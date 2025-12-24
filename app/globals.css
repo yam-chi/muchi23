@@ -301,15 +301,18 @@ header {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.7), transparent 35%),
-    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.55), transparent 30%),
-    linear-gradient(135deg, #eef3fb 0%, #dfe7f5 100%);
+  background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.55), transparent 38%),
+    radial-gradient(circle at 85% 5%, rgba(255, 255, 255, 0.45), transparent 32%),
+    linear-gradient(135deg, #f7f2ea 0%, #efe3cf 100%);
   padding: 24px;
   gap: 12px;
 }
 
 .auth-card {
   background: #ffffff;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
   border: 1px solid #e6ebf5;
   border-radius: 16px;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
@@ -330,14 +333,14 @@ header {
 .auth-preview-link {
   font-size: 12px;
   font-weight: 600;
-  color: #1c5dff;
+  color: #c96a4a;
   text-decoration: none;
   padding: 2px 6px;
   border-radius: 6px;
 }
 
 .auth-preview-link:hover {
-  box-shadow: 0 2px 6px rgba(28, 93, 255, 0.2);
+  box-shadow: 0 2px 6px rgba(201, 106, 74, 0.2);
 }
 
 .auth-hero {
@@ -357,12 +360,12 @@ header {
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #1e2a36;
+  color: #2b2b2b;
 }
 
 .auth-tagline {
   font-size: 13px;
-  color: #6b7280;
+  color: #9a9a9a;
 }
 
 .auth-title {
@@ -423,6 +426,15 @@ header {
 
 .auth-submit {
   width: 100%;
+  background: #c96a4a;
+  color: #ffffff;
+  border-color: #c96a4a;
+}
+
+.auth-submit:hover {
+  background: #b85e43;
+  border-color: #b85e43;
+  color: #ffffff;
 }
 
 .auth-actions {
@@ -435,7 +447,7 @@ header {
 }
 
 .auth-link {
-  color: #3a6be0;
+  color: #c96a4a;
   font-weight: 600;
   text-decoration: none;
 }

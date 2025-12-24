@@ -140,7 +140,7 @@ header {
   top: 52px; /* 헤더와 높이 맞추기 위해 상단 간격 축소 */
   z-index: 18;
   padding: 8px 10px;
-  background: var(--panel-bg);
+  background: linear-gradient(90deg, #f7f2ea 0%, #efe6d8 100%);
   border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;

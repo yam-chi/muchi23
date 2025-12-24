@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-ㅁ
 export default function Home() {
   const links = [
     { href: "/onboarding/requests", label: "담당자 대시보드 (온보딩 목록)" },
@@ -46,4 +45,3 @@ export default function Home() {
     </main>
   );
 }
-

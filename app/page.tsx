@@ -244,26 +244,46 @@ export default function Page() {
     function sanitizeToTextAndEmojis(html: string) {
       const container = document.createElement("div");
       container.innerHTML = html;
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null);
-      let result = "";
+      const parts: string[] = [];
       const allowedImg = (el: Element) =>
         el.tagName.toLowerCase() === "img" &&
         el.getAttribute("src")?.startsWith("data:image/") &&
         (el as HTMLImageElement).src.length < 500000; // cap size
 
-      while (walker.nextNode()) {
-        const node = walker.currentNode;
+      const walk = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
-          result += node.textContent ?? "";
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          const el = node as HTMLElement;
-          if (allowedImg(el)) {
-            const src = el.getAttribute("src") || "";
-            result += `<img class="emoji-img" src="${src}">`;
-          }
+          parts.push(node.textContent ?? "");
+          return;
         }
-      }
-      return result;
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        const el = node as HTMLElement;
+        const tag = el.tagName.toLowerCase();
+        if (tag === "br") {
+          parts.push("<br>");
+          return;
+        }
+        if (allowedImg(el)) {
+          const src = el.getAttribute("src") || "";
+          parts.push(`<img class="emoji-img" src="${src}">`);
+          return;
+        }
+        const isBlock = ["div", "p", "section", "article", "header", "footer", "li"].includes(tag);
+        el.childNodes.forEach(walk);
+        if (isBlock) parts.push("<br>");
+      };
+
+      container.childNodes.forEach(walk);
+      return parts.join("");
+    }
+
+    function normalizeCardHtmlForSave(html: string) {
+      const sanitized = sanitizeToTextAndEmojis(html);
+      return sanitized.replace(/<br\s*\/?>/gi, "\n");
+    }
+
+    function renderCardHtml(text: string) {
+      const sanitized = sanitizeToTextAndEmojis(text || "");
+      return sanitized.replace(/\n/g, "<br>");
     }
 
     function insertAtSelection(htmlFragment: string, opts?: { strictCard?: boolean }) {
@@ -784,7 +804,7 @@ export default function Page() {
       const id = idStr;
 
       const content = card.querySelector(".card-content");
-      const text = content ? content.innerHTML ?? "" : "";
+      const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
       const list = getCardsForDate(dateKey);
@@ -812,7 +832,7 @@ export default function Page() {
           const idStr = card.dataset.cardId;
           if (!idStr) return;
           const content = card.querySelector(".card-content");
-          const text = content ? content.innerHTML ?? "" : "";
+          const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
           const done = card.classList.contains("done");
           const color = card.dataset.color || "default";
           list.push({ id: idStr, text, done, color });
@@ -890,7 +910,7 @@ export default function Page() {
       card.id = `card-${id}`;
       card.dataset.color = color;
       applyCardColorClass(card, color);
-      content.innerHTML = sanitizeToTextAndEmojis(text || "");
+      content.innerHTML = renderCardHtml(text || "");
 
       content.addEventListener("focus", () => {
         lastFocusedContent = content;

@@ -105,15 +105,22 @@ header {
 .floating-toggle-wrap {
   display: none;
   width: 100%;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   position: sticky;
   top: 12px;
   z-index: 25;
-  padding: 0 8px 8px;
+  padding: 0 8px 8px 25px;
 }
 
 .floating-toggle-wrap .header-toggle {
   position: static;
+}
+
+.floating-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c96a4a;
 }
 
 .header-left {

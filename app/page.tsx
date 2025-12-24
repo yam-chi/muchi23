@@ -2613,6 +2613,7 @@ export default function Page() {
         </header>
 
         <div className="floating-toggle-wrap">
+          <span className="floating-title">MUCHI NOTE</span>
           <button className="btn header-toggle" id="headerToggleFloating" type="button">
             헤더 보이기
           </button>

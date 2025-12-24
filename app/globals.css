@@ -1253,13 +1253,13 @@ header {
     }
 
     .card.color-green {
-      background: #e7f6ec;
-      border-color: #b7e2c5;
+      background: #e3ece1;
+      border-color: #cfdcc9;
     }
 
     .card.color-pink {
-      background: #fde6ea;
-      border-color: #f2c0c9;
+      background: #f2d3d7;
+      border-color: #e4b7bd;
     }
 
     .card.done {

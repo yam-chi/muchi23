@@ -491,9 +491,10 @@ export default function Page() {
       if (isMobileView) {
         const yy = String(year).slice(-2);
         const mm = String(monthIdx + 1).padStart(2, "0");
-        monthTitle.textContent = `${yy}/${mm}`;
+        monthTitle.innerHTML = `<span class="month-number">${yy}</span>/<span class="month-number">${mm}</span>`;
       } else {
-        monthTitle.textContent = `${year}년 ${MONTH_NAMES[monthIdx]}`;
+        const mm = String(monthIdx + 1);
+        monthTitle.innerHTML = `<span class="month-number">${year}</span>년 <span class="month-number">${mm}</span>월`;
       }
       pickerYear = year;
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
@@ -2545,26 +2546,6 @@ export default function Page() {
       <div className="main-glass-panel">
         <header>
           <div className="title-with-logout">
-            <span className="title">MUCHI NOTE</span>
-            <button className="top-link" id="logoutBtn" type="button">
-              log out
-            </button>
-          </div>
-          <div className="top-actions">
-            <button className="btn header-toggle" id="headerToggle" type="button">
-              헤더 숨기기
-            </button>
-          </div>
-        </header>
-
-        <div className="floating-toggle-wrap">
-          <button className="btn header-toggle" id="headerToggleFloating" type="button">
-            헤더 보이기
-          </button>
-        </div>
-
-        <div className="top-bar">
-          <div className="top-left-actions">
             <div className="month-picker">
               <button className="month-display" id="monthPickerToggle" type="button">
                 <span className="month-title" id="monthTitle" />
@@ -2620,6 +2601,25 @@ export default function Page() {
                 </div>
               </div>
             </div>
+            <button className="top-link" id="logoutBtn" type="button">
+              log out
+            </button>
+          </div>
+          <div className="top-actions">
+            <button className="btn header-toggle" id="headerToggle" type="button">
+              헤더 숨기기
+            </button>
+          </div>
+        </header>
+
+        <div className="floating-toggle-wrap">
+          <button className="btn header-toggle" id="headerToggleFloating" type="button">
+            헤더 보이기
+          </button>
+        </div>
+
+        <div className="top-bar">
+          <div className="top-left-actions">
             <button className="link-btn" id="todayBtn">
               TODAY
             </button>

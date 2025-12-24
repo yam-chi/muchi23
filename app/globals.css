@@ -151,6 +151,7 @@ header {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  padding-left: 20px;
 }
 
     /* prev/next 버튼 숨김 */
@@ -160,10 +161,18 @@ header {
     }
 
 .month-title {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.5px;
+}
+
+.month-number {
+  color: #c96a4a;
+}
+
+.month-title .month-number {
+  color: #c96a4a;
 }
 
 /* Header title & logout */
@@ -214,9 +223,18 @@ header {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
+/* Accent text color for specific modal actions */
+#emojiUploadTrigger,
+#settingsClose,
+#settingsPwdBtn,
+#feedbackSubmit {
+  color: #c96a4a;
+}
+
 /* 헤더 토글 버튼 (행 내 배치) */
 .header-toggle {
   position: static;
+  color: #c96a4a;
 }
 
     .scale-control {
@@ -865,7 +883,7 @@ header {
       border-radius: 12px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
-      color: #3b82f6;
+      color: #c96a4a;
       box-shadow: var(--shadow-card);
     }
 
@@ -1409,8 +1427,12 @@ header {
 
     .scope-btn.active {
       background: #ffffff;
-      color: #3b82f6;
+      color: #c96a4a;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    #searchBtn {
+      color: #c96a4a;
     }
 
     /* === Search Highlights & Error === */

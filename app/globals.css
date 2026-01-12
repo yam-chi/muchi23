@@ -1098,16 +1098,16 @@ header {
     }
 
     .day-cell.active-day {
-      outline: 2px solid #2563eb;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+      outline: 2px solid #d9a08d;
+      box-shadow: 0 0 0 4px rgba(201, 106, 74, 0.15);
       position: relative;
       z-index: 25;
     }
 
     .day-cell.today {
-      border: 2px solid #3b82f6;
+      border: 2px solid #c96a4a;
       background: #f7fbff;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      box-shadow: 0 0 0 3px rgba(201, 106, 74, 0.12);
     }
 
     .day-cell.other-month {
@@ -1188,7 +1188,7 @@ header {
     }
 
     .day-cell.today .day-meta {
-      background: #3b82f6;
+      background: #c96a4a;
       color: white;
       padding: 2px 8px;
       border-radius: 99px;
@@ -1234,9 +1234,10 @@ header {
     }
 
     .card.selected {
-      border: 2px solid #3b82f6 !important;
-      background: rgba(219, 234, 254, 0.9) !important;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      border: 1px solid #c96a4a !important;
+      outline: 1px solid #c96a4a;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 1px rgba(201, 106, 74, 0.2);
       z-index: 10;
     }
 
@@ -1284,6 +1285,10 @@ header {
     .card-content {
       white-space: pre-wrap;
       position: relative;
+    }
+
+    .card-content:focus {
+      outline: none;
     }
 
     .card-content:empty::before {

@@ -1004,6 +1004,8 @@ export default function Page() {
           toggleSelection(card);
           return;
         }
+        clearSelection();
+        card.classList.add("selected");
         const day = card.closest(".day-cell");
         setActiveDay(day as HTMLElement | null);
         const contentEl = card.querySelector(".card-content") as HTMLDivElement | null;

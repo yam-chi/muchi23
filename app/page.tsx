@@ -998,18 +998,25 @@ export default function Page() {
       card.className = "card";
       const handle = document.createElement("div");
       handle.className = "card-handle";
+      const doneBadge = document.createElement("div");
+      doneBadge.className = "card-done-badge";
+      doneBadge.textContent = "✓";
       const content = document.createElement("div");
       content.className = "card-content";
       content.dataset.placeholder = "새 할 일을 적어보세요";
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
+      const btnDone = document.createElement("button");
+      btnDone.className = "card-btn card-btn-done";
+      btnDone.textContent = "완";
       const btnColor = document.createElement("button");
       btnColor.className = "card-btn card-btn-color";
-      btnColor.textContent = "색상";
+      btnColor.textContent = "색";
       const btnDelete = document.createElement("button");
       btnDelete.className = "card-btn card-btn-delete";
-      btnDelete.textContent = "삭제";
+      btnDelete.textContent = "×";
+      toolbar.appendChild(btnDone);
       toolbar.appendChild(btnColor);
       toolbar.appendChild(btnDelete);
 
@@ -1105,6 +1112,7 @@ export default function Page() {
       if (done) card.classList.add("done");
 
       card.appendChild(handle);
+      card.appendChild(doneBadge);
       card.appendChild(content);
       card.appendChild(toolbar);
       container.appendChild(card);
@@ -1124,11 +1132,10 @@ export default function Page() {
         makeEditable(card);
       });
 
-      card.addEventListener("dblclick", (e) => {
+      btnDone.addEventListener("click", (e) => {
         e.stopPropagation();
         card.classList.toggle("done");
         syncOneCardFromDom(card);
-        // 안전망: DOM 기준으로 재저장
         syncCurrentMonthFromDom();
         saveLocalState();
         const dKey = card.dataset.date;

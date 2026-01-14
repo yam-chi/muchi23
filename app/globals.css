@@ -1309,11 +1309,46 @@ header {
     }
 
     .card.done {
-      background: #f1f5f9;
-      border-color: #e5e7eb;
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      color: #64748b;
       text-decoration: line-through;
-      color: #9ca3af;
+      text-decoration-color: rgba(201, 106, 74, 0.45);
+      text-decoration-thickness: 2px;
       box-shadow: none;
+    }
+
+    .card-done-badge {
+      position: absolute;
+      top: -11px;
+      left: -11px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid #e5e7eb;
+      font-size: 0;
+      font-weight: 700;
+      background: #ffffff;
+      color: #475569;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card.done .card-done-badge {
+      display: inline-flex;
+    }
+
+    .card.done .card-done-badge {
+      background: #c96a4a;
+      border-color: #c96a4a;
+    }
+
+    .card-done-badge::before {
+      content: "✓";
+      font-size: 12px;
+      line-height: 1;
+      color: #ffffff;
     }
 
     .card-handle {
@@ -1337,6 +1372,7 @@ header {
       outline: none;
     }
 
+
     .card-content:empty::before {
       content: attr(data-placeholder);
       color: rgba(156, 163, 175, 0.8);
@@ -1349,10 +1385,10 @@ header {
 
     .card-toolbar {
       position: absolute;
-      top: -12px;
-      right: -8px;
+      top: -11px;
+      right: -11px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: flex-end;
       justify-content: flex-start;
       gap: 4px;
@@ -1368,11 +1404,11 @@ header {
     .card-btn {
       border: 1px solid #e5e7eb;
       background: #ffffff;
-      border-radius: 8px;
+      border-radius: 999px;
       font-size: 9px;
-      padding: 0 8px;
-      min-width: 38px;
-      height: 18px;
+      padding: 0 6px;
+      min-width: 32px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1382,6 +1418,57 @@ header {
 
     .card-btn:hover {
       background: #ffffff;
+      font-weight: 600;
+    }
+
+    .card-btn-delete {
+      width: 22px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #475569;
+      font-size: 12px;
+    }
+
+    .card-btn-delete:hover {
+      background: #fee2e2;
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .card-btn-done {
+      width: 22px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #475569;
+      font-size: 10px;
+    }
+
+    .card-btn-done:hover {
+      background: #e2e8f0;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .card-btn-color {
+      width: 22px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #475569;
+      font-size: 10px;
+    }
+
+    .card-btn-color:hover {
+      background: #dbeafe;
+      color: #2563eb;
       font-weight: 600;
     }
 

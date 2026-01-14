@@ -8,10 +8,22 @@ type CardData = {
   text: string; // HTML-safe string (text + optional <img class="emoji-img" src="data:image/...">)
   done: boolean;
   color: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  originSectionId?: string;
+  originSectionTitle?: string;
+  originDateKey?: string;
+};
+
+type SectionData = {
+  id: string;
+  title: string;
+  order: number;
 };
 
 type State = {
   cards: Record<string, CardData[]>;
+  sections: Record<string, SectionData[]>;
   weekVisibility: Record<string, boolean[]>;
 };
 
@@ -215,7 +227,7 @@ export default function Page() {
     let startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
     let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
-    let state: State = { cards: {}, weekVisibility: {} };
+    let state: State = { cards: {}, weekVisibility: {}, sections: {} };
     let headerCollapsed = false;
     let showWeekend = true;
     let marqueeBox: HTMLDivElement | null = null;
@@ -442,10 +454,11 @@ export default function Page() {
           affectedDates.add(dateKey);
           deleteCardInSupabase(idStr);
         }
-        if (parent && parent.classList.contains("day-body")) {
-          if (!parent.querySelector(".card")) {
-            const hintEl = parent.querySelector(".day-empty-hint") as HTMLElement | null;
-            if (hintEl) hintEl.style.display = "block";
+        if (parent && parent.classList.contains("day-section-body")) {
+          const cell = parent.closest(".day-cell") as HTMLElement | null;
+          if (cell) {
+            updateSectionHints(cell);
+            cleanupDoneSection(cell);
           }
         }
       });
@@ -700,7 +713,9 @@ export default function Page() {
       if (!uid) return;
       const { data, error } = await supabase
         .from("cards")
-        .select("id, date_key, text, done, color, board_id")
+        .select(
+          "id, date_key, text, done, color, board_id, section_id, section_title, origin_section_id, origin_section_title, origin_date_key",
+        )
         .eq("user_id", uid)
         .eq("board_id", activeTabId)
         .order("created_at", { ascending: true });
@@ -709,17 +724,37 @@ export default function Page() {
         return;
       }
       const grouped: Record<string, CardData[]> = {};
+      const sectionMap: Record<string, SectionData[]> = {};
       data?.forEach((row) => {
         const dk = row.date_key;
         if (!grouped[dk]) grouped[dk] = [];
+        const sectionId = row.section_id ?? "default";
+        const sectionTitle = row.section_title ?? "";
         grouped[dk].push({
           id: row.id,
           text: row.text ?? "",
           done: !!row.done,
           color: row.color ?? "default",
+          sectionId,
+          sectionTitle,
+          originSectionId: row.origin_section_id ?? undefined,
+          originSectionTitle: row.origin_section_title ?? undefined,
+          originDateKey: row.origin_date_key ?? undefined,
         });
+        if (!sectionMap[dk]) sectionMap[dk] = [];
+        if (sectionId && sectionId !== "done") {
+          const exists = sectionMap[dk].some((s) => s.id === sectionId);
+          if (!exists) {
+            sectionMap[dk].push({
+              id: sectionId,
+              title: sectionTitle || "",
+              order: sectionMap[dk].length,
+            });
+          }
+        }
       });
       state.cards = grouped;
+      state.sections = sectionMap;
       saveLocalState();
     }
 
@@ -729,11 +764,12 @@ export default function Page() {
         await fetchCardsFromSupabase();
       }
       // Supabase에 아무 것도 없을 때만 로컬 캐시 복구
-      if (!Object.keys(state.cards).length) {
-        const local = loadLocalState();
-        if (local && Object.keys(local).length) {
-          state.cards = local;
-        }
+      const local = loadLocalState();
+      if (!Object.keys(state.cards).length && local?.cards) {
+        state.cards = local.cards;
+      }
+      if (local?.sections) {
+        state.sections = local.sections;
       }
     }
 
@@ -743,7 +779,7 @@ export default function Page() {
 
     function saveLocalState() {
       try {
-        const payload = { cards: state.cards };
+        const payload = { cards: state.cards, sections: state.sections };
         localStorage.setItem(getLocalStateKey(), JSON.stringify(payload));
       } catch (e) {
         console.error("saveLocalState error", e);
@@ -755,9 +791,7 @@ export default function Page() {
         const raw = localStorage.getItem(getLocalStateKey());
         if (!raw) return;
         const parsed = JSON.parse(raw) as Partial<State>;
-        if (parsed && parsed.cards) {
-          return parsed.cards as Record<string, CardData[]>;
-        }
+        return parsed;
       } catch (e) {
         console.error("loadLocalState error", e);
       }
@@ -779,6 +813,11 @@ export default function Page() {
           text: cardObj.text,
           done: cardObj.done,
           color: cardObj.color,
+          section_id: cardObj.sectionId ?? "default",
+          section_title: cardObj.sectionTitle ?? "",
+          origin_section_id: cardObj.originSectionId ?? null,
+          origin_section_title: cardObj.originSectionTitle ?? null,
+          origin_date_key: cardObj.originDateKey ?? null,
         });
       if (error) console.error("supabase upsert error", error);
     }
@@ -806,6 +845,11 @@ export default function Page() {
         text: string;
         done: boolean;
         color: string;
+        section_id: string;
+        section_title: string;
+        origin_section_id: string | null;
+        origin_section_title: string | null;
+        origin_date_key: string | null;
       }> = [];
       const ids: string[] = [];
       Object.entries(state.cards).forEach(([dateKey, list]) => {
@@ -819,6 +863,11 @@ export default function Page() {
             text: c.text,
             done: c.done,
             color: c.color,
+            section_id: c.sectionId ?? "default",
+            section_title: c.sectionTitle ?? "",
+            origin_section_id: c.originSectionId ?? null,
+            origin_section_title: c.originSectionTitle ?? null,
+            origin_date_key: c.originDateKey ?? null,
           });
         });
       });
@@ -863,6 +912,180 @@ export default function Page() {
     const getCardsForDate = (dateKey: string) => {
       const list = state.cards[dateKey];
       return Array.isArray(list) ? list : [];
+    };
+
+    const getSectionsForDate = (dateKey: string) => {
+      const list = state.sections[dateKey];
+      return Array.isArray(list) ? list : [];
+    };
+
+    const ensureSectionList = (dateKey: string) => {
+      if (!Array.isArray(state.sections[dateKey])) state.sections[dateKey] = [];
+      return state.sections[dateKey];
+    };
+
+    const DONE_SECTION_ID = "done";
+    const MAX_SECTIONS = 5;
+
+    const ensureDefaultSection = (dateKey: string) => {
+      const list = ensureSectionList(dateKey);
+      if (!list.some((s) => s.id === "default")) {
+        list.unshift({ id: "default", title: "", order: 0 });
+      }
+      return list;
+    };
+
+    const getSectionBodyById = (cell: HTMLElement, sectionId: string) => {
+      const section = cell.querySelector<HTMLElement>(`.day-section[data-section-id="${sectionId}"]`);
+      return section ? (section.querySelector(".day-section-body") as HTMLElement | null) : null;
+    };
+
+    const ensureDoneSectionBody = (cell: HTMLElement) => {
+      const existing = getSectionBodyById(cell, DONE_SECTION_ID);
+      if (existing) return existing;
+      const sectionsWrap = cell.querySelector(".day-sections");
+      if (!sectionsWrap) return null;
+
+      const doneEl = document.createElement("div");
+      doneEl.className = "day-section day-section-done";
+      doneEl.dataset.sectionId = DONE_SECTION_ID;
+      doneEl.dataset.sectionTitle = "완료";
+
+      const doneHeader = document.createElement("div");
+      doneHeader.className = "day-section-header";
+      const doneTitle = document.createElement("div");
+      doneTitle.className = "day-section-title";
+      doneTitle.textContent = "완료";
+      doneHeader.appendChild(doneTitle);
+
+      const doneBody = document.createElement("div");
+      doneBody.className = "day-section-body";
+      doneBody.addEventListener("mouseenter", () => {
+        setActiveDay(cell);
+        setActiveSection(cell, DONE_SECTION_ID);
+      });
+
+      doneEl.appendChild(doneHeader);
+      doneEl.appendChild(doneBody);
+
+      sectionsWrap.appendChild(doneEl);
+
+      return doneBody;
+    };
+
+    const cleanupDoneSection = (cell: HTMLElement | null) => {
+      if (!cell) return;
+      const doneSection = cell.querySelector<HTMLElement>(`.day-section[data-section-id="${DONE_SECTION_ID}"]`);
+      if (!doneSection) return;
+      const doneBody = doneSection.querySelector(".day-section-body");
+      const hasCards = !!doneBody?.querySelector(".card");
+      if (!hasCards) {
+        if (cell.dataset.activeSectionId === DONE_SECTION_ID) {
+          setActiveSection(cell, "default");
+        }
+        doneSection.remove();
+      }
+    };
+
+    const setActiveSection = (cell: HTMLElement | null, sectionId?: string | null) => {
+      if (!cell) return;
+      const targetId = sectionId || "default";
+      cell.dataset.activeSectionId = targetId;
+      const sections = cell.querySelectorAll<HTMLElement>(".day-section");
+      sections.forEach((section) => {
+        section.classList.toggle("active-section", section.dataset.sectionId === targetId);
+      });
+    };
+
+    const getActiveSectionBody = (cell: HTMLElement | null) => {
+      if (!cell) return null;
+      const targetId = cell.dataset.activeSectionId || "default";
+      return (
+        getSectionBodyById(cell, targetId) ||
+        (cell.querySelector(".day-section-body") as HTMLElement | null)
+      );
+    };
+
+    const updateSectionHints = (cell: HTMLElement | null) => {
+      if (!cell) return;
+      const sections = cell.querySelectorAll<HTMLElement>(".day-section");
+      sections.forEach((section) => {
+        const body = section.querySelector(".day-section-body");
+        if (!body) return;
+        const hint = body.querySelector<HTMLElement>(".day-empty-hint");
+        if (!hint) return;
+        if (section.dataset.sectionId === "default") {
+          hint.style.display = body.querySelector(".card") ? "none" : "block";
+        } else {
+          hint.style.display = "none";
+        }
+      });
+    };
+
+    const addSection = (dateKey: string) => {
+      const list = ensureSectionList(dateKey);
+      if (list.length >= MAX_SECTIONS) {
+        showToast(`라인은 최대 ${MAX_SECTIONS}개까지 만들 수 있어요.`);
+        return;
+      }
+      const id = `section-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      list.push({ id, title: "", order: list.length });
+      saveLocalState();
+      renderCalendar();
+    };
+
+    const reorderSections = (dateKey: string, sourceId: string, targetId: string) => {
+      if (sourceId === targetId) return;
+      const list = ensureSectionList(dateKey);
+      const sourceIdx = list.findIndex((s) => s.id === sourceId);
+      const targetIdx = list.findIndex((s) => s.id === targetId);
+      if (sourceIdx < 0 || targetIdx < 0) return;
+      const [moved] = list.splice(sourceIdx, 1);
+      list.splice(targetIdx, 0, moved);
+      list.forEach((s, idx) => {
+        s.order = idx;
+      });
+      saveLocalState();
+    };
+
+    const deleteSection = (dateKey: string, sectionId: string, cell: HTMLElement | null) => {
+      if (sectionId === "default" || sectionId === DONE_SECTION_ID) return;
+      if (!confirm("라인을 삭제할까요?")) return;
+      const list = ensureSectionList(dateKey);
+      const idx = list.findIndex((s) => s.id === sectionId);
+      if (idx < 0) return;
+      list.splice(idx, 1);
+      list.forEach((s, i) => {
+        s.order = i;
+      });
+
+      const cards = getCardsForDate(dateKey);
+      cards.forEach((card) => {
+        if ((card.sectionId || "default") === sectionId) {
+          card.sectionId = "default";
+          card.sectionTitle = getSectionTitle(dateKey, "default");
+        }
+      });
+
+      if (cell && cell.dataset.activeSectionId === sectionId) {
+        setActiveSection(cell, "default");
+      }
+      saveLocalState();
+      renderCalendar();
+    };
+
+    const setSectionTitle = (dateKey: string, sectionId: string, title: string) => {
+      const list = ensureSectionList(dateKey);
+      const target = list.find((s) => s.id === sectionId);
+      if (target) {
+        target.title = title;
+        saveLocalState();
+      }
+    };
+
+    const getSectionTitle = (dateKey: string, sectionId: string) => {
+      const list = getSectionsForDate(dateKey);
+      return list.find((s) => s.id === sectionId)?.title || "";
     };
 
     const ensureCardList = (dateKey: string) => {
@@ -919,11 +1142,38 @@ export default function Page() {
       const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
+      const sectionId = card.dataset.sectionId || "default";
+      const sectionTitle = card.dataset.sectionTitle || getSectionTitle(dateKey, sectionId);
+      const originSectionId = card.dataset.originSectionId || undefined;
+      const originSectionTitle = card.dataset.originSectionTitle || undefined;
+      const originDateKey = card.dataset.originDateKey || undefined;
       const list = getCardsForDate(dateKey);
       const prev = list.find((c) => c.id === id);
       const changed =
-        !prev || prev.text !== text || prev.done !== done || prev.color !== color;
-      upsertCard(dateKey, { id, text, done, color }, true);
+        !prev ||
+        prev.text !== text ||
+        prev.done !== done ||
+        prev.color !== color ||
+        prev.sectionId !== sectionId ||
+        prev.sectionTitle !== sectionTitle ||
+        prev.originSectionId !== originSectionId ||
+        prev.originSectionTitle !== originSectionTitle ||
+        prev.originDateKey !== originDateKey;
+      upsertCard(
+        dateKey,
+        {
+          id,
+          text,
+          done,
+          color,
+          sectionId,
+          sectionTitle,
+          originSectionId,
+          originSectionTitle,
+          originDateKey,
+        },
+        true,
+      );
       if (changed && shouldPush) {
         pushHistory();
       }
@@ -939,6 +1189,7 @@ export default function Page() {
           delete state.cards[dateKey];
           return;
         }
+        ensureDefaultSection(dateKey);
         const list: CardData[] = [];
         cards.forEach((card) => {
           const idStr = card.dataset.cardId;
@@ -947,7 +1198,28 @@ export default function Page() {
           const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
           const done = card.classList.contains("done");
           const color = card.dataset.color || "default";
-          list.push({ id: idStr, text, done, color });
+          const sectionId = card.dataset.sectionId || "default";
+          const sectionTitle = card.dataset.sectionTitle || getSectionTitle(dateKey, sectionId);
+          const originSectionId = card.dataset.originSectionId || undefined;
+          const originSectionTitle = card.dataset.originSectionTitle || undefined;
+          const originDateKey = card.dataset.originDateKey || undefined;
+          if (sectionId !== "done") {
+            const sections = ensureSectionList(dateKey);
+            if (!sections.some((s) => s.id === sectionId)) {
+              sections.push({ id: sectionId, title: sectionTitle || "", order: sections.length });
+            }
+          }
+          list.push({
+            id: idStr,
+            text,
+            done,
+            color,
+            sectionId,
+            sectionTitle,
+            originSectionId,
+            originSectionTitle,
+            originDateKey,
+          });
         });
         state.cards[dateKey] = list;
       });
@@ -1020,14 +1292,29 @@ export default function Page() {
       toolbar.appendChild(btnColor);
       toolbar.appendChild(btnDelete);
 
+      const sectionEl = container.closest(".day-section") as HTMLElement | null;
+      const dayCell = container.closest(".day-cell") as HTMLElement | null;
+      const dateKey = dayCell?.dataset.date;
+      const resolvedSectionId = cardData?.sectionId || sectionEl?.dataset.sectionId || "default";
+      const isDoneSection = resolvedSectionId === DONE_SECTION_ID;
+      const resolvedSectionTitle =
+        (isDoneSection ? "완료" : null) ||
+        cardData?.sectionTitle ||
+        sectionEl?.dataset.sectionTitle ||
+        (dateKey ? getSectionTitle(dateKey, resolvedSectionId) : "");
       const text = cardData?.text ?? "";
-      const done = !!cardData?.done;
+      const done = isDoneSection ? true : !!cardData?.done;
       const color = cardData?.color ?? "default";
       const id = typeof cardData?.id === "string" ? cardData.id : newId();
 
       card.dataset.cardId = String(id);
       card.id = `card-${id}`;
       card.dataset.color = color;
+      card.dataset.sectionId = resolvedSectionId;
+      card.dataset.sectionTitle = resolvedSectionTitle;
+      if (cardData?.originSectionId) card.dataset.originSectionId = cardData.originSectionId;
+      if (cardData?.originSectionTitle) card.dataset.originSectionTitle = cardData.originSectionTitle;
+      if (cardData?.originDateKey) card.dataset.originDateKey = cardData.originDateKey;
       applyCardColorClass(card, color);
       content.innerHTML = renderCardHtml(text || "");
 
@@ -1094,7 +1381,6 @@ export default function Page() {
         }
       });
 
-      const dayCell = container.closest(".day-cell") as HTMLElement | null;
       if (dayCell && dayCell.dataset.date) {
         const key = dayCell.dataset.date;
         card.dataset.date = key;
@@ -1104,6 +1390,11 @@ export default function Page() {
             text,
             done,
             color,
+            sectionId: resolvedSectionId,
+            sectionTitle: resolvedSectionTitle,
+            originSectionId: card.dataset.originSectionId,
+            originSectionTitle: card.dataset.originSectionTitle,
+            originDateKey: card.dataset.originDateKey,
           };
           upsertCard(key, payload, true);
         }
@@ -1125,8 +1416,9 @@ export default function Page() {
         }
         clearSelection();
         card.classList.add("selected");
-        const day = card.closest(".day-cell");
-        setActiveDay(day as HTMLElement | null);
+        const day = card.closest(".day-cell") as HTMLElement | null;
+        setActiveDay(day);
+        setActiveSection(day, card.dataset.sectionId || "default");
         const contentEl = card.querySelector(".card-content") as HTMLDivElement | null;
         if (!contentEl || contentEl.isContentEditable) return;
         makeEditable(card);
@@ -1134,12 +1426,58 @@ export default function Page() {
 
       btnDone.addEventListener("click", (e) => {
         e.stopPropagation();
-        card.classList.toggle("done");
+        const cell = card.closest(".day-cell") as HTMLElement | null;
+        const currentlyDone = card.classList.contains("done");
+        if (!cell) return;
+        if (currentlyDone) {
+          card.classList.remove("done");
+          const originDate = card.dataset.originDateKey || card.dataset.date;
+          const originSectionId = card.dataset.originSectionId || "default";
+          const originTitle =
+            card.dataset.originSectionTitle ||
+            (originDate ? getSectionTitle(originDate, originSectionId) : "");
+          if (originDate) {
+            const targetCell = document.querySelector<HTMLElement>(`.day-cell[data-date="${originDate}"]`);
+            const targetBody = targetCell ? getSectionBodyById(targetCell, originSectionId) : null;
+            if (targetCell && targetBody) {
+              card.dataset.date = originDate;
+              card.dataset.sectionId = originSectionId;
+              card.dataset.sectionTitle = originTitle;
+              targetBody.appendChild(card);
+              setActiveSection(targetCell, originSectionId);
+              updateSectionHints(targetCell);
+              cleanupDoneSection(targetCell);
+            }
+          }
+          card.dataset.originSectionId = "";
+          card.dataset.originSectionTitle = "";
+          card.dataset.originDateKey = "";
+          updateSectionHints(cell);
+          cleanupDoneSection(cell);
+        } else {
+          const originSectionId = card.dataset.sectionId || "default";
+          const originTitle = card.dataset.sectionTitle || getSectionTitle(card.dataset.date || "", originSectionId);
+          const originDateKey = card.dataset.date || "";
+          if (!card.dataset.originSectionId) {
+            card.dataset.originSectionId = originSectionId;
+            card.dataset.originSectionTitle = originTitle;
+            card.dataset.originDateKey = originDateKey;
+          }
+          const doneBody = ensureDoneSectionBody(cell);
+          if (!doneBody) return;
+          card.classList.add("done");
+          card.dataset.sectionId = DONE_SECTION_ID;
+          card.dataset.sectionTitle = "완료";
+          doneBody.appendChild(card);
+          setActiveSection(cell, DONE_SECTION_ID);
+        }
         syncOneCardFromDom(card);
         syncCurrentMonthFromDom();
         saveLocalState();
         const dKey = card.dataset.date;
         if (dKey) updateDayBadge(dKey);
+        updateSectionHints(cell);
+        cleanupDoneSection(cell);
       });
 
       btnDelete.addEventListener("click", (e) => {
@@ -1262,12 +1600,8 @@ export default function Page() {
         expandBtn.textContent = "↗";
         expandBtn.title = "확대";
 
-        const body = document.createElement("div");
-        body.className = "day-body";
-        const hint = document.createElement("div");
-        hint.className = "day-empty-hint";
-        hint.textContent = "더블클릭해서 카드 추가";
-        body.appendChild(hint);
+        const sectionsWrap = document.createElement("div");
+        sectionsWrap.className = "day-sections";
 
         const thisDate = new Date(startDate);
         thisDate.setDate(startDate.getDate() + dayIndex);
@@ -1306,19 +1640,146 @@ export default function Page() {
           metaEl.textContent = "오늘";
         }
 
+        ensureDefaultSection(key);
+        const sections = getSectionsForDate(key)
+          .filter((s) => s.id !== DONE_SECTION_ID)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const cards = getCardsForDate(key);
-        if (cards.length > 0) hint.style.display = "none";
-        cards.forEach((data) => {
-          createCard(body, data, { autoEdit: false, fromState: true });
+        const doneCards: CardData[] = [];
+        const cardsBySection = new Map<string, CardData[]>();
+        cards.forEach((card) => {
+          const sectionId = card.sectionId || "default";
+          if (card.done || sectionId === DONE_SECTION_ID) {
+            doneCards.push({ ...card, sectionId: DONE_SECTION_ID, sectionTitle: "완료" });
+            return;
+          }
+          if (!cardsBySection.has(sectionId)) cardsBySection.set(sectionId, []);
+          cardsBySection.get(sectionId)!.push(card);
         });
+
+        sections.forEach((section) => {
+          const sectionEl = document.createElement("div");
+          sectionEl.className = "day-section";
+          sectionEl.dataset.sectionId = section.id;
+          sectionEl.dataset.sectionTitle = section.title || "";
+
+          const sectionHeader = document.createElement("div");
+          sectionHeader.className = "day-section-header";
+          sectionHeader.addEventListener("click", () => {
+            setActiveDay(cell);
+            setActiveSection(cell, section.id);
+          });
+          sectionHeader.draggable = true;
+          sectionHeader.addEventListener("dragstart", (e) => {
+            e.dataTransfer?.setData("text/plain", section.id);
+            e.dataTransfer?.setData("text/day-date", key);
+            e.dataTransfer?.setDragImage(sectionHeader, 0, 0);
+          });
+          sectionHeader.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            sectionHeader.classList.add("drag-over");
+          });
+          sectionHeader.addEventListener("dragleave", () => {
+            sectionHeader.classList.remove("drag-over");
+          });
+          sectionHeader.addEventListener("drop", (e) => {
+            e.preventDefault();
+            sectionHeader.classList.remove("drag-over");
+            const sourceId = e.dataTransfer?.getData("text/plain") || "";
+            const sourceDate = e.dataTransfer?.getData("text/day-date") || "";
+            if (!sourceId || sourceDate !== key) return;
+            reorderSections(key, sourceId, section.id);
+            renderCalendar();
+          });
+
+          if (section.id !== "default") {
+            const deleteBtn = document.createElement("button");
+            deleteBtn.type = "button";
+            deleteBtn.className = "card-btn card-btn-delete day-section-delete";
+            deleteBtn.textContent = "×";
+            deleteBtn.title = "라인 삭제";
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              deleteSection(key, section.id, cell);
+            });
+            sectionHeader.appendChild(deleteBtn);
+          }
+
+          const sectionBody = document.createElement("div");
+          sectionBody.className = "day-section-body";
+          sectionBody.addEventListener("mouseenter", () => {
+            setActiveDay(cell);
+            setActiveSection(cell, section.id);
+          });
+
+          const sectionCards = cardsBySection.get(section.id) || [];
+          if (section.id === "default" && sectionCards.length === 0) {
+            const hint = document.createElement("div");
+            hint.className = "day-empty-hint";
+            hint.textContent = "더블클릭해서 카드 추가";
+            sectionBody.appendChild(hint);
+          }
+
+          sectionCards.forEach((data) => {
+            createCard(sectionBody, data, { autoEdit: false, fromState: true });
+          });
+
+          sectionEl.appendChild(sectionHeader);
+          sectionEl.appendChild(sectionBody);
+          sectionsWrap.appendChild(sectionEl);
+        });
+
+        if (doneCards.length > 0) {
+          const doneEl = document.createElement("div");
+          doneEl.className = "day-section day-section-done";
+          doneEl.dataset.sectionId = DONE_SECTION_ID;
+          doneEl.dataset.sectionTitle = "완료";
+
+          const doneHeader = document.createElement("div");
+          doneHeader.className = "day-section-header";
+          const doneTitle = document.createElement("div");
+          doneTitle.className = "day-section-title";
+          doneTitle.textContent = "완료";
+          doneHeader.appendChild(doneTitle);
+
+          const doneBody = document.createElement("div");
+          doneBody.className = "day-section-body";
+          doneBody.addEventListener("mouseenter", () => {
+            setActiveDay(cell);
+            setActiveSection(cell, DONE_SECTION_ID);
+          });
+          doneCards.forEach((data) => {
+            createCard(doneBody, data, { autoEdit: false, fromState: true });
+          });
+          doneEl.appendChild(doneHeader);
+          doneEl.appendChild(doneBody);
+          sectionsWrap.appendChild(doneEl);
+        }
+
+        const addSectionBtn = document.createElement("button");
+        addSectionBtn.type = "button";
+        addSectionBtn.className = "day-line-add";
+        addSectionBtn.textContent = sections.length >= MAX_SECTIONS ? "라인 최대 5개" : "+ 라인 추가";
+        addSectionBtn.disabled = sections.length >= MAX_SECTIONS;
+        addSectionBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          addSection(key);
+          setActiveDay(cell);
+        });
+        cell.appendChild(addSectionBtn);
         updateDayBadge(key);
 
         header.appendChild(numEl);
         header.appendChild(metaEl);
         header.appendChild(expandBtn);
         cell.appendChild(header);
-        cell.appendChild(body);
+        cell.appendChild(sectionsWrap);
         calendarGrid.appendChild(cell);
+
+        if (!cell.dataset.activeSectionId) {
+          cell.dataset.activeSectionId = "default";
+        }
+        setActiveSection(cell, cell.dataset.activeSectionId);
 
         cell.addEventListener("mouseenter", () => {
           cell.classList.add("hovered-day");
@@ -1343,21 +1804,30 @@ export default function Page() {
 
         cell.addEventListener("dblclick", () => {
           if (!cell.dataset.date) return;
+          const body = getActiveSectionBody(cell);
+          if (!body) return;
           createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
           updateDayBadge(cell.dataset.date);
           setActiveDay(cell);
           pushHistory();
         });
 
-          cell.addEventListener("dragover", (e) => {
-            if (!draggingCards || draggingCards.length === 0) return;
-            e.preventDefault();
+        cell.addEventListener("dragover", (e) => {
+          if (!draggingCards || draggingCards.length === 0) return;
+          e.preventDefault();
 
           const allCells = document.querySelectorAll(".day-cell.drop-target");
           allCells.forEach((c) => c.classList.remove("drop-target"));
           cell.classList.add("drop-target");
 
-          const bodyEl = cell.querySelector(".day-body");
+          const activeSectionId = cell.dataset.activeSectionId || "default";
+          const targetSectionId = draggingCards.some((c) => c.classList.contains("done"))
+            ? DONE_SECTION_ID
+            : activeSectionId;
+          const bodyEl =
+            targetSectionId === DONE_SECTION_ID
+              ? ensureDoneSectionBody(cell)
+              : getSectionBodyById(cell, targetSectionId) || getActiveSectionBody(cell);
           if (!bodyEl) return;
 
           if (!dragPlaceholder) {
@@ -1394,81 +1864,99 @@ export default function Page() {
               bodyEl.appendChild(dragPlaceholder);
             }
           }
-          });
+        });
 
-          cell.addEventListener("drop", (e) => {
-            e.preventDefault();
-            if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
-            const newKey = cell.dataset.date;
-            const bodyEl = cell.querySelector(".day-body");
-            if (!bodyEl) return;
+        cell.addEventListener("drop", (e) => {
+          e.preventDefault();
+          if (!draggingCards || draggingCards.length === 0 || !cell.dataset.date) return;
+          const newKey = cell.dataset.date;
+          const activeSectionId = cell.dataset.activeSectionId || "default";
+          const targetSectionId = draggingCards.some((c) => c.classList.contains("done"))
+            ? DONE_SECTION_ID
+            : activeSectionId;
+          const bodyEl =
+            targetSectionId === DONE_SECTION_ID
+              ? ensureDoneSectionBody(cell)
+              : getSectionBodyById(cell, targetSectionId) || getActiveSectionBody(cell);
+          if (!bodyEl) return;
 
-            if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
-              draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
+          if (dragPlaceholder && dragPlaceholder.parentElement === bodyEl) {
+            draggingCards.forEach((c) => bodyEl.insertBefore(c, dragPlaceholder));
+          } else {
+            draggingCards.forEach((c) => bodyEl.appendChild(c));
+          }
+
+          const affectedDateKeys = new Set<string>();
+          affectedDateKeys.add(newKey);
+
+          draggingCards.forEach((card) => {
+            const oldKey = card.dataset.date;
+            if (oldKey) affectedDateKeys.add(oldKey);
+
+            card.dataset.date = newKey;
+
+            const prevSectionId = card.dataset.sectionId || "default";
+            const prevSectionTitle = card.dataset.sectionTitle || getSectionTitle(oldKey || newKey, prevSectionId);
+            const nextSectionId = targetSectionId;
+            const nextSectionTitle = getSectionTitle(newKey, nextSectionId);
+            card.dataset.sectionId = nextSectionId;
+            card.dataset.sectionTitle = nextSectionTitle;
+
+            if (nextSectionId === DONE_SECTION_ID) {
+              card.classList.add("done");
+              if (!card.dataset.originSectionId) {
+                card.dataset.originSectionId = prevSectionId;
+                card.dataset.originSectionTitle = prevSectionTitle;
+                card.dataset.originDateKey = oldKey || newKey;
+              }
             } else {
-              draggingCards.forEach((c) => bodyEl.appendChild(c));
+              card.classList.remove("done");
             }
 
-            const affectedDateKeys = new Set<string>();
-            affectedDateKeys.add(newKey);
+            if (oldKey && oldKey !== newKey) {
+              const id = card.dataset.cardId;
+              if (id) {
+                const oldList = getCardsForDate(oldKey);
+                const idx = oldList.findIndex((c) => c.id === id);
+                let obj: CardData | null = null;
+                if (idx >= 0) {
+                  obj = oldList.splice(idx, 1)[0];
+                  if (oldList.length === 0) delete state.cards[oldKey];
+                }
 
-            draggingCards.forEach((card) => {
-              const oldKey = card.dataset.date;
-              if (oldKey) affectedDateKeys.add(oldKey);
-
-              card.dataset.date = newKey;
-
-              if (oldKey && oldKey !== newKey) {
-                const id = card.dataset.cardId;
-                if (id) {
-                  const oldList = getCardsForDate(oldKey);
-                  const idx = oldList.findIndex((c) => c.id === id);
-                  let obj: CardData | null = null;
-                  if (idx >= 0) {
-                    obj = oldList.splice(idx, 1)[0];
-                    if (oldList.length === 0) delete state.cards[oldKey];
-                  }
-
-                  if (obj) {
-                    const newList = ensureCardList(newKey);
-                    newList.push({ ...obj, id: obj.id });
-                  }
+                if (obj) {
+                  const newList = ensureCardList(newKey);
+                  newList.push({ ...obj, id: obj.id });
                 }
               }
-            });
-
-            draggingCards.forEach((card) => syncOneCardFromDom(card, false));
-            saveState();
-
-            affectedDateKeys.forEach((key) => {
-              updateDayBadge(key);
-              const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
-              if (cellEl) {
-                const bEl = cellEl.querySelector(".day-body");
-                if (bEl) {
-                  const h = bEl.querySelector(".day-empty-hint") as HTMLElement | null;
-                  const hasCards = bEl.querySelector(".card");
-                  if (h) h.style.display = hasCards ? "none" : "block";
-                }
-              }
-            });
-
-            const targets = document.querySelectorAll(".day-cell.drop-target");
-            targets.forEach((c) => c.classList.remove("drop-target"));
-
-            if (dragPlaceholder && dragPlaceholder.parentElement) {
-              dragPlaceholder.parentElement.removeChild(dragPlaceholder);
             }
-            if (draggingCards) {
-              draggingCards.forEach((c) => {
-                c.style.opacity = "1";
-              });
-            }
-            dragPlaceholder = null;
-            draggingCards = [];
-            pushHistory();
           });
-        }
+
+          draggingCards.forEach((card) => syncOneCardFromDom(card, false));
+          saveState();
+
+          affectedDateKeys.forEach((key) => {
+            updateDayBadge(key);
+            const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
+            if (cellEl) updateSectionHints(cellEl as HTMLElement);
+          });
+
+          const targets = document.querySelectorAll(".day-cell.drop-target");
+          targets.forEach((c) => c.classList.remove("drop-target"));
+
+          if (dragPlaceholder && dragPlaceholder.parentElement) {
+            dragPlaceholder.parentElement.removeChild(dragPlaceholder);
+          }
+          if (draggingCards) {
+            draggingCards.forEach((c) => {
+              c.style.opacity = "1";
+            });
+          }
+          dragPlaceholder = null;
+          draggingCards = [];
+          pushHistory();
+        });
+      }
 
       // 뒷쪽 빈 셀로 마지막 주 채우기
       const totalCells = leadingEmpty + renderedCount;
@@ -2007,7 +2495,7 @@ export default function Page() {
         const activeCell =
           lastActiveDayCell || calendarGrid?.querySelector<HTMLElement>(".day-cell.active-day");
         if (activeCell) {
-          const body = activeCell.querySelector(".day-body") as HTMLElement | null;
+          const body = getActiveSectionBody(activeCell);
           if (body) {
             e.preventDefault();
             createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
@@ -2015,6 +2503,7 @@ export default function Page() {
             if (key) updateDayBadge(key);
             setActiveDay(activeCell);
             pushHistory();
+            updateSectionHints(activeCell);
           }
         }
       }
@@ -2221,7 +2710,7 @@ export default function Page() {
         showToast("붙여넣기할 날짜 칸을 먼저 클릭하세요.");
         return;
       }
-      const bodyEl = targetCell.querySelector(".day-body") as HTMLElement | null;
+      const bodyEl = getActiveSectionBody(targetCell);
       if (!bodyEl) return;
 
       let data: CardData[] = [];

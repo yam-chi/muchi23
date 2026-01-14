@@ -1061,7 +1061,11 @@ header {
       margin: 0;
     }
 
-    .day-cell.expanded .day-body {
+    .day-cell {
+      position: relative;
+    }
+
+    .day-cell.expanded .day-sections {
       max-height: none;
     }
 
@@ -1239,10 +1243,105 @@ header {
       border-radius: 99px;
     }
 
-    .day-body {
+    .day-sections {
       position: relative;
       flex: 1;
       padding-top: 4px;
+      padding-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .day-section {
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      padding: 0;
+    }
+
+    .day-section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      padding-top: 6px;
+      border-top: 1px solid #e5e7eb;
+      cursor: grab;
+      height: 22px;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .day-section.active-section .day-section-header {
+      border-top-color: rgba(201, 106, 74, 0.7);
+    }
+
+    .day-section-header.drag-over {
+      border-top-color: rgba(201, 106, 74, 0.6);
+      background: rgba(201, 106, 74, 0.06);
+    }
+
+    .day-section-title {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      padding: 2px 0;
+    }
+
+    .day-section-title:focus {
+      outline: 1px solid rgba(201, 106, 74, 0.35);
+      border-radius: 6px;
+    }
+
+    .day-section-delete {
+      position: absolute;
+      right: 0;
+      top: 0;
+      transform: translateY(-50%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    .day-section:hover .day-section-delete,
+    .day-section-header:hover .day-section-delete {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .day-section-body {
+      position: relative;
+    }
+
+    .day-section-done {
+      border-style: none;
+      background: transparent;
+    }
+
+    .day-line-add {
+      border: 1px dashed #d1d5db;
+      background: #fff;
+      color: #6b7280;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+    }
+
+    .day-line-add:hover {
+      background: rgba(201, 106, 74, 0.05);
+    }
+
+    .day-line-add:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .day-empty-hint {

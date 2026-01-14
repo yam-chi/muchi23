@@ -140,8 +140,9 @@ header {
   top: 52px; /* 헤더와 높이 맞추기 위해 상단 간격 축소 */
   z-index: 18;
   padding: 8px 10px;
-  background: linear-gradient(90deg, #f7f2ea 0%, #efe6d8 100%);
+  background: #f1e9dd;
   border: 1px solid #e5e7eb;
+  border-bottom-color: transparent;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -185,8 +186,51 @@ header {
 /* Header title & logout */
 .title-with-logout {
   display: inline-flex;
-  align-items: baseline; /* 텍스트 기준선 정렬로 하단을 맞춤 */
+  align-items: center;
   gap: 12px;
+}
+
+.tab-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-strip {
+  position: sticky;
+  top: -15px;
+  left: 12px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+  margin: -15px 0 -9px;
+  z-index: 4;
+}
+
+.tab-btn {
+  border-radius: 0 0 12px 12px;
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  background: #ffffff;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a8a8a;
+  cursor: pointer;
+  box-shadow: none;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #c96a4a;
+}
+
+.tab-btn.active {
+  border-color: #d9d9d9;
+  border-top: 2px solid transparent;
+  background: #f1e9dd;
+  color: #c96a4a;
+  box-shadow: none;
 }
 
 .title-with-logout .title {
@@ -863,6 +907,7 @@ header {
 .calendar-wrapper {
   flex: 1;
   padding: 12px;
+  padding-top: 12px;
   background: var(--panel-bg);
   border: 1px solid #e5e7eb;
   border-radius: 0 0 18px 18px;
@@ -1285,6 +1330,7 @@ header {
     .card-content {
       white-space: pre-wrap;
       position: relative;
+      cursor: text;
     }
 
     .card-content:focus {

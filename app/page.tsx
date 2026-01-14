@@ -42,9 +42,18 @@ const FIXED_HOLIDAYS: Record<string, string> = {
   "10-09": "한글날",
   "12-25": "크리스마스",
 };
+const LUNAR_HOLIDAYS_BY_YEAR: Record<number, Record<string, string>> = {
+  2025: {
+    "01-28": "설날 연휴",
+    "01-29": "설날",
+    "01-30": "설날 연휴",
+  },
+};
 const CARD_COLORS = ["default", "yellow", "green", "pink"] as const;
 const EMOJI_STORE_KEY = "muchi-emoji-store";
 const EMOJI_ORDER_KEY = "muchi-emoji-order";
+const TAB_STORE_KEY = "muchi-note-tabs-v1";
+const ACTIVE_TAB_KEY = "muchi-note-active-tab-v1";
 const DEFAULT_EMOJIS = [
   { id: "default-check", ch: "✅" },
   { id: "default-fire", ch: "🔥" },
@@ -231,6 +240,9 @@ export default function Page() {
     let expandedCell: HTMLElement | null = null;
     let expandedPlaceholder: HTMLElement | null = null;
     let keepFocusFromPalette = false;
+    let tabs: Array<{ id: string; name: string }> = [];
+    let activeTabId = "work";
+    const tabBar = document.getElementById("tabBar") as HTMLElement | null;
     // moved to component scope
 
     function toggleSelection(card: HTMLDivElement) {
@@ -593,14 +605,104 @@ export default function Page() {
       monthPickerToggle.classList.remove("open");
     }
 
+    function getLocalStateKey() {
+      return `${LOCAL_STATE_KEY}:${activeTabId}`;
+    }
+
+    function loadTabs() {
+      try {
+        const raw = localStorage.getItem(TAB_STORE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Array<{ id: string; name: string }>;
+        if (Array.isArray(parsed) && parsed.length) {
+          tabs = parsed;
+        }
+      } catch (e) {
+        console.error("loadTabs error", e);
+      }
+    }
+
+    function ensureTabs() {
+      if (tabs.length) return;
+      tabs = [
+        { id: "work", name: "일" },
+        { id: "life", name: "개인" },
+      ];
+      saveTabs();
+    }
+
+    function saveTabs() {
+      try {
+        localStorage.setItem(TAB_STORE_KEY, JSON.stringify(tabs));
+      } catch (e) {
+        console.error("saveTabs error", e);
+      }
+    }
+
+    function loadActiveTab() {
+      const raw = localStorage.getItem(ACTIVE_TAB_KEY);
+      if (raw && tabs.some((t) => t.id === raw)) {
+        activeTabId = raw;
+        return;
+      }
+      activeTabId = tabs[0]?.id ?? "work";
+      try {
+        localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
+      } catch (e) {
+        console.error("saveActiveTab error", e);
+      }
+    }
+
+    function renderTabs() {
+      if (!tabBar) return;
+      tabBar.innerHTML = "";
+      tabs.forEach((tab) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `tab-btn${tab.id === activeTabId ? " active" : ""}`;
+        btn.textContent = tab.name;
+        btn.title = "더블클릭하여 이름 변경";
+        btn.addEventListener("click", () => {
+          if (tab.id === activeTabId) return;
+          setActiveTab(tab.id);
+        });
+        btn.addEventListener("dblclick", () => {
+          const next = window.prompt("탭 이름 변경", tab.name);
+          if (!next) return;
+          tab.name = next.trim() || tab.name;
+          saveTabs();
+          renderTabs();
+        });
+        tabBar.appendChild(btn);
+      });
+    }
+
+    async function setActiveTab(id: string) {
+      activeTabId = id;
+      try {
+        localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
+      } catch (e) {
+        console.error("saveActiveTab error", e);
+      }
+      state.cards = {};
+      history = [];
+      historyIndex = -1;
+      clearSelection();
+      renderTabs();
+      await loadState();
+      pushHistory();
+      renderCalendar();
+    }
+
     async function fetchCardsFromSupabase() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
       const { data, error } = await supabase
         .from("cards")
-        .select("id, date_key, text, done, color")
+        .select("id, date_key, text, done, color, board_id")
         .eq("user_id", uid)
+        .eq("board_id", activeTabId)
         .order("created_at", { ascending: true });
       if (error) {
         console.error("supabase load error", error);
@@ -642,7 +744,7 @@ export default function Page() {
     function saveLocalState() {
       try {
         const payload = { cards: state.cards };
-        localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(payload));
+        localStorage.setItem(getLocalStateKey(), JSON.stringify(payload));
       } catch (e) {
         console.error("saveLocalState error", e);
       }
@@ -650,7 +752,7 @@ export default function Page() {
 
     function loadLocalState() {
       try {
-        const raw = localStorage.getItem(LOCAL_STATE_KEY);
+        const raw = localStorage.getItem(getLocalStateKey());
         if (!raw) return;
         const parsed = JSON.parse(raw) as Partial<State>;
         if (parsed && parsed.cards) {
@@ -672,6 +774,7 @@ export default function Page() {
         .upsert({
           id: cardObj.id,
           user_id: uid,
+          board_id: activeTabId,
           date_key: dateKey,
           text: cardObj.text,
           done: cardObj.done,
@@ -698,6 +801,7 @@ export default function Page() {
       const rows: Array<{
         id: string;
         user_id: string;
+        board_id: string;
         date_key: string;
         text: string;
         done: boolean;
@@ -710,6 +814,7 @@ export default function Page() {
           rows.push({
             id: c.id,
             user_id: uid,
+            board_id: activeTabId,
             date_key: dateKey,
             text: c.text,
             done: c.done,
@@ -730,6 +835,7 @@ export default function Page() {
           .from("cards")
           .delete()
           .eq("user_id", uid)
+          .eq("board_id", activeTabId)
           .not("id", "in", inList)
           .select("*");
         if (delErr) {
@@ -744,7 +850,12 @@ export default function Page() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
-      const { error, data } = await supabase.from("cards").delete().eq("id", id).eq("user_id", uid);
+      const { error, data } = await supabase
+        .from("cards")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", uid)
+        .eq("board_id", activeTabId);
       if (error) console.error("supabase delete error", error);
       else console.log("supabase delete ok", id, data);
     }
@@ -1044,8 +1155,8 @@ export default function Page() {
         saveLocalState();
       });
 
-      card.draggable = true;
-      card.addEventListener("dragstart", (e) => {
+      handle.draggable = true;
+      handle.addEventListener("dragstart", (e) => {
         if (!card.classList.contains("selected")) {
           clearSelection();
           toggleSelection(card);
@@ -1066,7 +1177,7 @@ export default function Page() {
         }, 0);
       });
 
-      card.addEventListener("dragend", () => {
+      handle.addEventListener("dragend", () => {
         if (draggingCards) {
           draggingCards.forEach((c) => {
             c.style.opacity = "1";
@@ -1171,7 +1282,7 @@ export default function Page() {
           2,
           "0",
         )}`;
-        const holidayName = FIXED_HOLIDAYS[mmdd];
+        const holidayName = FIXED_HOLIDAYS[mmdd] || LUNAR_HOLIDAYS_BY_YEAR[thisDate.getFullYear()]?.[mmdd];
         numEl.textContent = `${thisDate.getMonth() + 1}월 ${dayOfMonth}일(${label})${
           holidayName ? ` ${holidayName}` : ""
         }`;
@@ -1620,6 +1731,11 @@ export default function Page() {
         alert("에어테이블에서 데이터 불러오는 중 예외가 발생했습니다. 콘솔을 확인해주세요.");
       }
     }
+
+    loadTabs();
+    ensureTabs();
+    loadActiveTab();
+    renderTabs();
 
     loadState()
       .then(() => {
@@ -2669,6 +2785,9 @@ export default function Page() {
         </div>
 
         <div className="calendar-wrapper">
+          <div className="tab-strip">
+            <div className="tab-bar" id="tabBar" />
+          </div>
           <div className="calendar-grid" id="calendarGrid" />
         </div>
       </div>

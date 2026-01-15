@@ -1296,6 +1296,14 @@ export default function Page() {
       toolbar.appendChild(btnDone);
       toolbar.appendChild(btnDelete);
 
+      btnEmoji.addEventListener("mousedown", (e) => {
+        handleEmojiTriggerMouseDown(btnEmoji, e);
+      });
+      btnEmoji.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleEmojiPaletteForTrigger(btnEmoji, false);
+      });
+
       const sectionEl = container.closest(".day-section") as HTMLElement | null;
       const dayCell = container.closest(".day-cell") as HTMLElement | null;
       const dateKey = dayCell?.dataset.date;
@@ -3161,26 +3169,27 @@ export default function Page() {
           keepFocusFromPalette = false;
         }, 0);
       });
-      document.addEventListener("click", (e) => {
-        const t = e.target as HTMLElement;
-        if (emojiPalette.contains(t) || emojiTriggers.some((btn) => btn.contains(t))) return;
-        closeEmojiPalette();
-      });
     }
 
     if (emojiPalette) {
-      document.addEventListener("mousedown", (e) => {
-        const trg = (e.target as HTMLElement).closest(".card-btn-emoji") as HTMLButtonElement | null;
-        if (!trg) return;
-        handleEmojiTriggerMouseDown(trg, e);
-      });
+      const isEmojiTriggerTarget = (t: HTMLElement) =>
+        emojiTriggers.some((btn) => btn.contains(t)) || !!t.closest(".card-btn-emoji");
 
       document.addEventListener("click", (e) => {
-        const trg = (e.target as HTMLElement).closest(".card-btn-emoji") as HTMLButtonElement | null;
-        if (!trg) return;
-        e.stopPropagation();
-        toggleEmojiPaletteForTrigger(trg, false);
+        const t = e.target as HTMLElement;
+        if (emojiPalette.contains(t) || isEmojiTriggerTarget(t)) return;
+        closeEmojiPalette();
       });
+      document.addEventListener(
+        "mousedown",
+        (e) => {
+          const t = e.target as HTMLElement;
+          if (emojiPalette.contains(t) || isEmojiTriggerTarget(t)) return;
+          closeEmojiPalette();
+        },
+        true,
+      );
+
     }
 
     loadEmojis();
@@ -3322,6 +3331,16 @@ export default function Page() {
         </div>
 
         <div className="calendar-wrapper">
+          <div className="emoji-panel emoji-panel-hidden" aria-hidden="true">
+            <input id="emojiUpload" type="file" accept="image/*" />
+            <div className="emoji-palette" id="emojiPalette">
+              <div className="emoji-upload-row">
+                <button className="btn" id="emojiUploadTrigger" type="button">
+                  업로드
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="tab-strip">
             <div className="tab-bar" id="tabBar" />
           </div>

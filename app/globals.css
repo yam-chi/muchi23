@@ -904,6 +904,13 @@ header {
       align-items: center;
       gap: 6px;
     }
+    .emoji-panel-hidden {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
 
     .emoji-palette {
       position: absolute;

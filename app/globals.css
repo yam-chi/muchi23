@@ -1116,6 +1116,8 @@ header {
       background: #ffffff;
       border: 1px solid #e5e7eb;
       box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       margin: 2px;
@@ -1247,7 +1249,7 @@ header {
       position: relative;
       flex: 1;
       padding-top: 0.15px;
-      padding-bottom: 30px;
+      padding-bottom: 0;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -1305,7 +1307,31 @@ header {
     .day-section-done {
       border-style: none;
       background: transparent;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
     }
+
+    .day-section-done .day-section-body {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 0;
+    }
+
+    .day-section-done .day-section-header {
+      justify-content: flex-end;
+      align-items: center;
+      border-top: none;
+      gap: 6px;
+    }
+
+    .day-section-done .day-section-title {
+      text-align: right;
+      flex-shrink: 0;
+      width: auto;
+    }
+
 
     .day-line-add {
       border: 1px dashed #d1d5db;

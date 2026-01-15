@@ -1765,11 +1765,12 @@ export default function Page() {
 
         cell.addEventListener("dblclick", () => {
           if (!cell.dataset.date) return;
-          const body = getActiveSectionBody(cell);
+          const body = getSectionBodyById(cell, "default") || getActiveSectionBody(cell);
           if (!body) return;
           createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
           updateDayBadge(cell.dataset.date);
           setActiveDay(cell);
+          setActiveSection(cell, "default");
           pushHistory();
         });
 

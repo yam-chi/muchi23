@@ -1315,6 +1315,7 @@ header {
       align-items: center;
       border-top: none;
       gap: 6px;
+      margin-top: 20px;
     }
 
     .day-section-done .day-section-title {

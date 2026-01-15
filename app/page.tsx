@@ -925,7 +925,6 @@ export default function Page() {
     };
 
     const DONE_SECTION_ID = "done";
-    const MAX_SECTIONS = 5;
 
     const ensureDefaultSection = (dateKey: string) => {
       const list = ensureSectionList(dateKey);
@@ -1020,18 +1019,6 @@ export default function Page() {
           hint.style.display = "none";
         }
       });
-    };
-
-    const addSection = (dateKey: string) => {
-      const list = ensureSectionList(dateKey);
-      if (list.length >= MAX_SECTIONS) {
-        showToast(`라인은 최대 ${MAX_SECTIONS}개까지 만들 수 있어요.`);
-        return;
-      }
-      const id = `section-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      list.push({ id, title: "", order: list.length });
-      saveLocalState();
-      renderCalendar();
     };
 
     const reorderSections = (dateKey: string, sourceId: string, targetId: string) => {
@@ -1641,14 +1628,12 @@ export default function Page() {
         }
 
         ensureDefaultSection(key);
-        const sections = getSectionsForDate(key)
-          .filter((s) => s.id !== DONE_SECTION_ID)
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const sections = [{ id: "default", title: "", order: 0 }];
         const cards = getCardsForDate(key);
         const doneCards: CardData[] = [];
         const cardsBySection = new Map<string, CardData[]>();
         cards.forEach((card) => {
-          const sectionId = card.sectionId || "default";
+          const sectionId = card.sectionId === DONE_SECTION_ID ? DONE_SECTION_ID : "default";
           if (card.done || sectionId === DONE_SECTION_ID) {
             doneCards.push({ ...card, sectionId: DONE_SECTION_ID, sectionTitle: "완료" });
             return;
@@ -1691,19 +1676,6 @@ export default function Page() {
             reorderSections(key, sourceId, section.id);
             renderCalendar();
           });
-
-          if (section.id !== "default") {
-            const deleteBtn = document.createElement("button");
-            deleteBtn.type = "button";
-            deleteBtn.className = "card-btn card-btn-delete day-section-delete";
-            deleteBtn.textContent = "×";
-            deleteBtn.title = "라인 삭제";
-            deleteBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              deleteSection(key, section.id, cell);
-            });
-            sectionHeader.appendChild(deleteBtn);
-          }
 
           const sectionBody = document.createElement("div");
           sectionBody.className = "day-section-body";
@@ -1756,17 +1728,6 @@ export default function Page() {
           sectionsWrap.appendChild(doneEl);
         }
 
-        const addSectionBtn = document.createElement("button");
-        addSectionBtn.type = "button";
-        addSectionBtn.className = "day-line-add";
-        addSectionBtn.textContent = sections.length >= MAX_SECTIONS ? "라인 최대 5개" : "+ 라인 추가";
-        addSectionBtn.disabled = sections.length >= MAX_SECTIONS;
-        addSectionBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          addSection(key);
-          setActiveDay(cell);
-        });
-        cell.appendChild(addSectionBtn);
         updateDayBadge(key);
 
         header.appendChild(numEl);
@@ -1938,7 +1899,10 @@ export default function Page() {
           affectedDateKeys.forEach((key) => {
             updateDayBadge(key);
             const cellEl = document.querySelector(`.day-cell[data-date="${key}"]`);
-            if (cellEl) updateSectionHints(cellEl as HTMLElement);
+            if (cellEl) {
+              updateSectionHints(cellEl as HTMLElement);
+              cleanupDoneSection(cellEl as HTMLElement);
+            }
           });
 
           const targets = document.querySelectorAll(".day-cell.drop-target");

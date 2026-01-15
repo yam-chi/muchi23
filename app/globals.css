@@ -1297,21 +1297,6 @@ header {
       border-radius: 6px;
     }
 
-    .day-section-delete {
-      position: absolute;
-      right: 0;
-      top: 0;
-      transform: translateY(-50%);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.15s ease;
-    }
-
-    .day-section:hover .day-section-delete,
-    .day-section-header:hover .day-section-delete {
-      opacity: 1;
-      pointer-events: auto;
-    }
 
     .day-section-body {
       position: relative;

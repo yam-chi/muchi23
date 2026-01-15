@@ -1268,15 +1268,15 @@ export default function Page() {
       toolbar.className = "card-toolbar";
       const btnDone = document.createElement("button");
       btnDone.className = "card-btn card-btn-done";
-      btnDone.textContent = "완";
+      btnDone.textContent = "✓";
       const btnColor = document.createElement("button");
       btnColor.className = "card-btn card-btn-color";
       btnColor.textContent = "색";
       const btnDelete = document.createElement("button");
       btnDelete.className = "card-btn card-btn-delete";
       btnDelete.textContent = "×";
-      toolbar.appendChild(btnDone);
       toolbar.appendChild(btnColor);
+      toolbar.appendChild(btnDone);
       toolbar.appendChild(btnDelete);
 
       const sectionEl = container.closest(".day-section") as HTMLElement | null;
@@ -1423,15 +1423,29 @@ export default function Page() {
           const originTitle =
             card.dataset.originSectionTitle ||
             (originDate ? getSectionTitle(originDate, originSectionId) : "");
-          if (originDate) {
-            const targetCell = document.querySelector<HTMLElement>(`.day-cell[data-date="${originDate}"]`);
-            const targetBody = targetCell ? getSectionBodyById(targetCell, originSectionId) : null;
-            if (targetCell && targetBody) {
-              card.dataset.date = originDate;
-              card.dataset.sectionId = originSectionId;
-              card.dataset.sectionTitle = originTitle;
+          const targetCell =
+            (originDate
+              ? document.querySelector<HTMLElement>(`.day-cell[data-date="${originDate}"]`)
+              : null) || cell;
+          if (targetCell) {
+            let nextSectionId = originSectionId || "default";
+            let nextTitle =
+              originTitle || getSectionTitle(targetCell.dataset.date || originDate || "", nextSectionId);
+            let targetBody = getSectionBodyById(targetCell, nextSectionId);
+            if (!targetBody) {
+              nextSectionId = "default";
+              nextTitle = getSectionTitle(targetCell.dataset.date || originDate || "", nextSectionId);
+              targetBody =
+                getSectionBodyById(targetCell, "default") ||
+                (targetCell.querySelector(".day-section-body") as HTMLElement | null);
+            }
+            if (targetBody) {
+              const destDate = targetCell.dataset.date || originDate || "";
+              if (destDate) card.dataset.date = destDate;
+              card.dataset.sectionId = nextSectionId;
+              card.dataset.sectionTitle = nextTitle;
               targetBody.appendChild(card);
-              setActiveSection(targetCell, originSectionId);
+              setActiveSection(targetCell, nextSectionId);
               updateSectionHints(targetCell);
               cleanupDoneSection(targetCell);
             }

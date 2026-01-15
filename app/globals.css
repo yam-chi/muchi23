@@ -1268,20 +1268,11 @@ header {
       gap: 6px;
       margin-bottom: 0;
       padding-top: 0;
-      border-top: 1px solid #e5e7eb;
-      cursor: grab;
+      border-top: 1px solid rgba(201, 106, 74, 0.7);
+      cursor: default;
       height: 10px;
       justify-content: flex-start;
       position: relative;
-    }
-
-    .day-section.active-section .day-section-header {
-      border-top-color: rgba(201, 106, 74, 0.7);
-    }
-
-    .day-section-header.drag-over {
-      border-top-color: rgba(201, 106, 74, 0.6);
-      background: rgba(201, 106, 74, 0.06);
     }
 
     .day-section-title {

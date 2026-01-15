@@ -165,6 +165,9 @@ export default function Page() {
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
     const scaleResetBtn = document.getElementById("scaleReset") as HTMLButtonElement | null;
+    const zoomRange = document.getElementById("zoomRange") as HTMLInputElement | null;
+    const zoomInBtn = document.getElementById("zoomIn") as HTMLButtonElement | null;
+    const zoomOutBtn = document.getElementById("zoomOut") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
     const logoutBtn = document.getElementById("logoutBtn") as HTMLButtonElement | null;
@@ -561,13 +564,25 @@ export default function Page() {
       }
     }
 
+    function syncZoomRange(v: number) {
+      if (!zoomRange) return;
+      zoomRange.value = String(Math.round(v * 100));
+    }
+
+    function setScale(next: number) {
+      const clamped = Math.max(0.8, Math.min(1.3, next));
+      document.documentElement.style.setProperty("--ui-scale", String(clamped));
+      saveScale(clamped);
+      syncZoomRange(clamped);
+    }
+
     function loadScale() {
       try {
         const raw = localStorage.getItem(SCALE_KEY);
         if (!raw) return;
         const v = Number(raw);
         if (Number.isFinite(v) && v >= 0.8 && v <= 1.3) {
-          document.documentElement.style.setProperty("--ui-scale", String(v));
+          setScale(v);
         }
       } catch (e) {
         console.error("loadScale error", e);
@@ -586,9 +601,7 @@ export default function Page() {
       const current = Number(
         getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
       );
-      const next = Math.max(0.8, Math.min(1.3, current + delta));
-      document.documentElement.style.setProperty("--ui-scale", String(next));
-      saveScale(next);
+      setScale(current + delta);
     }
 
     function onWheelScale(e: WheelEvent) {
@@ -2815,9 +2828,21 @@ export default function Page() {
 
     if (scaleResetBtn) {
       scaleResetBtn.addEventListener("click", () => {
-        document.documentElement.style.setProperty("--ui-scale", "1");
-        saveScale(1);
+        setScale(1);
       });
+    }
+    if (zoomRange) {
+      zoomRange.addEventListener("input", () => {
+        const v = Number(zoomRange.value);
+        if (!Number.isFinite(v)) return;
+        setScale(v / 100);
+      });
+    }
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", () => adjustScale(0.05));
+    }
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", () => adjustScale(-0.05));
     }
 
     // selectionchange로 마지막 커서 위치 추적
@@ -3263,13 +3288,30 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            <div className="scale-control">
-              <button className="link-btn" id="scaleReset" type="button">
-                ZOOM
-              </button>
-            </div>
             <button className="link-btn" id="settingsBtn" type="button">
               SETTING
+            </button>
+          </div>
+
+          <div className="zoom-slider" aria-label="Zoom">
+            <button className="zoom-btn" id="zoomOut" type="button" aria-label="Zoom out">
+              −
+            </button>
+            <div className="zoom-range-wrap">
+              <span className="zoom-center-mark" aria-hidden="true" />
+              <input
+                className="zoom-range"
+                id="zoomRange"
+                type="range"
+                min="80"
+                max="130"
+                step="5"
+                defaultValue="100"
+                aria-label="Zoom level"
+              />
+            </div>
+            <button className="zoom-btn" id="zoomIn" type="button" aria-label="Zoom in">
+              +
             </button>
           </div>
 

@@ -143,9 +143,10 @@ header {
   background: #f1e9dd;
   border: 1px solid #e5e7eb;
   border-bottom-color: transparent;
+  --topbar-gap: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--topbar-gap);
   border-radius: 0;
   box-shadow: none;
   backdrop-filter: blur(8px);
@@ -160,6 +161,84 @@ header {
   gap: 10px;
   flex-wrap: wrap;
   padding-left: 20px;
+}
+
+.zoom-slider {
+  margin-left: auto;
+  margin-right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-btn {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.zoom-range-wrap {
+  position: relative;
+  width: 140px;
+  display: flex;
+  align-items: center;
+}
+
+.zoom-center-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 12px;
+  background: #9ca3af;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.zoom-range {
+  width: 140px;
+  background: transparent;
+  accent-color: #c96a4a;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.zoom-range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(201, 106, 74, 0.35);
+  border-radius: 999px;
+}
+
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #c96a4a;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-top: -5px;
+}
+
+.zoom-range::-moz-range-track {
+  height: 4px;
+  background: rgba(201, 106, 74, 0.35);
+  border-radius: 999px;
+}
+
+.zoom-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #c96a4a;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
     /* prev/next 버튼 숨김 */
@@ -591,7 +670,8 @@ header {
   .top-bar {
     flex-wrap: wrap;
     padding: 8px 10px;
-    gap: 10px;
+    --topbar-gap: 10px;
+    gap: var(--topbar-gap);
   }
   .top-actions {
     width: 100%;
@@ -642,7 +722,8 @@ header {
   .top-bar {
     position: static;
     border-radius: 0;
-    gap: 2px;
+    --topbar-gap: 2px;
+    gap: var(--topbar-gap);
     padding: 2px 2px;
     justify-content: flex-start;
     align-items: center;
@@ -664,6 +745,17 @@ header {
     flex-shrink: 0;
     white-space: nowrap;
     font-size: 11px;
+  }
+  .zoom-slider {
+    margin-left: 0;
+    gap: 6px;
+  }
+  .zoom-range-wrap,
+  .zoom-range {
+    width: 90px;
+  }
+  .zoom-btn {
+    font-size: 14px;
   }
   .month-display {
     min-width: auto;
@@ -800,7 +892,7 @@ header {
     }
 
     .search-wrap {
-      margin-left: auto;
+      margin-left: 0;
       display: flex;
       align-items: center;
       gap: 8px;

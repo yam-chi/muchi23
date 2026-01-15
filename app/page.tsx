@@ -1266,6 +1266,9 @@ export default function Page() {
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
+      const btnEmoji = document.createElement("button");
+      btnEmoji.className = "card-btn card-btn-emoji";
+      btnEmoji.textContent = "😊";
       const btnDone = document.createElement("button");
       btnDone.className = "card-btn card-btn-done";
       btnDone.textContent = "✓";
@@ -1275,6 +1278,7 @@ export default function Page() {
       const btnDelete = document.createElement("button");
       btnDelete.className = "card-btn card-btn-delete";
       btnDelete.textContent = "×";
+      toolbar.appendChild(btnEmoji);
       toolbar.appendChild(btnColor);
       toolbar.appendChild(btnDone);
       toolbar.appendChild(btnDelete);
@@ -2419,7 +2423,10 @@ export default function Page() {
     }
 
     if (collapseExpandedBtn) {
-      collapseExpandedBtn.addEventListener("click", () => collapseExpandedCell());
+      collapseExpandedBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        collapseExpandedCell();
+      });
     }
     if (expandedOverlay) {
       expandedOverlay.addEventListener("click", (e) => {
@@ -3057,48 +3064,55 @@ export default function Page() {
       }
     };
 
+    const handleEmojiTriggerMouseDown = (trg: HTMLElement, e: MouseEvent) => {
+      keepFocusFromPalette = true;
+      e.preventDefault();
+      e.stopPropagation();
+      if (lastActiveCardContent) {
+        lastActiveCardContent.focus();
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        if (lastRange) sel?.addRange(lastRange);
+      }
+    };
+
+    const toggleEmojiPaletteForTrigger = (trg: HTMLElement, isExpandedTrigger = false) => {
+      if (!emojiPalette) return;
+      const willOpen = !emojiPalette.classList.contains("open");
+
+      if (!willOpen) {
+        closeEmojiPalette();
+        keepFocusFromPalette = false;
+        return;
+      }
+
+      const rect = trg.getBoundingClientRect();
+      document.body.appendChild(emojiPalette);
+      emojiPalette.style.position = "fixed";
+      emojiPalette.style.top = `${rect.bottom + 8}px`;
+      emojiPalette.style.left = `${rect.left}px`;
+      emojiPalette.style.right = "auto";
+      emojiPalette.style.zIndex = isExpandedTrigger ? "5000" : "4000";
+      emojiPalette.style.display = "block";
+      emojiPalette.classList.add("open");
+
+      if (lastActiveCardContent) {
+        lastActiveCardContent.focus();
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        if (lastRange) sel?.addRange(lastRange);
+      }
+      keepFocusFromPalette = false;
+    };
+
     if (emojiTriggers.length && emojiPalette) {
       emojiTriggers.forEach((trg) => {
-        trg.addEventListener("mousedown", (e) => {
-          keepFocusFromPalette = true;
-          e.preventDefault();
-          e.stopPropagation();
-          if (lastActiveCardContent) {
-            lastActiveCardContent.focus();
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            if (lastRange) sel?.addRange(lastRange);
-          }
-        });
+        trg.addEventListener("mousedown", (e) => handleEmojiTriggerMouseDown(trg, e));
 
         trg.addEventListener("click", (e) => {
           e.stopPropagation();
           const isExpandedTrigger = trg === emojiTriggerExpanded;
-          const willOpen = !emojiPalette.classList.contains("open");
-
-          if (!willOpen) {
-            closeEmojiPalette();
-            keepFocusFromPalette = false;
-            return;
-          }
-
-          const rect = trg.getBoundingClientRect();
-          document.body.appendChild(emojiPalette);
-          emojiPalette.style.position = "fixed";
-          emojiPalette.style.top = `${rect.bottom + 8}px`;
-          emojiPalette.style.left = `${rect.left}px`;
-          emojiPalette.style.right = "auto";
-          emojiPalette.style.zIndex = isExpandedTrigger ? "5000" : "4000";
-          emojiPalette.style.display = "block";
-          emojiPalette.classList.add("open");
-
-          if (lastActiveCardContent) {
-            lastActiveCardContent.focus();
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            if (lastRange) sel?.addRange(lastRange);
-          }
-          keepFocusFromPalette = false;
+          toggleEmojiPaletteForTrigger(trg, isExpandedTrigger);
         });
       });
 
@@ -3126,6 +3140,21 @@ export default function Page() {
         const t = e.target as HTMLElement;
         if (emojiPalette.contains(t) || emojiTriggers.some((btn) => btn.contains(t))) return;
         closeEmojiPalette();
+      });
+    }
+
+    if (emojiPalette) {
+      document.addEventListener("mousedown", (e) => {
+        const trg = (e.target as HTMLElement).closest(".card-btn-emoji") as HTMLButtonElement | null;
+        if (!trg) return;
+        handleEmojiTriggerMouseDown(trg, e);
+      });
+
+      document.addEventListener("click", (e) => {
+        const trg = (e.target as HTMLElement).closest(".card-btn-emoji") as HTMLButtonElement | null;
+        if (!trg) return;
+        e.stopPropagation();
+        toggleEmojiPaletteForTrigger(trg, false);
       });
     }
 
@@ -3225,9 +3254,6 @@ export default function Page() {
               WEEKEND
             </button>
             <div className="emoji-panel">
-              <button className="link-btn" id="emojiTrigger" type="button">
-                EMOJI
-              </button>
               <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
               <div className="emoji-palette" id="emojiPalette">
                 <div className="emoji-upload-row">
@@ -3274,9 +3300,6 @@ export default function Page() {
       <div className="expanded-overlay" id="expandedOverlay">
         <div className="expanded-overlay-inner">
           <div className="expanded-overlay-bar">
-            <button className="btn icon-btn" id="emojiTriggerExpanded" type="button" title="Emoji">
-              😊
-            </button>
             <button className="btn icon-btn" id="collapseExpandedBtn" type="button" title="Close">
               ✕
             </button>

@@ -2185,6 +2185,7 @@ export default function Page() {
 
         state = {
           cards: parsed.cards ?? {},
+          sections: parsed.sections ?? {},
           weekVisibility: parsed.weekVisibility ?? {},
         };
         renderCalendar();

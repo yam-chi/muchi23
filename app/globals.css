@@ -1156,9 +1156,9 @@ header {
     }
 
     .day-cell.today {
-      border: 2px solid #c96a4a;
-      background: #f7fbff;
-      box-shadow: 0 0 0 3px rgba(201, 106, 74, 0.12);
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: var(--shadow-card);
     }
 
     .day-cell.other-month {
@@ -1175,10 +1175,16 @@ header {
 
     .day-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       font-size: 10px;
       margin-bottom: 10px;
+      gap: 6px;
+    }
+
+    .day-meta-wrap {
+      display: flex;
+      align-items: center;
       gap: 6px;
     }
 

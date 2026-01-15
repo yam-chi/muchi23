@@ -1581,6 +1581,8 @@ export default function Page() {
         numEl.className = "day-number";
         const metaEl = document.createElement("div");
         metaEl.className = "day-meta";
+        const metaWrap = document.createElement("div");
+        metaWrap.className = "day-meta-wrap";
         const expandBtn = document.createElement("button");
         expandBtn.className = "day-expand-btn";
         expandBtn.type = "button";
@@ -1730,8 +1732,9 @@ export default function Page() {
 
         updateDayBadge(key);
 
-        header.appendChild(numEl);
-        header.appendChild(metaEl);
+        metaWrap.appendChild(numEl);
+        metaWrap.appendChild(metaEl);
+        header.appendChild(metaWrap);
         header.appendChild(expandBtn);
         cell.appendChild(header);
         cell.appendChild(sectionsWrap);

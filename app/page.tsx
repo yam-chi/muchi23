@@ -3278,16 +3278,6 @@ export default function Page() {
             <button className="link-btn" id="weekendToggle">
               WEEKEND
             </button>
-            <div className="emoji-panel">
-              <input id="emojiUpload" type="file" accept="image/*" style={{ display: "none" }} />
-              <div className="emoji-palette" id="emojiPalette">
-                <div className="emoji-upload-row">
-                  <button className="btn" id="emojiUploadTrigger" type="button">
-                    업로드
-                  </button>
-                </div>
-              </div>
-            </div>
             <button className="link-btn" id="settingsBtn" type="button">
               SETTING
             </button>

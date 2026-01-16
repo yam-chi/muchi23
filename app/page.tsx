@@ -255,6 +255,7 @@ export default function Page() {
     let expandedCell: HTMLElement | null = null;
     let expandedPlaceholder: HTMLElement | null = null;
     let keepFocusFromPalette = false;
+    let keepFocusFromToolbar = false;
     let tabs: Array<{ id: string; name: string }> = [];
     let activeTabId = "work";
     const tabBar = document.getElementById("tabBar") as HTMLElement | null;
@@ -270,47 +271,95 @@ export default function Page() {
 
     function sanitizeToTextAndEmojis(html: string) {
       const container = document.createElement("div");
+      const output = document.createElement("div");
       container.innerHTML = html;
-      const parts: string[] = [];
+
       const allowedImg = (el: Element) =>
         el.tagName.toLowerCase() === "img" &&
         el.getAttribute("src")?.startsWith("data:image/") &&
         (el as HTMLImageElement).src.length < 500000; // cap size
 
-      const walk = (node: Node) => {
+      const isBlockTag = (tag: string) =>
+        ["div", "p", "section", "article", "header", "footer", "li"].includes(tag);
+
+      const normalizeTag = (tag: string) => {
+        if (tag === "b") return "strong";
+        if (tag === "i") return "em";
+        if (tag === "strike") return "s";
+        return tag;
+      };
+
+      const appendSanitized = (parent: HTMLElement, node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
-          parts.push(node.textContent ?? "");
+          parent.appendChild(document.createTextNode(node.textContent ?? ""));
           return;
         }
         if (node.nodeType !== Node.ELEMENT_NODE) return;
         const el = node as HTMLElement;
         const tag = el.tagName.toLowerCase();
+
         if (tag === "br") {
-          parts.push("<br>");
+          parent.appendChild(document.createElement("br"));
           return;
         }
         if (allowedImg(el)) {
-          const src = el.getAttribute("src") || "";
-          parts.push(`<img class="emoji-img" src="${src}">`);
+          const img = document.createElement("img");
+          img.className = "emoji-img";
+          img.src = el.getAttribute("src") || "";
+          parent.appendChild(img);
           return;
         }
-        const isBlock = ["div", "p", "section", "article", "header", "footer", "li"].includes(tag);
-        el.childNodes.forEach(walk);
-        if (isBlock) parts.push("<br>");
+
+        const allowedInline = ["strong", "em", "u", "s", "a", "span"];
+        const normalized = normalizeTag(tag);
+
+        if (allowedInline.includes(normalized)) {
+          const next = document.createElement(normalized);
+          if (normalized === "a") {
+            const href = el.getAttribute("href") || "";
+            if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:")) {
+              next.setAttribute("href", href);
+              next.setAttribute("rel", "noopener noreferrer");
+              next.setAttribute("target", "_blank");
+            }
+          }
+          if (normalized === "span") {
+            const style = el.getAttribute("style") || "";
+            const colorMatch = style.match(/color\s*:\s*[^;]+/i);
+            const sizeMatch = style.match(/font-size\s*:\s*[^;]+/i);
+            const nextStyle = [colorMatch?.[0], sizeMatch?.[0]].filter(Boolean).join("; ");
+            if (nextStyle) {
+              next.setAttribute("style", nextStyle);
+            }
+          }
+          el.childNodes.forEach((child) => appendSanitized(next, child));
+          parent.appendChild(next);
+          return;
+        }
+
+        el.childNodes.forEach((child) => appendSanitized(parent, child));
+        if (isBlockTag(tag)) {
+          parent.appendChild(document.createElement("br"));
+        }
       };
 
-      container.childNodes.forEach(walk);
-      return parts.join("");
+      container.childNodes.forEach((node) => appendSanitized(output, node));
+      return output.innerHTML;
     }
 
     function normalizeCardHtmlForSave(html: string) {
-      const sanitized = sanitizeToTextAndEmojis(html);
-      return sanitized.replace(/<br\s*\/?>/gi, "\n");
+      return sanitizeToTextAndEmojis(html);
     }
 
     function renderCardHtml(text: string) {
       const sanitized = sanitizeToTextAndEmojis(text || "");
       return sanitized.replace(/\n/g, "<br>");
+    }
+
+    function getPlainTextFromStored(value: string) {
+      const container = document.createElement("div");
+      container.innerHTML = renderCardHtml(value);
+      return container.textContent || "";
     }
 
     function insertAtSelection(htmlFragment: string, opts?: { strictCard?: boolean }) {
@@ -1242,10 +1291,21 @@ export default function Page() {
       }
 
       function onBlur() {
-        safeContent.removeEventListener("blur", onBlur);
-        safeContent.removeEventListener("keydown", onKey);
-        safeContent.contentEditable = "false";
-        syncOneCardFromDom(card);
+        setTimeout(() => {
+          if (keepFocusFromPalette || keepFocusFromToolbar) {
+            safeContent.focus();
+            return;
+          }
+          const active = document.activeElement as HTMLElement | null;
+          if (active && active.closest(".text-toolbar")) {
+            safeContent.focus();
+            return;
+          }
+          safeContent.removeEventListener("blur", onBlur);
+          safeContent.removeEventListener("keydown", onKey);
+          safeContent.contentEditable = "false";
+          syncOneCardFromDom(card);
+        }, 0);
       }
       function onKey(e: KeyboardEvent) {
         if (e.key === "Escape") {
@@ -1353,9 +1413,14 @@ export default function Page() {
 
       content.addEventListener("blur", () => {
         setTimeout(() => {
-          if (keepFocusFromPalette) return;
+          if (keepFocusFromPalette || keepFocusFromToolbar) return;
           const active = document.activeElement as HTMLElement | null;
-          if (active && (active.closest(".emoji-palette") || active.closest(".card-content"))) {
+          if (
+            active &&
+            (active.closest(".emoji-palette") ||
+              active.closest(".card-content") ||
+              active.closest(".text-toolbar"))
+          ) {
             return;
           }
           lastFocusedContent = null;
@@ -2131,7 +2196,9 @@ export default function Page() {
         for (const key of dateKeys) {
           const list = state.cards[key];
           if (!Array.isArray(list)) continue;
-          const match = list.find((c) => (c.text || "").toLowerCase().includes(q));
+          const match = list.find((c) =>
+            getPlainTextFromStored(c.text || "").toLowerCase().includes(q),
+          );
           if (match) {
             foundDateKey = key;
             foundCardId = match.id;
@@ -2912,6 +2979,308 @@ export default function Page() {
         lastFocusedContent = cont;
         lastActiveCardContent = cont;
       }
+    });
+
+    const textToolbar = document.createElement("div");
+    textToolbar.className = "text-toolbar hidden";
+    textToolbar.innerHTML = `
+      <div class="text-toolbar-size">
+        <button type="button" class="text-toolbar-size-btn" data-size="11">소</button>
+        <button type="button" class="text-toolbar-size-btn" data-size="16">중</button>
+        <button type="button" class="text-toolbar-size-btn" data-size="20">대</button>
+      </div>
+      <button type="button" class="text-toolbar-color-btn" id="textToolbarColorBtn" aria-label="텍스트 색상"></button>
+      <button type="button" data-cmd="bold"><strong>B</strong></button>
+      <button type="button" data-cmd="italic"><em>I</em></button>
+      <button type="button" data-cmd="underline"><span style="text-decoration:underline">U</span></button>
+      <button type="button" data-cmd="strike"><span style="text-decoration:line-through">S</span></button>
+      <button type="button" data-cmd="link">🔗</button>
+    `;
+    document.body.appendChild(textToolbar);
+
+    function rgbToHex(color: string) {
+      const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (!match) return "";
+      const r = Number(match[1]);
+      const g = Number(match[2]);
+      const b = Number(match[3]);
+      const toHex = (v: number) => v.toString(16).padStart(2, "0");
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function restoreSelection() {
+      const sel = window.getSelection();
+      if (!sel || !lastRange) return false;
+      sel.removeAllRanges();
+      sel.addRange(lastRange);
+      return true;
+    }
+
+    function getSelectionComputed() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const node = sel.getRangeAt(0).commonAncestorContainer;
+      const el = node.nodeType === 3 ? node.parentElement : (node as HTMLElement);
+      if (!el) return null;
+      const computed = getComputedStyle(el);
+      return {
+        color: rgbToHex(computed.color) || "#111827",
+        fontSize: parseInt(computed.fontSize || "16", 10) || 16,
+      };
+    }
+
+    function wrapSelectionWithSpan(style: { color?: string; fontSize?: number }) {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) return;
+      const range = sel.getRangeAt(0);
+      const current = getSelectionComputed();
+      const color = style.color || current?.color;
+      const fontSize = style.fontSize || current?.fontSize;
+      const styleParts: string[] = [];
+      if (color) styleParts.push(`color:${color}`);
+      if (fontSize) styleParts.push(`font-size:${fontSize}px`);
+      const styleText = styleParts.join(";");
+
+      const span = document.createElement("span");
+      span.setAttribute("style", styleText);
+      const fragment = range.extractContents();
+      if (style.fontSize || style.color) {
+        const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_ELEMENT);
+        let node = walker.nextNode() as HTMLElement | null;
+        while (node) {
+          if (style.fontSize) node.style.fontSize = "";
+          if (style.color) node.style.color = "";
+          if (node.getAttribute("style") === "") node.removeAttribute("style");
+          node = walker.nextNode() as HTMLElement | null;
+        }
+      }
+      span.appendChild(fragment);
+      range.insertNode(span);
+
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      lastRange = newRange.cloneRange();
+    }
+
+    function getSelectionCard() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      const node = sel.getRangeAt(0).commonAncestorContainer;
+      const el = node.nodeType === 3 ? node.parentElement : (node as HTMLElement);
+      return el ? (el.closest(".card") as HTMLDivElement | null) : null;
+    }
+
+    function syncSelectionCard() {
+      const card = getSelectionCard();
+      if (card) syncOneCardFromDom(card);
+    }
+
+    function clearCardFontSizes(card: HTMLDivElement | null) {
+      if (!card) return;
+      card.querySelectorAll<HTMLElement>(".card-content span[style]").forEach((el) => {
+        const style = el.getAttribute("style") || "";
+        const next = style.replace(/font-size\s*:\s*[^;]+;?/gi, "").trim();
+        if (next) {
+          el.setAttribute("style", next);
+        } else {
+          el.removeAttribute("style");
+        }
+      });
+    }
+
+    function hideTextToolbar() {
+      textToolbar.classList.add("hidden");
+    }
+
+    function showTextToolbar(rect: DOMRect) {
+      textToolbar.classList.remove("hidden");
+      const toolbarRect = textToolbar.getBoundingClientRect();
+      const top = window.scrollY + rect.top - toolbarRect.height - 8;
+      const left = window.scrollX + rect.left + rect.width / 2 - toolbarRect.width / 2;
+      textToolbar.style.top = `${Math.max(8, top)}px`;
+      textToolbar.style.left = `${Math.max(8, left)}px`;
+    }
+
+    document.addEventListener("selectionchange", () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        hideTextToolbar();
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      if (sel.isCollapsed) {
+        const active = document.activeElement as HTMLElement | null;
+        if (lastRange && active && active.closest(".card-content")) {
+          restoreSelection();
+          const rect = lastRange.getBoundingClientRect();
+          showTextToolbar(rect);
+          return;
+        }
+        hideTextToolbar();
+        return;
+      }
+      const el =
+        range.commonAncestorContainer.nodeType === 3
+          ? (range.commonAncestorContainer.parentElement as HTMLElement | null)
+          : (range.commonAncestorContainer as HTMLElement | null);
+      if (!el || !el.closest(".card-content")) {
+        hideTextToolbar();
+        return;
+      }
+      const rect = range.getBoundingClientRect();
+      if (colorBtn) {
+        const computed = getComputedStyle(el);
+        const hex = rgbToHex(computed.color);
+        if (hex) {
+          activePaletteColor = hex;
+          colorBtn.style.backgroundColor = hex;
+          renderPalette();
+        }
+      }
+      showTextToolbar(rect);
+    });
+
+    document.addEventListener("scroll", () => {
+      hideTextToolbar();
+      palette.classList.add("hidden");
+    }, true);
+
+    document.addEventListener("mousedown", (e) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.closest(".text-toolbar") || target.closest(".card-content"))) return;
+      palette.classList.add("hidden");
+      hideTextToolbar();
+    });
+
+    textToolbar.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      keepFocusFromToolbar = true;
+    });
+    textToolbar.addEventListener("mouseup", () => {
+      keepFocusFromToolbar = false;
+    });
+
+    const colorBtn = textToolbar.querySelector<HTMLButtonElement>("#textToolbarColorBtn");
+    const toolbarButtons = Array.from(textToolbar.querySelectorAll<HTMLButtonElement>("button[data-cmd]"));
+    const sizeButtons = Array.from(textToolbar.querySelectorAll<HTMLButtonElement>("button[data-size]"));
+
+    const palette = document.createElement("div");
+    palette.className = "text-toolbar-palette hidden";
+    textToolbar.appendChild(palette);
+
+    const PALETTE_COLORS = [
+      "#111827",
+      "#3f3f3f",
+      "#6b7280",
+      "#9ca3af",
+      "#bdbdbd",
+      "#d1d5db",
+      "#e5e7eb",
+      "#f3f4f6",
+      "#f9fafb",
+      "#ffffff",
+      "#7f1d1d",
+      "#b91c1c",
+      "#dc2626",
+      "#ea580c",
+      "#f59e0b",
+      "#facc15",
+      "#84cc16",
+      "#22c55e",
+      "#14b8a6",
+      "#0ea5e9",
+      "#2563eb",
+      "#4f46e5",
+      "#7c3aed",
+      "#a21caf",
+      "#db2777",
+      "#f43f5e",
+      "#fee2e2",
+      "#fecaca",
+      "#fed7aa",
+      "#fef3c7",
+      "#dcfce7",
+      "#d1fae5",
+      "#cffafe",
+      "#dbeafe",
+      "#ede9fe",
+      "#f5d0fe",
+      "#fce7f3",
+      "#fef9c3",
+    ];
+
+    let activePaletteColor = "#111827";
+
+    function renderPalette() {
+      palette.innerHTML = "";
+      PALETTE_COLORS.forEach((color) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "text-toolbar-swatch";
+        btn.style.backgroundColor = color;
+        btn.dataset.color = color;
+        if (color.toLowerCase() === activePaletteColor.toLowerCase()) {
+          btn.classList.add("selected");
+          btn.innerHTML = `<span class="text-toolbar-check">✓</span>`;
+        }
+        btn.addEventListener("click", () => {
+          activePaletteColor = color;
+          if (colorBtn) colorBtn.style.backgroundColor = color;
+          restoreSelection();
+          wrapSelectionWithSpan({ color });
+          syncSelectionCard();
+          renderPalette();
+        });
+      palette.appendChild(btn);
+      });
+    }
+
+    renderPalette();
+
+    if (colorBtn) {
+      colorBtn.style.backgroundColor = activePaletteColor;
+      colorBtn.addEventListener("click", () => {
+        palette.classList.toggle("hidden");
+      });
+    }
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        palette.classList.add("hidden");
+      }
+    });
+
+    sizeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const size = Number(btn.dataset.size || "16");
+        restoreSelection();
+        clearCardFontSizes(getSelectionCard());
+        wrapSelectionWithSpan({ fontSize: size });
+        syncSelectionCard();
+      });
+    });
+    toolbarButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const cmd = btn.dataset.cmd;
+        if (!cmd) return;
+        restoreSelection();
+        if (cmd === "link") {
+          const url = prompt("링크 URL을 입력하세요");
+          if (!url) return;
+          document.execCommand("createLink", false, url);
+        } else if (cmd === "strike") {
+          document.execCommand("strikeThrough");
+        } else {
+          document.execCommand(cmd);
+        }
+        syncSelectionCard();
+      });
+    });
+
+    palette.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      keepFocusFromToolbar = true;
     });
 
     // ========== 이모지 업로드 & 팔레트 ==========

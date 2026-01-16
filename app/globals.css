@@ -71,6 +71,133 @@
   padding: 16px;
 }
 
+.text-toolbar {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid #e6e6e6;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  transform: translateY(0);
+  overflow: visible;
+}
+
+.text-toolbar.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+}
+
+.text-toolbar-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.text-toolbar-size-btn {
+  padding: 0 6px;
+  height: 22px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.text-toolbar-size-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+
+.text-toolbar-color {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+}
+
+.text-toolbar button {
+  height: 24px;
+  min-width: 20px;
+  padding: 0 2px;
+  border-radius: 4px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.text-toolbar button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.text-toolbar-color-btn {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  line-height: 16px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #111827;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.text-toolbar-palette {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  top: auto;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(10, 20px);
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e6e6e6;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  z-index: 40;
+}
+
+.text-toolbar-palette.hidden {
+  display: none;
+}
+
+.text-toolbar-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-toolbar-swatch.selected {
+  border-color: #111827;
+}
+
+.text-toolbar-check {
+  font-size: 12px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
 header {
   position: sticky;
   top: 0;

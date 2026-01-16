@@ -1381,6 +1381,21 @@ export default function Page() {
       });
 
       content.addEventListener("paste", (e) => {
+        if (!content.isContentEditable) {
+          return;
+        }
+        const jsonData = e.clipboardData?.getData("application/json");
+        if (jsonData) {
+          return;
+        }
+        const activeEl = document.activeElement as HTMLElement | null;
+        const canPaste =
+          card.classList.contains("selected") ||
+          activeEl === content ||
+          lastActiveCardContent === content;
+        if (!canPaste) {
+          return;
+        }
         e.preventDefault();
         const html = e.clipboardData?.getData("text/html");
         const plain = e.clipboardData?.getData("text/plain") ?? "";
@@ -1390,6 +1405,12 @@ export default function Page() {
           syncOneCardFromDom(card);
           // 안전망
           setTimeout(() => syncOneCardFromDom(card), 0);
+        }
+      });
+
+      content.addEventListener("click", () => {
+        if (!content.isContentEditable) {
+          makeEditable(card);
         }
       });
 
@@ -1792,8 +1813,16 @@ export default function Page() {
           cell.classList.remove("hovered-day");
         });
 
-        cell.addEventListener("click", () => {
+        cell.addEventListener("click", (e) => {
+          const target = e.target as HTMLElement | null;
+          if (target && target.closest(".card")) {
+            return;
+          }
           setActiveDay(cell);
+          const active = document.activeElement as HTMLElement | null;
+          if (active && active.closest(".card-content")) {
+            active.blur();
+          }
         });
 
         expandBtn.addEventListener("click", (e) => {
@@ -2687,9 +2716,19 @@ export default function Page() {
     }
 
     function copySelectedCards(e: ClipboardEvent) {
-      if (isEditableTarget(e.target as HTMLElement)) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName.toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+      }
       const selected = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
-      if (!selected.length) return;
+      if (!selected.length) {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed && sel.toString().trim()) {
+          return;
+        }
+        return;
+      }
       const data: CardData[] = selected.map((card) => {
         const content = card.querySelector(".card-content");
         return {
@@ -2712,6 +2751,41 @@ export default function Page() {
 
     function pasteCards(e: ClipboardEvent) {
       if (isEditableTarget(e.target as HTMLElement)) return;
+      if (document.querySelector(".card.selected")) {
+        return;
+      }
+
+      let data: CardData[] = [];
+      const jsonStr = e.clipboardData?.getData("application/json");
+      if (jsonStr) {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (Array.isArray(parsed)) {
+            data = parsed
+              .map((c) => ({
+                id: newId(),
+                text: c.text ?? "",
+                done: !!c.done,
+                color: c.color ?? "default",
+              }))
+              .filter((c) => typeof c.text === "string");
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!data.length && cardClipboard.length) {
+        data = cardClipboard.map((c) => ({
+          id: newId(),
+          text: c.text,
+          done: c.done,
+          color: c.color,
+        }));
+      }
+      if (!data.length) {
+        return;
+      }
+
       const targetCell =
         lastActiveDayCell ||
         (lastActiveDateKey && calendarGrid
@@ -2724,38 +2798,10 @@ export default function Page() {
       const bodyEl = getActiveSectionBody(targetCell);
       if (!bodyEl) return;
 
-      let data: CardData[] = [];
-      const jsonStr = e.clipboardData?.getData("application/json");
-          if (jsonStr) {
-            try {
-              const parsed = JSON.parse(jsonStr);
-              if (Array.isArray(parsed)) {
-                data = parsed
-                  .map((c) => ({
-                    id: newId(),
-                    text: c.text ?? "",
-                    done: !!c.done,
-                    color: c.color ?? "default",
-                  }))
-                  .filter((c) => typeof c.text === "string");
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-      if (!data.length && cardClipboard.length) {
-        data = cardClipboard.map((c) => ({
-          id: newId(),
-          text: c.text,
-          done: c.done,
-          color: c.color,
-        }));
-      }
-      if (!data.length) return;
       e.preventDefault();
 
       data.forEach((c) => {
-        const created = createCard(
+        createCard(
           bodyEl,
           { text: c.text, done: c.done, color: c.color },
           { autoEdit: false, fromState: false },

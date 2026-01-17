@@ -506,6 +506,7 @@ export default function Page() {
       }
       lastActiveDayCell = cell;
       lastActiveDateKey = key;
+      cell.classList.remove("hovered-day");
       cell.classList.add("active-day");
     }
     function moveActiveDay(deltaX: number, deltaY: number) {
@@ -1256,13 +1257,16 @@ export default function Page() {
           }
         }
 
-        el.style.width = `${nextW}px`;
-        el.style.height = `${nextH}px`;
+        if (resizeActive) {
+          el.style.width = `${nextW}px`;
+          el.style.height = `${nextH}px`;
+        }
         el.style.transform = `translate(${nextX}px, ${nextY}px) rotate(${sticker.rotation}deg)`;
       };
 
       const onPointerUp = () => {
         if (!dragActive && !resizeActive) return;
+        const wasResize = resizeActive;
         dragActive = false;
         resizeActive = false;
         const rect = el.getBoundingClientRect();
@@ -1283,7 +1287,7 @@ export default function Page() {
         const newX = match ? Number(match[1]) : sticker.x;
         const newY = match ? Number(match[2]) : sticker.y;
         const updates: Partial<StickerData> = { x: newX, y: newY };
-        if (resizeActive) {
+        if (wasResize) {
           updates.width = parseFloat(el.style.width);
           updates.height = parseFloat(el.style.height);
         }
@@ -2188,10 +2192,14 @@ export default function Page() {
         setActiveSection(cell, cell.dataset.activeSectionId);
 
         cell.addEventListener("mouseenter", () => {
+          if (cell.classList.contains("sticker-hover-cell")) return;
+          if (cell.classList.contains("active-day")) return;
           cell.classList.add("hovered-day");
         });
 
         cell.addEventListener("mouseleave", () => {
+          if (cell.classList.contains("sticker-hover-cell")) return;
+          if (cell.classList.contains("active-day")) return;
           cell.classList.remove("hovered-day");
         });
 

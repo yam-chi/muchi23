@@ -1649,23 +1649,13 @@ header {
       box-shadow: none;
     }
 
-    .card.done .card-content span {
-      position: relative;
-      display: inline-block;
-      text-decoration: none !important;
+    .card.done .card-content {
+      text-decoration: none;
+      color: #9aa3af;
     }
 
-    .card.done .card-content span::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 2px;
-      background: #c96a4a;
-      z-index: 1;
-      pointer-events: none;
+    .card.done .card-content * {
+      color: #9aa3af !important;
     }
 
     .card-done-badge {

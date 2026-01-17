@@ -15,6 +15,17 @@ type CardData = {
   originDateKey?: string;
 };
 
+type StickerData = {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  z: number;
+};
+
 type SectionData = {
   id: string;
   title: string;
@@ -24,6 +35,7 @@ type SectionData = {
 type State = {
   cards: Record<string, CardData[]>;
   sections: Record<string, SectionData[]>;
+  stickers: Record<string, StickerData[]>;
   weekVisibility: Record<string, boolean[]>;
 };
 
@@ -66,6 +78,8 @@ const EMOJI_STORE_KEY = "muchi-emoji-store";
 const EMOJI_ORDER_KEY = "muchi-emoji-order";
 const TAB_STORE_KEY = "muchi-note-tabs-v1";
 const ACTIVE_TAB_KEY = "muchi-note-active-tab-v1";
+const STICKER_STORE_KEY = "muchi-sticker-store";
+const STICKER_ORDER_KEY = "muchi-sticker-order";
 const DEFAULT_EMOJIS = [
   { id: "default-check", ch: "✅" },
   { id: "default-fire", ch: "🔥" },
@@ -230,7 +244,7 @@ export default function Page() {
     let startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
     let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
-    let state: State = { cards: {}, weekVisibility: {}, sections: {} };
+    let state: State = { cards: {}, weekVisibility: {}, sections: {}, stickers: {} };
     let headerCollapsed = false;
     let showWeekend = true;
     let marqueeBox: HTMLDivElement | null = null;
@@ -242,6 +256,9 @@ export default function Page() {
     let cardClipboard: CardData[] = [];
     let emojiList: Array<{ id: string; src: string; name: string }> = [];
     let emojiOrder: string[] = [];
+    let stickerList: Array<{ id: string; src: string; name: string }> = [];
+    let stickerOrder: string[] = [];
+    let activeStickerTarget: HTMLElement | null = null;
     let draggingEmojiId: string | null = null;
     const HISTORY_LIMIT = 200;
     let history: State[] = [];
@@ -438,6 +455,46 @@ export default function Page() {
         localStorage.setItem(EMOJI_ORDER_KEY, JSON.stringify(emojiOrder));
       } catch (e) {
         console.error("saveEmojiOrder error", e);
+      }
+    }
+
+    function loadStickers() {
+      try {
+        const raw = localStorage.getItem(STICKER_STORE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          stickerList = parsed.filter((e) => typeof e.src === "string" && typeof e.id === "string");
+        }
+      } catch (e) {
+        console.error("loadStickers error", e);
+      }
+    }
+
+    function saveStickers() {
+      try {
+        localStorage.setItem(STICKER_STORE_KEY, JSON.stringify(stickerList));
+      } catch (e) {
+        console.error("saveStickers error", e);
+      }
+    }
+
+    function loadStickerOrder() {
+      try {
+        const raw = localStorage.getItem(STICKER_ORDER_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) stickerOrder = parsed.filter((id) => typeof id === "string");
+      } catch (e) {
+        console.error("loadStickerOrder error", e);
+      }
+    }
+
+    function saveStickerOrder() {
+      try {
+        localStorage.setItem(STICKER_ORDER_KEY, JSON.stringify(stickerOrder));
+      } catch (e) {
+        console.error("saveStickerOrder error", e);
       }
     }
 
@@ -833,6 +890,9 @@ export default function Page() {
       if (local?.sections) {
         state.sections = local.sections;
       }
+      if (local?.stickers) {
+        state.stickers = local.stickers;
+      }
     }
 
     function saveState() {
@@ -841,7 +901,7 @@ export default function Page() {
 
     function saveLocalState() {
       try {
-        const payload = { cards: state.cards, sections: state.sections };
+        const payload = { cards: state.cards, sections: state.sections, stickers: state.stickers };
         localStorage.setItem(getLocalStateKey(), JSON.stringify(payload));
       } catch (e) {
         console.error("saveLocalState error", e);
@@ -981,6 +1041,79 @@ export default function Page() {
       return Array.isArray(list) ? list : [];
     };
 
+    const getStickersForDate = (dateKey: string) => {
+      const list = state.stickers[dateKey];
+      return Array.isArray(list) ? list : [];
+    };
+
+    const ensureStickerList = (dateKey: string) => {
+      if (!Array.isArray(state.stickers[dateKey])) state.stickers[dateKey] = [];
+      return state.stickers[dateKey];
+    };
+
+    const updateStickerInState = (
+      dateKey: string,
+      stickerId: string,
+      updates: Partial<StickerData>,
+    ) => {
+      const list = ensureStickerList(dateKey);
+      const idx = list.findIndex((s) => s.id === stickerId);
+      if (idx < 0) return;
+      list[idx] = { ...list[idx], ...updates };
+      saveLocalState();
+    };
+
+    const deleteStickerFromState = (dateKey: string, stickerId: string) => {
+      const list = ensureStickerList(dateKey);
+      state.stickers[dateKey] = list.filter((s) => s.id !== stickerId);
+      saveLocalState();
+    };
+
+    const findDayCellFromPoint = (x: number, y: number) => {
+      const el = document.elementFromPoint(x, y) as HTMLElement | null;
+      const cell = el?.closest(".day-cell") as HTMLElement | null;
+      if (cell?.dataset.date) return cell;
+      const cells = Array.from(document.querySelectorAll<HTMLElement>(".day-cell[data-date]"));
+      return (
+        cells.find((c) => {
+          const rect = c.getBoundingClientRect();
+          return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        }) || null
+      );
+    };
+
+    const moveStickerToCell = (
+      fromKey: string,
+      cell: HTMLElement,
+      sticker: StickerData,
+      rect: DOMRect,
+    ) => {
+      const toKey = cell.dataset.date || "";
+      if (!toKey || toKey === fromKey) return false;
+      const layer = cell.querySelector<HTMLElement>(".day-sticker-layer");
+      if (!layer) return false;
+      const layerRect = layer.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const maxX = Math.max(0, layerRect.width - width);
+      const maxY = Math.max(0, layerRect.height - height);
+      const nextX = Math.min(Math.max(rect.left - layerRect.left, 0), maxX);
+      const nextY = Math.min(Math.max(rect.top - layerRect.top, 0), maxY);
+
+      const fromList = ensureStickerList(fromKey);
+      const idx = fromList.findIndex((s) => s.id === sticker.id);
+      if (idx < 0) return false;
+
+      const moved = { ...fromList[idx], x: nextX, y: nextY, width, height };
+      fromList.splice(idx, 1);
+      if (fromList.length === 0) delete state.stickers[fromKey];
+
+      const toList = ensureStickerList(toKey);
+      toList.push(moved);
+      saveLocalState();
+      return true;
+    };
+
     const ensureSectionList = (dateKey: string) => {
       if (!Array.isArray(state.sections[dateKey])) state.sections[dateKey] = [];
       return state.sections[dateKey];
@@ -1032,6 +1165,164 @@ export default function Page() {
       sectionsWrap.appendChild(doneEl);
 
       return doneBody;
+    };
+
+    const selectSticker = (el: HTMLElement, dateKey: string) => {
+      const layer = el.parentElement;
+      if (!layer) return;
+      const existing = layer.querySelectorAll<HTMLElement>(".sticker-item.selected");
+      existing.forEach((node) => node.classList.remove("selected"));
+      el.classList.add("selected");
+      const list = getStickersForDate(dateKey);
+      const maxZ = list.reduce((max, s) => Math.max(max, s.z || 0), 0);
+      const id = el.dataset.stickerId || "";
+      if (id) {
+        updateStickerInState(dateKey, id, { z: maxZ + 1 });
+        el.style.zIndex = String(maxZ + 1);
+      }
+    };
+
+    const clearStickerSelection = () => {
+      const selected = document.querySelectorAll<HTMLElement>(".sticker-item.selected");
+      selected.forEach((node) => node.classList.remove("selected"));
+    };
+
+    const createStickerElement = (sticker: StickerData, dateKey: string) => {
+      const el = document.createElement("div");
+      el.className = "sticker-item";
+      el.dataset.stickerId = sticker.id;
+      el.style.width = `${sticker.width}px`;
+      el.style.height = `${sticker.height}px`;
+      el.style.transform = `translate(${sticker.x}px, ${sticker.y}px) rotate(${sticker.rotation}deg)`;
+      el.style.zIndex = String(sticker.z || 1);
+
+      const img = document.createElement("img");
+      img.src = sticker.src;
+      img.alt = "sticker";
+      img.draggable = false;
+
+      const del = document.createElement("button");
+      del.className = "sticker-delete";
+      del.type = "button";
+      del.textContent = "×";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteStickerFromState(dateKey, sticker.id);
+        el.remove();
+      });
+
+      const handles = ["br"].map((pos) => {
+        const h = document.createElement("div");
+        h.className = `sticker-handle ${pos}`;
+        return h;
+      });
+
+      el.appendChild(img);
+      el.appendChild(del);
+      handles.forEach((h) => el.appendChild(h));
+
+      let dragActive = false;
+      let resizeActive = false;
+      let startX = 0;
+      let startY = 0;
+      let startW = 0;
+      let startH = 0;
+      let startLeft = 0;
+      let startTop = 0;
+      let handleDir = "";
+
+      const onPointerMove = (e: PointerEvent) => {
+        if (!dragActive && !resizeActive) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        let nextW = startW;
+        let nextH = startH;
+        let nextX = startLeft;
+        let nextY = startTop;
+
+        if (dragActive) {
+          nextX = startLeft + dx;
+          nextY = startTop + dy;
+        } else if (resizeActive) {
+          if (handleDir.includes("r")) nextW = Math.max(24, startW + dx);
+          if (handleDir.includes("l")) {
+            nextW = Math.max(24, startW - dx);
+            nextX = startLeft + dx;
+          }
+          if (handleDir.includes("b")) nextH = Math.max(24, startH + dy);
+          if (handleDir.includes("t")) {
+            nextH = Math.max(24, startH - dy);
+            nextY = startTop + dy;
+          }
+        }
+
+        el.style.width = `${nextW}px`;
+        el.style.height = `${nextH}px`;
+        el.style.transform = `translate(${nextX}px, ${nextY}px) rotate(${sticker.rotation}deg)`;
+      };
+
+      const onPointerUp = () => {
+        if (!dragActive && !resizeActive) return;
+        dragActive = false;
+        resizeActive = false;
+        const rect = el.getBoundingClientRect();
+        const targetCell = findDayCellFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        if (targetCell && targetCell.dataset.date && targetCell.dataset.date !== dateKey) {
+          if (moveStickerToCell(dateKey, targetCell, sticker, rect)) {
+            renderCalendar();
+          }
+          window.removeEventListener("pointermove", onPointerMove);
+          window.removeEventListener("pointerup", onPointerUp);
+          return;
+        }
+        const matrix = el.style.transform;
+        const match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(matrix);
+        const newX = match ? Number(match[1]) : sticker.x;
+        const newY = match ? Number(match[2]) : sticker.y;
+        const updates: Partial<StickerData> = { x: newX, y: newY };
+        if (resizeActive) {
+          updates.width = parseFloat(el.style.width);
+          updates.height = parseFloat(el.style.height);
+        }
+        updateStickerInState(dateKey, sticker.id, updates);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+      };
+
+      el.addEventListener("pointerdown", (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains("sticker-delete")) return;
+        const handle = target.closest(".sticker-handle") as HTMLElement | null;
+        selectSticker(el, dateKey);
+        const rect = el.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = rect.width;
+        startH = rect.height;
+        const current = el.style.transform;
+        const match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(current);
+        startLeft = match ? Number(match[1]) : sticker.x;
+        startTop = match ? Number(match[2]) : sticker.y;
+        if (handle) {
+          resizeActive = true;
+          handleDir = handle.className.split(" ").slice(-1)[0];
+        } else {
+          dragActive = true;
+        }
+        window.addEventListener("pointermove", onPointerMove);
+        window.addEventListener("pointerup", onPointerUp);
+        e.preventDefault();
+      });
+
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectSticker(el, dateKey);
+      });
+
+      return el;
     };
 
     const cleanupDoneSection = (cell: HTMLElement | null) => {
@@ -1722,6 +2013,9 @@ export default function Page() {
         const sectionsWrap = document.createElement("div");
         sectionsWrap.className = "day-sections";
 
+        const stickerLayer = document.createElement("div");
+        stickerLayer.className = "day-sticker-layer";
+
         const thisDate = new Date(startDate);
         thisDate.setDate(startDate.getDate() + dayIndex);
 
@@ -1862,12 +2156,30 @@ export default function Page() {
 
         updateDayBadge(key);
 
+        const stickers = getStickersForDate(key);
+        stickers.forEach((sticker) => {
+          stickerLayer.appendChild(createStickerElement(sticker, key));
+        });
+
         metaWrap.appendChild(numEl);
         metaWrap.appendChild(metaEl);
         header.appendChild(metaWrap);
         header.appendChild(expandBtn);
         cell.appendChild(header);
         cell.appendChild(sectionsWrap);
+        cell.appendChild(stickerLayer);
+
+        const stickerBtn = document.createElement("button");
+        stickerBtn.className = "day-sticker-btn";
+        stickerBtn.type = "button";
+        stickerBtn.textContent = "➕";
+        stickerBtn.title = "스티커 추가";
+        stickerBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          activeStickerTarget = cell;
+          openStickerPalette(stickerBtn);
+        });
+        cell.appendChild(stickerBtn);
         calendarGrid.appendChild(cell);
 
         if (!cell.dataset.activeSectionId) {
@@ -3307,6 +3619,14 @@ export default function Page() {
     const emojiPaletteOriginalParent = emojiPalette?.parentElement || null;
     const emojiPaletteOriginalNext = emojiPalette?.nextElementSibling || null;
 
+    const stickerUploadTrigger = document.getElementById(
+      "stickerUploadTrigger",
+    ) as HTMLButtonElement | null;
+    const stickerUpload = document.getElementById("stickerUpload") as HTMLInputElement | null;
+    const stickerPalette = document.getElementById("stickerPalette") as HTMLElement | null;
+    const stickerPaletteOriginalParent = stickerPalette?.parentElement || null;
+    const stickerPaletteOriginalNext = stickerPalette?.nextElementSibling || null;
+
     function renderEmojiPalette() {
       if (!emojiPalette) return;
       const oldList = emojiPalette.querySelector<HTMLElement>("#emojiPaletteList");
@@ -3474,6 +3794,106 @@ export default function Page() {
       });
     }
 
+    function addStickerToDate(dateKey: string, src: string) {
+      const list = ensureStickerList(dateKey);
+      if (list.length >= 5) {
+        showToast("스티커는 하루 최대 5개까지 가능합니다.");
+        return;
+      }
+      const nextZ = Math.max(0, ...list.map((s) => s.z || 0)) + 1;
+      const offset = 10 * list.length;
+      const sticker: StickerData = {
+        id: newId(),
+        src,
+        x: 8 + offset,
+        y: 8 + offset,
+        width: 96,
+        height: 96,
+        rotation: 0,
+        z: nextZ,
+      };
+      list.push(sticker);
+      saveLocalState();
+      renderCalendar();
+    }
+
+    const resolveStickerDateKey = () => {
+      const target = activeStickerTarget || lastActiveDayCell;
+      return target?.dataset.date || "";
+    };
+
+    function renderStickerPalette() {
+      if (!stickerPalette) return;
+      const oldList = stickerPalette.querySelector<HTMLElement>("#stickerPaletteList");
+      const listEl = document.createElement("div");
+      listEl.id = "stickerPaletteList";
+      listEl.className = "sticker-list";
+      if (oldList) {
+        stickerPalette.replaceChild(listEl, oldList);
+      } else {
+        stickerPalette.appendChild(listEl);
+      }
+
+      const mapAll = new Map(stickerList.map((s) => [s.id, s]));
+      const ordered: typeof stickerList = [];
+      stickerOrder.forEach((id) => {
+        const item = mapAll.get(id);
+        if (item) {
+          ordered.push(item);
+          mapAll.delete(id);
+        }
+      });
+      mapAll.forEach((item) => ordered.push(item));
+      if (!stickerOrder.length) {
+        stickerOrder = ordered.map((s) => s.id);
+        saveStickerOrder();
+      }
+
+      ordered.forEach((sticker) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "sticker-btn";
+        const img = document.createElement("img");
+        img.src = sticker.src;
+        img.alt = sticker.name || "sticker";
+        btn.appendChild(img);
+        btn.addEventListener("click", () => {
+          const dateKey = stickerPalette.dataset.dateKey || resolveStickerDateKey();
+          if (!dateKey) {
+            showToast("스티커를 추가할 날짜를 먼저 선택하세요.");
+            return;
+          }
+          addStickerToDate(dateKey, sticker.src);
+          closeStickerPalette();
+        });
+        listEl.appendChild(btn);
+      });
+    }
+
+    function handleStickerFile(file: File) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = typeof reader.result === "string" ? reader.result : "";
+        if (!src.startsWith("data:image/")) {
+          alert("이미지 파일만 업로드 가능합니다.");
+          return;
+        }
+        if (stickerList.some((e) => e.src === src)) {
+          renderStickerPalette();
+          return;
+        }
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        stickerList.unshift({ id, src, name: file.name });
+        stickerList = stickerList.slice(0, 40);
+        stickerOrder.unshift(id);
+        stickerOrder = stickerOrder.slice(0, 40);
+        saveStickers();
+        saveStickerOrder();
+        renderStickerPalette();
+      };
+      reader.readAsDataURL(file);
+    }
+
     function handleEmojiFile(file: File) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -3511,6 +3931,18 @@ export default function Page() {
       emojiUploadTrigger.addEventListener("click", () => emojiUpload.click());
     }
 
+    if (stickerUpload) {
+      stickerUpload.addEventListener("change", () => {
+        const file = stickerUpload.files?.[0];
+        if (file) handleStickerFile(file);
+        stickerUpload.value = "";
+      });
+    }
+
+    if (stickerUploadTrigger && stickerUpload) {
+      stickerUploadTrigger.addEventListener("click", () => stickerUpload.click());
+    }
+
     const emojiTriggers = [emojiTrigger, emojiTriggerExpanded].filter(Boolean) as HTMLButtonElement[];
     const closeEmojiPalette = () => {
       if (!emojiPalette) return;
@@ -3521,6 +3953,22 @@ export default function Page() {
           emojiPaletteOriginalParent.insertBefore(emojiPalette, emojiPaletteOriginalNext);
         } else {
           emojiPaletteOriginalParent.appendChild(emojiPalette);
+        }
+      }
+    };
+
+    const closeStickerPalette = () => {
+      if (!stickerPalette) return;
+      stickerPalette.classList.remove("open");
+      stickerPalette.removeAttribute("style");
+      if (stickerPaletteOriginalParent && stickerPalette.parentElement !== stickerPaletteOriginalParent) {
+        if (
+          stickerPaletteOriginalNext &&
+          stickerPaletteOriginalNext.parentElement === stickerPaletteOriginalParent
+        ) {
+          stickerPaletteOriginalParent.insertBefore(stickerPalette, stickerPaletteOriginalNext);
+        } else {
+          stickerPaletteOriginalParent.appendChild(stickerPalette);
         }
       }
     };
@@ -3565,6 +4013,33 @@ export default function Page() {
       }
       keepFocusFromPalette = false;
     };
+
+    function openStickerPalette(anchor: HTMLElement) {
+      if (!stickerPalette) return;
+      if (!activeStickerTarget && lastActiveDayCell) {
+        activeStickerTarget = lastActiveDayCell;
+      }
+      const dateKey = resolveStickerDateKey();
+      if (dateKey) {
+        stickerPalette.dataset.dateKey = dateKey;
+      } else {
+        delete stickerPalette.dataset.dateKey;
+      }
+      const willOpen = !stickerPalette.classList.contains("open");
+      if (!willOpen) {
+        closeStickerPalette();
+        return;
+      }
+      const rect = anchor.getBoundingClientRect();
+      document.body.appendChild(stickerPalette);
+      stickerPalette.style.position = "fixed";
+      stickerPalette.style.top = `${rect.bottom + 8}px`;
+      stickerPalette.style.left = `${rect.left}px`;
+      stickerPalette.style.right = "auto";
+      stickerPalette.style.zIndex = "4000";
+      stickerPalette.style.display = "block";
+      stickerPalette.classList.add("open");
+    }
 
     if (emojiTriggers.length && emojiPalette) {
       emojiTriggers.forEach((trg) => {
@@ -3620,9 +4095,46 @@ export default function Page() {
 
     }
 
+    if (stickerPalette) {
+      const isStickerTriggerTarget = (t: HTMLElement) =>
+        !!t.closest(".day-sticker-btn") || !!t.closest(".sticker-btn");
+      const isStickerInteractive = (t: HTMLElement) =>
+        !!t.closest(".sticker-item") || isStickerTriggerTarget(t) || stickerPalette.contains(t);
+
+      document.addEventListener("click", (e) => {
+        const t = e.target as HTMLElement;
+        if (stickerPalette.contains(t) || isStickerTriggerTarget(t)) return;
+        closeStickerPalette();
+      });
+      document.addEventListener(
+        "mousedown",
+        (e) => {
+          const t = e.target as HTMLElement;
+          if (stickerPalette.contains(t) || isStickerTriggerTarget(t)) return;
+          closeStickerPalette();
+        },
+        true,
+      );
+      document.addEventListener(
+        "mousedown",
+        (e) => {
+          const t = e.target as HTMLElement;
+          if (!t || isStickerInteractive(t)) return;
+          clearStickerSelection();
+        },
+        true,
+      );
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeStickerPalette();
+      });
+    }
+
     loadEmojis();
     loadEmojiOrder();
+    loadStickers();
+    loadStickerOrder();
     renderEmojiPalette();
+    renderStickerPalette();
 
     toggleWeekendUI();
   }, [authReady, previewMode]);
@@ -3764,6 +4276,16 @@ export default function Page() {
             <div className="emoji-palette" id="emojiPalette">
               <div className="emoji-upload-row">
                 <button className="btn" id="emojiUploadTrigger" type="button">
+                  업로드
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="sticker-panel sticker-panel-hidden" aria-hidden="true">
+            <input id="stickerUpload" type="file" accept="image/*" />
+            <div className="sticker-palette" id="stickerPalette">
+              <div className="sticker-upload-row">
+                <button className="btn" id="stickerUploadTrigger" type="button">
                   업로드
                 </button>
               </div>

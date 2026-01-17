@@ -2805,7 +2805,7 @@ export default function Page() {
         const content = card.querySelector(".card-content");
         return {
           id: card.dataset.cardId || newId(),
-          text: content ? content.textContent ?? "" : "",
+          text: content ? content.innerHTML ?? "" : "",
           done: card.classList.contains("done"),
           color: card.dataset.color || "default",
         };
@@ -2836,7 +2836,7 @@ export default function Page() {
             data = parsed
               .map((c) => ({
                 id: newId(),
-                text: c.text ?? "",
+                text: typeof c.text === "string" ? c.text : "",
                 done: !!c.done,
                 color: c.color ?? "default",
               }))

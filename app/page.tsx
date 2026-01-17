@@ -1498,7 +1498,10 @@ export default function Page() {
         }
       }
 
-      if (done) card.classList.add("done");
+      if (done) {
+        card.classList.add("done");
+        wrapTextNodesInSpans(content);
+      }
 
       card.appendChild(handle);
       card.appendChild(doneBadge);
@@ -1578,6 +1581,8 @@ export default function Page() {
           const doneBody = ensureDoneSectionBody(cell);
           if (!doneBody) return;
           card.classList.add("done");
+          const contentEl = card.querySelector(".card-content") as HTMLElement | null;
+          if (contentEl) wrapTextNodesInSpans(contentEl);
           card.dataset.sectionId = DONE_SECTION_ID;
           card.dataset.sectionTitle = "완료";
           doneBody.appendChild(card);
@@ -3064,6 +3069,21 @@ export default function Page() {
       lastRange = newRange.cloneRange();
     }
 
+    function wrapTextNodesInSpans(root: HTMLElement) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      while (walker.nextNode()) {
+        nodes.push(walker.currentNode as Text);
+      }
+      nodes.forEach((textNode) => {
+        const parent = textNode.parentElement;
+        if (!parent || parent.tagName === "SPAN") return;
+        const span = document.createElement("span");
+        span.textContent = textNode.nodeValue || "";
+        parent.replaceChild(span, textNode);
+      });
+    }
+
     function getSelectionCard() {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return null;
@@ -3111,13 +3131,6 @@ export default function Page() {
       }
       const range = sel.getRangeAt(0);
       if (sel.isCollapsed) {
-        const active = document.activeElement as HTMLElement | null;
-        if (lastRange && active && active.closest(".card-content")) {
-          restoreSelection();
-          const rect = lastRange.getBoundingClientRect();
-          showTextToolbar(rect);
-          return;
-        }
         hideTextToolbar();
         return;
       }

@@ -1646,10 +1646,26 @@ header {
       background: #f8fafc;
       border-color: #e2e8f0;
       color: #64748b;
-      text-decoration: line-through;
-      text-decoration-color: rgba(201, 106, 74, 0.45);
-      text-decoration-thickness: 2px;
       box-shadow: none;
+    }
+
+    .card.done .card-content span {
+      position: relative;
+      display: inline-block;
+      text-decoration: none !important;
+    }
+
+    .card.done .card-content span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 2px;
+      background: #c96a4a;
+      z-index: 1;
+      pointer-events: none;
     }
 
     .card-done-badge {

@@ -250,6 +250,7 @@ export default function Page() {
     let marqueeBox: HTMLDivElement | null = null;
     let marqueeStart: { x: number; y: number } | null = null;
     let marqueeActive = false;
+    let stickerPointerActive = false;
     const SCALE_KEY = "muchi-ui-scale";
     let lastActiveDayCell: HTMLElement | null = null;
     let lastActiveDateKey: string | null = null;
@@ -1321,6 +1322,13 @@ export default function Page() {
         e.preventDefault();
       });
 
+      el.addEventListener("pointerenter", () => {
+        stickerPointerActive = true;
+      });
+      el.addEventListener("pointerleave", () => {
+        stickerPointerActive = false;
+      });
+
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         selectSticker(el, dateKey);
@@ -2110,6 +2118,7 @@ export default function Page() {
           const sectionBody = document.createElement("div");
           sectionBody.className = "day-section-body";
           sectionBody.addEventListener("mouseenter", () => {
+            if (stickerPointerActive) return;
             setActiveDay(cell);
             setActiveSection(cell, section.id);
           });
@@ -2147,6 +2156,7 @@ export default function Page() {
           const doneBody = document.createElement("div");
           doneBody.className = "day-section-body";
           doneBody.addEventListener("mouseenter", () => {
+            if (stickerPointerActive) return;
             setActiveDay(cell);
             setActiveSection(cell, DONE_SECTION_ID);
           });
@@ -2192,12 +2202,14 @@ export default function Page() {
         setActiveSection(cell, cell.dataset.activeSectionId);
 
         cell.addEventListener("mouseenter", () => {
+          if (stickerPointerActive) return;
           if (cell.classList.contains("sticker-hover-cell")) return;
           if (cell.classList.contains("active-day")) return;
           cell.classList.add("hovered-day");
         });
 
         cell.addEventListener("mouseleave", () => {
+          if (stickerPointerActive) return;
           if (cell.classList.contains("sticker-hover-cell")) return;
           if (cell.classList.contains("active-day")) return;
           cell.classList.remove("hovered-day");

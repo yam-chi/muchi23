@@ -1183,7 +1183,8 @@ header {
       right: 12px;
       bottom: 12px;
       pointer-events: none;
-      z-index: 40;
+      z-index: 60;
+      transform: translateZ(0);
     }
 
     .sticker-item {
@@ -1194,6 +1195,7 @@ header {
       pointer-events: auto;
       cursor: grab;
       background: transparent;
+      will-change: transform;
     }
 
     .sticker-item.selected {
@@ -1525,6 +1527,7 @@ header {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       margin: 0;
       border-radius: 12px;
+      isolation: isolate;
     }
 
     .day-cell.placeholder {

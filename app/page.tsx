@@ -2662,6 +2662,7 @@ export default function Page() {
           cards: parsed.cards ?? {},
           sections: parsed.sections ?? {},
           weekVisibility: parsed.weekVisibility ?? {},
+          stickers: parsed.stickers ?? {},
         };
         renderCalendar();
         alert("에어테이블 스냅샷을 불러왔습니다!");

@@ -80,6 +80,91 @@ const TAB_STORE_KEY = "muchi-note-tabs-v1";
 const ACTIVE_TAB_KEY = "muchi-note-active-tab-v1";
 const STICKER_STORE_KEY = "muchi-sticker-store";
 const STICKER_ORDER_KEY = "muchi-sticker-order";
+const THEME_KEY = "muchi-theme-preset";
+const THEME_PRESETS: Record<
+  string,
+  {
+    accent: string;
+    accentRgb: string;
+    accentOutline: string;
+    topbarBg: string;
+    tabBg: string;
+    tabActiveBg: string;
+  }
+> = {
+  default: {
+    accent: "#C96A4A",
+    accentRgb: "201, 106, 74",
+    accentOutline: "#D9A08D",
+    topbarBg: "#F1E9DD",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#F1E9DD",
+  },
+  mint: {
+    accent: "#2FAE9B",
+    accentRgb: "47, 174, 155",
+    accentOutline: "#87D6C8",
+    topbarBg: "#E5F6F2",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#E5F6F2",
+  },
+  sky: {
+    accent: "#4F78A6",
+    accentRgb: "79, 120, 166",
+    accentOutline: "#9BB2CB",
+    topbarBg: "#E7EDF5",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#E7EDF5",
+  },
+  lavender: {
+    accent: "#8A6AD6",
+    accentRgb: "138, 106, 214",
+    accentOutline: "#C7B5F0",
+    topbarBg: "#EEE9FA",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#EEE9FA",
+  },
+  olive: {
+    accent: "#7A8F3A",
+    accentRgb: "122, 143, 58",
+    accentOutline: "#B8C587",
+    topbarBg: "#EEF2DF",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#EEF2DF",
+  },
+  charcoal: {
+    accent: "#4B5563",
+    accentRgb: "75, 85, 99",
+    accentOutline: "#9AA1AD",
+    topbarBg: "#ECEEF1",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#ECEEF1",
+  },
+  navy: {
+    accent: "#2C4A7A",
+    accentRgb: "44, 74, 122",
+    accentOutline: "#8FA6C8",
+    topbarBg: "#E4EAF3",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#E4EAF3",
+  },
+  burgundy: {
+    accent: "#8B3D4A",
+    accentRgb: "139, 61, 74",
+    accentOutline: "#D1A2AA",
+    topbarBg: "#F3E4E7",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#F3E4E7",
+  },
+  purple: {
+    accent: "#6F4DB7",
+    accentRgb: "111, 77, 183",
+    accentOutline: "#B9A4E4",
+    topbarBg: "#EEE8FA",
+    tabBg: "#FFFFFF",
+    tabActiveBg: "#EEE8FA",
+  },
+};
 const DEFAULT_EMOJIS = [
   { id: "default-check", ch: "✅" },
   { id: "default-fire", ch: "🔥" },
@@ -223,6 +308,9 @@ export default function Page() {
     const settingsPanels = Array.from(
       document.querySelectorAll<HTMLElement>("[data-settings-panel]")
     );
+    const themeButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-theme]")
+    );
 
     if (
       !monthTitle ||
@@ -236,6 +324,37 @@ export default function Page() {
       console.error("필수 DOM 요소를 찾을 수 없습니다. 마크업을 확인하세요.");
       return;
     }
+
+    function applyThemePreset(name: string, persist = true) {
+      const preset = THEME_PRESETS[name] ?? THEME_PRESETS.default;
+      const root = document.documentElement;
+      root.style.setProperty("--theme-accent", preset.accent);
+      root.style.setProperty("--theme-accent-rgb", preset.accentRgb);
+      root.style.setProperty("--theme-accent-outline", preset.accentOutline);
+      root.style.setProperty("--theme-topbar-bg", preset.topbarBg);
+      root.style.setProperty("--theme-tab-bg", preset.tabBg);
+      root.style.setProperty("--theme-tab-active-bg", preset.tabActiveBg);
+      themeButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.theme === name);
+      });
+      if (persist) {
+        localStorage.setItem(THEME_KEY, name);
+      }
+    }
+
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const initialTheme = savedTheme && THEME_PRESETS[savedTheme] ? savedTheme : "default";
+    applyThemePreset(initialTheme, false);
+    if (savedTheme !== initialTheme) {
+      localStorage.setItem(THEME_KEY, initialTheme);
+    }
+
+    themeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.dataset.theme || "default";
+        applyThemePreset(name);
+      });
+    });
 
     let current = new Date();
     current.setDate(1);
@@ -4361,6 +4480,38 @@ export default function Page() {
               <div className="settings-item">
                 <div className="settings-label">프로필</div>
                 <div className="settings-value" id="settingsEmail">-</div>
+              </div>
+              <div className="settings-item column">
+                <div className="settings-label">테마</div>
+                <div className="theme-options">
+                  <button className="theme-option" data-theme="default" type="button">
+                    기본
+                  </button>
+                  <button className="theme-option" data-theme="mint" type="button">
+                    민트
+                  </button>
+                  <button className="theme-option" data-theme="sky" type="button">
+                    하늘색
+                  </button>
+                  <button className="theme-option" data-theme="lavender" type="button">
+                    라벤더
+                  </button>
+                  <button className="theme-option" data-theme="olive" type="button">
+                    올리브
+                  </button>
+                  <button className="theme-option" data-theme="charcoal" type="button">
+                    차콜
+                  </button>
+                  <button className="theme-option" data-theme="navy" type="button">
+                    네이비
+                  </button>
+                  <button className="theme-option" data-theme="burgundy" type="button">
+                    버건디
+                  </button>
+                  <button className="theme-option" data-theme="purple" type="button">
+                    퍼플
+                  </button>
+                </div>
               </div>
             </div>
             <div className="settings-panel" data-settings-panel="password">

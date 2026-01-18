@@ -1115,6 +1115,27 @@ header {
       gap: 6px;
     }
 
+    .sticker-panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--theme-accent);
+    }
+
+    .sticker-palette-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .sticker-palette-header .btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      line-height: 1.2;
+      border-radius: 10px;
+    }
+
     .sticker-panel-hidden {
       position: absolute;
       width: 0;

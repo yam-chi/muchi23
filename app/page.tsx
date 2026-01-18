@@ -4427,12 +4427,13 @@ export default function Page() {
           <div className="sticker-panel sticker-panel-hidden" aria-hidden="true">
             <input id="stickerUpload" type="file" accept="image/*" />
             <div className="sticker-palette" id="stickerPalette">
-              <div className="sticker-upload-row">
+              <div className="sticker-palette-header">
+                <div className="sticker-panel-title">스티커</div>
                 <button className="btn" id="stickerUploadTrigger" type="button">
                   업로드
                 </button>
               </div>
-            </div>
+              </div>
           </div>
           <div className="tab-strip">
             <div className="tab-bar" id="tabBar" />

@@ -1058,7 +1058,7 @@ header {
     .emoji-upload-row {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .emoji-upload-row .btn {
@@ -1627,12 +1627,12 @@ header {
     .day-header {
       display: flex;
       justify-content: flex-start;
-      align-items: center;
+      align-items: flex-start;
       font-size: 10px;
       margin-bottom: 10px;
       gap: 6px;
-      position: relative;
-      z-index: 0;
+      padding-right: 32px;
+      min-height: 0;
     }
 
     .day-meta-wrap {
@@ -1660,8 +1660,8 @@ header {
 
     .day-expand-btn {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 8px;
+      right: 8px;
       width: 22px;
       height: 22px;
       border: none;

@@ -2171,6 +2171,9 @@ export default function Page() {
         updateDayBadge(key);
 
         const stickers = getStickersForDate(key);
+        if (stickers.length > 0) {
+          cell.classList.add("has-sticker");
+        }
         stickers.forEach((sticker) => {
           stickerLayer.appendChild(createStickerElement(sticker, key));
         });

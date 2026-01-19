@@ -2022,8 +2022,12 @@ export default function Page() {
       btnDelete.addEventListener("click", (e) => {
         e.stopPropagation();
         const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
-        const targets = selectedCards.length ? selectedCards : [card];
-        deleteCards(targets);
+        const isSelected = card.classList.contains("selected");
+        if (selectedCards.length > 1 && isSelected) {
+          deleteCards(selectedCards);
+          return;
+        }
+        deleteCards([card]);
       });
 
       btnColor.addEventListener("click", (e) => {

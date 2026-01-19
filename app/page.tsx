@@ -3821,6 +3821,9 @@ export default function Page() {
       }
 
       const buildBtn = (emoji: (typeof ordered)[number]) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "emoji-btn-wrap";
+
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "emoji-btn";
@@ -3880,8 +3883,24 @@ export default function Page() {
           btn.addEventListener("click", () =>
             runInsert(`<img class="emoji-img" src="${emoji.src}">`),
           );
+
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "emoji-remove";
+          del.textContent = "×";
+          del.addEventListener("click", (e) => {
+            e.stopPropagation();
+            emojiList = emojiList.filter((item) => item.id !== emoji.id);
+            emojiOrder = emojiOrder.filter((id) => id !== emoji.id);
+            saveEmojis();
+            saveEmojiOrder();
+            renderEmojiPalette();
+          });
+          wrapper.appendChild(del);
         }
-        return btn;
+
+        wrapper.appendChild(btn);
+        return wrapper;
       };
 
       ordered.forEach((emoji) => {
@@ -3895,11 +3914,11 @@ export default function Page() {
         if (!draggingEmojiId) return;
         e.preventDefault();
         const ph = ensurePlaceholder();
-        const target = (e.target as HTMLElement).closest(".emoji-btn");
+        const target = (e.target as HTMLElement).closest(".emoji-btn-wrap");
         const children = Array.from(listEl.children);
         if (target && target.parentElement === listEl) {
           const rect = target.getBoundingClientRect();
-          const before = e.clientY < rect.top + rect.height / 2;
+          const before = e.clientX < rect.left + rect.width / 2;
           if (before) {
             listEl.insertBefore(ph, target);
           } else {
@@ -3993,6 +4012,9 @@ export default function Page() {
       }
 
       ordered.forEach((sticker) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "sticker-btn-wrap";
+
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "sticker-btn";
@@ -4009,7 +4031,33 @@ export default function Page() {
           addStickerToDate(dateKey, sticker.src);
           closeStickerPalette();
         });
-        listEl.appendChild(btn);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "sticker-remove";
+        del.textContent = "×";
+        del.addEventListener("click", (e) => {
+          e.stopPropagation();
+          stickerList = stickerList.filter((s) => s.id !== sticker.id);
+          stickerOrder = stickerOrder.filter((id) => id !== sticker.id);
+          Object.keys(state.stickers).forEach((dateKey) => {
+            const nextList = (state.stickers[dateKey] || []).filter((s) => s.src !== sticker.src);
+            if (nextList.length) {
+              state.stickers[dateKey] = nextList;
+            } else {
+              delete state.stickers[dateKey];
+            }
+          });
+          saveStickers();
+          saveStickerOrder();
+          saveLocalState();
+          renderCalendar();
+          renderStickerPalette();
+        });
+
+        wrapper.appendChild(btn);
+        wrapper.appendChild(del);
+        listEl.appendChild(wrapper);
       });
     }
 

@@ -1082,6 +1082,13 @@ header {
       gap: 6px;
     }
 
+    .emoji-btn-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .emoji-btn {
       border: 1px solid #e5e7eb;
       border-radius: 10px;
@@ -1106,6 +1113,30 @@ header {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+    }
+
+    .emoji-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #9aa0a6;
+      font-size: 12px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+      cursor: pointer;
+    }
+
+    .emoji-remove:hover {
+      border-color: var(--theme-accent);
+      color: var(--theme-accent);
     }
 
     .sticker-panel {
@@ -1179,6 +1210,13 @@ header {
       gap: 6px;
     }
 
+    .sticker-btn-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .sticker-btn {
       border: 1px solid #e5e7eb;
       border-radius: 10px;
@@ -1202,6 +1240,30 @@ header {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+    }
+
+    .sticker-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #9aa0a6;
+      font-size: 12px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+      cursor: pointer;
+    }
+
+    .sticker-remove:hover {
+      border-color: var(--theme-accent);
+      color: var(--theme-accent);
     }
 
     .day-sticker-layer {

@@ -1288,11 +1288,13 @@ export default function Page() {
       return doneBody;
     };
 
-    const selectSticker = (el: HTMLElement, dateKey: string) => {
+    const selectSticker = (el: HTMLElement, dateKey: string, keepExisting = false) => {
       const layer = el.parentElement;
       if (!layer) return;
-      const existing = layer.querySelectorAll<HTMLElement>(".sticker-item.selected");
-      existing.forEach((node) => node.classList.remove("selected"));
+      if (!keepExisting) {
+        const existing = layer.querySelectorAll<HTMLElement>(".sticker-item.selected");
+        existing.forEach((node) => node.classList.remove("selected"));
+      }
       el.classList.add("selected");
       const list = getStickersForDate(dateKey);
       const maxZ = list.reduce((max, s) => Math.max(max, s.z || 0), 0);
@@ -1308,10 +1310,24 @@ export default function Page() {
       selected.forEach((node) => node.classList.remove("selected"));
     };
 
+    const deleteSelectedStickers = () => {
+      const selected = Array.from(document.querySelectorAll<HTMLElement>(".sticker-item.selected"));
+      if (!selected.length) return;
+      selected.forEach((node) => {
+        const dateKey = node.dataset.dateKey || "";
+        const stickerId = node.dataset.stickerId || "";
+        if (!dateKey || !stickerId) return;
+        deleteStickerFromState(dateKey, stickerId);
+      });
+      saveLocalState();
+      renderCalendar();
+    };
+
     const createStickerElement = (sticker: StickerData, dateKey: string) => {
       const el = document.createElement("div");
       el.className = "sticker-item";
       el.dataset.stickerId = sticker.id;
+      el.dataset.dateKey = dateKey;
       el.style.width = `${sticker.width}px`;
       el.style.height = `${sticker.height}px`;
       el.style.transform = `translate(${sticker.x}px, ${sticker.y}px) rotate(${sticker.rotation}deg)`;
@@ -1328,8 +1344,15 @@ export default function Page() {
       del.textContent = "×";
       del.addEventListener("click", (e) => {
         e.stopPropagation();
+        const selected = Array.from(document.querySelectorAll<HTMLElement>(".sticker-item.selected"));
+        const isSelected = el.classList.contains("selected");
+        if (selected.length > 1 && isSelected) {
+          deleteSelectedStickers();
+          return;
+        }
         deleteStickerFromState(dateKey, sticker.id);
-        el.remove();
+        saveLocalState();
+        renderCalendar();
       });
 
       const handles = ["br"].map((pos) => {
@@ -1420,7 +1443,7 @@ export default function Page() {
         const target = e.target as HTMLElement;
         if (target.classList.contains("sticker-delete")) return;
         const handle = target.closest(".sticker-handle") as HTMLElement | null;
-        selectSticker(el, dateKey);
+        selectSticker(el, dateKey, e.shiftKey);
         const rect = el.getBoundingClientRect();
         startX = e.clientX;
         startY = e.clientY;
@@ -1450,7 +1473,7 @@ export default function Page() {
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        selectSticker(el, dateKey);
+        selectSticker(el, dateKey, (e as MouseEvent).shiftKey);
       });
 
       return el;
@@ -3079,6 +3102,7 @@ export default function Page() {
         }
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        if (isEditableTarget(e.target as HTMLElement)) return;
         e.preventDefault();
         undo();
       }
@@ -3086,9 +3110,15 @@ export default function Page() {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         if (isEditableTarget(e.target as HTMLElement)) return;
         const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
-        if (!selectedCards.length) return;
+        if (selectedCards.length) {
+          e.preventDefault();
+          deleteCards(selectedCards);
+          return;
+        }
+        const selectedStickers = Array.from(document.querySelectorAll<HTMLElement>(".sticker-item.selected"));
+        if (!selectedStickers.length) return;
         e.preventDefault();
-        deleteCards(selectedCards);
+        deleteSelectedStickers();
       }
       if (!isEditableTarget(e.target as HTMLElement)) {
         if (e.key === "ArrowLeft") {

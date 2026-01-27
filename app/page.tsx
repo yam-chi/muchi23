@@ -8,6 +8,7 @@ type CardData = {
   text: string; // HTML-safe string (text + optional <img class="emoji-img" src="data:image/...">)
   done: boolean;
   color: string;
+  boardId?: string;
   sectionId?: string;
   sectionTitle?: string;
   originSectionId?: string;
@@ -185,6 +186,7 @@ export default function Page() {
   const currentUserIdRef = useRef<string | null>(null);
   const currentUserEmailRef = useRef<string | null>(null);
   const periodicSyncTimer = useRef<number | null>(null);
+  const currentBoardIdRef = useRef<string>("work");
 
   useEffect(() => {
     let mounted = true;
@@ -396,6 +398,10 @@ export default function Page() {
     let tabs: Array<{ id: string; name: string }> = [];
     let activeTabId = "work";
     const tabBar = document.getElementById("tabBar") as HTMLElement | null;
+    const DEBUG_SYNC = localStorage.getItem("muchi-debug-sync") === "1";
+    const dbg = (...args: unknown[]) => {
+      if (DEBUG_SYNC) console.log("[muchi-debug]", ...args);
+    };
     // moved to component scope
 
     function toggleSelection(card: HTMLDivElement) {
@@ -666,8 +672,14 @@ export default function Page() {
       const affectedDates = new Set<string>();
 
       targets.forEach((c) => {
-        const dateKey = c.dataset.date;
+        const dateKey = c.dataset.date || c.closest<HTMLElement>(".day-cell")?.dataset.date;
         const idStr = c.dataset.cardId;
+        dbg("deleteCards", {
+          id: idStr,
+          dateKey,
+          datasetBoardId: c.dataset.boardId,
+          activeTabId,
+        });
         const parent = c.parentElement;
         c.remove();
         if (dateKey && idStr) {
@@ -682,6 +694,8 @@ export default function Page() {
             }
           }
           affectedDates.add(dateKey);
+        }
+        if (idStr) {
           deleteCardInSupabase(idStr);
         }
         if (parent && parent.classList.contains("day-section-body")) {
@@ -937,18 +951,21 @@ export default function Page() {
       } catch (e) {
         console.error("saveActiveTab error", e);
       }
+      currentBoardIdRef.current = id;
       state.cards = {};
+      state.sections = {};
       state.stickers = {};
       history = [];
       historyIndex = -1;
       clearSelection();
       renderTabs();
       await loadState();
+      currentBoardIdRef.current = activeTabId;
       pushHistory();
       renderCalendar();
     }
 
-    async function fetchCardsFromSupabase() {
+    async function fetchCardsFromSupabase(tabId = activeTabId) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
@@ -958,12 +975,13 @@ export default function Page() {
           "id, date_key, text, done, color, board_id, section_id, section_title, origin_section_id, origin_section_title, origin_date_key",
         )
         .eq("user_id", uid)
-        .eq("board_id", activeTabId)
+        .eq("board_id", tabId)
         .order("created_at", { ascending: true });
       if (error) {
         console.error("supabase load error", error);
         return;
       }
+      if (tabId !== activeTabId) return;
       const grouped: Record<string, CardData[]> = {};
       const sectionMap: Record<string, SectionData[]> = {};
       data?.forEach((row) => {
@@ -976,6 +994,7 @@ export default function Page() {
           text: row.text ?? "",
           done: !!row.done,
           color: row.color ?? "default",
+          boardId: row.board_id ?? tabId,
           sectionId,
           sectionTitle,
           originSectionId: row.origin_section_id ?? undefined,
@@ -999,7 +1018,7 @@ export default function Page() {
       saveLocalState();
     }
 
-    async function fetchStickersFromSupabase() {
+    async function fetchStickersFromSupabase(tabId = activeTabId) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
@@ -1007,12 +1026,13 @@ export default function Page() {
         .from("stickers")
         .select("id, date_key, src, x, y, width, height, rotation, z, board_id")
         .eq("user_id", uid)
-        .eq("board_id", activeTabId)
+        .eq("board_id", tabId)
         .order("created_at", { ascending: true });
       if (error) {
         console.error("supabase sticker load error", error);
         return;
       }
+      if (tabId !== activeTabId) return;
       const grouped: Record<string, StickerData[]> = {};
       data?.forEach((row) => {
         const dk = row.date_key;
@@ -1033,15 +1053,25 @@ export default function Page() {
     }
 
     async function loadState() {
+      const tabId = activeTabId;
       // Supabase 데이터 우선
       if (!previewMode) {
-        await fetchCardsFromSupabase();
-        await fetchStickersFromSupabase();
+        await repairBoardMappingFromLocal();
+        await fetchCardsFromSupabase(tabId);
+        await fetchStickersFromSupabase(tabId);
       }
+      if (tabId !== activeTabId) return;
+      currentBoardIdRef.current = tabId;
       // Supabase에 아무 것도 없을 때만 로컬 캐시 복구
       const local = loadLocalState();
       if (!Object.keys(state.cards).length && local?.cards) {
         state.cards = local.cards;
+        Object.values(state.cards).forEach((list) => {
+          if (!Array.isArray(list)) return;
+          list.forEach((c) => {
+            if (!c.boardId) c.boardId = tabId;
+          });
+        });
       }
       if (local?.sections) {
         state.sections = local.sections;
@@ -1049,6 +1079,7 @@ export default function Page() {
       if (!Object.keys(state.stickers).length && local?.stickers) {
         state.stickers = local.stickers;
       }
+      ensureCardBoardIds(tabId);
     }
 
     function saveState() {
@@ -1076,17 +1107,83 @@ export default function Page() {
       return undefined;
     }
 
+    async function repairBoardMappingFromLocal() {
+      const FLAG_KEY = "muchi-note-board-repair-v1";
+      if (localStorage.getItem(FLAG_KEY)) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+
+      const tabIds = tabs.map((t) => t.id);
+      const rows: Array<{
+        id: string;
+        user_id: string;
+        board_id: string;
+        date_key: string;
+        text: string;
+        done: boolean;
+        color: string;
+        section_id: string;
+        section_title: string;
+        origin_section_id: string | null;
+        origin_section_title: string | null;
+        origin_date_key: string | null;
+      }> = [];
+
+      tabIds.forEach((tabId) => {
+        const raw = localStorage.getItem(`${LOCAL_STATE_KEY}:${tabId}`);
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw) as Partial<State>;
+          const cards = parsed.cards ?? {};
+          Object.entries(cards).forEach(([dateKey, list]) => {
+            if (!Array.isArray(list)) return;
+            list.forEach((c) => {
+              rows.push({
+                id: c.id,
+                user_id: uid,
+                board_id: tabId,
+                date_key: dateKey,
+                text: c.text ?? "",
+                done: !!c.done,
+                color: c.color ?? "default",
+                section_id: c.sectionId ?? "default",
+                section_title: c.sectionTitle ?? "",
+                origin_section_id: c.originSectionId ?? null,
+                origin_section_title: c.originSectionTitle ?? null,
+                origin_date_key: c.originDateKey ?? null,
+              });
+            });
+          });
+        } catch (e) {
+          console.error("repairBoardMappingFromLocal parse error", e);
+        }
+      });
+
+      if (!rows.length) {
+        localStorage.setItem(FLAG_KEY, "1");
+        return;
+      }
+
+      const { error } = await supabase.from("cards").upsert(rows);
+      if (error) {
+        console.error("repairBoardMappingFromLocal upsert error", error);
+        return;
+      }
+      localStorage.setItem(FLAG_KEY, "1");
+    }
+
     async function upsertCardToSupabase(dateKey: string, cardObj: CardData) {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
       console.log("[supabase] upsert single", { dateKey, id: cardObj.id });
+      const boardId = cardObj.boardId ?? activeTabId;
       const { error } = await supabase
         .from("cards")
         .upsert({
           id: cardObj.id,
           user_id: uid,
-          board_id: activeTabId,
+          board_id: boardId,
           date_key: dateKey,
           text: cardObj.text,
           done: cardObj.done,
@@ -1143,6 +1240,8 @@ export default function Page() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
+      if (currentBoardIdRef.current !== activeTabId) return;
+      const syncTabId = currentBoardIdRef.current;
 
       // DOM 기준으로 state 갱신
       syncCurrentMonthFromDom();
@@ -1165,11 +1264,13 @@ export default function Page() {
       const ids: string[] = [];
       Object.entries(state.cards).forEach(([dateKey, list]) => {
         list.forEach((c) => {
+          const cardBoardId = c.boardId ?? syncTabId;
+          if (cardBoardId !== syncTabId) return;
           ids.push(c.id);
           rows.push({
             id: c.id,
             user_id: uid,
-            board_id: activeTabId,
+            board_id: cardBoardId,
             date_key: dateKey,
             text: c.text,
             done: c.done,
@@ -1184,6 +1285,7 @@ export default function Page() {
       });
 
       if (!rows.length) return;
+      dbg("periodicSync upsert", { boardId: syncTabId, rows: rows.length, ids: ids.slice(0, 5) });
       const { error: upErr } = await supabase.from("cards").upsert(rows);
       if (upErr) {
         console.error("supabase periodic upsert error", upErr);
@@ -1196,19 +1298,36 @@ export default function Page() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
+      dbg("deleteCardInSupabase request", { id, uid });
       const { error, data } = await supabase
         .from("cards")
         .delete()
         .eq("id", id)
-        .eq("user_id", uid)
-        .eq("board_id", activeTabId);
+        .eq("user_id", uid);
       if (error) console.error("supabase delete error", error);
-      else console.log("supabase delete ok", id, data);
+      else dbg("deleteCardInSupabase ok", { id, data });
     }
+
+    const ensureCardBoardIds = (tabId: string) => {
+      let changed = false;
+      Object.values(state.cards).forEach((list) => {
+        if (!Array.isArray(list)) return;
+        list.forEach((c) => {
+          if (!c.boardId) {
+            c.boardId = tabId;
+            changed = true;
+          }
+        });
+      });
+      if (changed) {
+        saveLocalState();
+      }
+    };
 
     const getCardsForDate = (dateKey: string) => {
       const list = state.cards[dateKey];
-      return Array.isArray(list) ? list : [];
+      if (!Array.isArray(list)) return [];
+      return list.filter((c) => c.boardId === activeTabId);
     };
 
     const getSectionsForDate = (dateKey: string) => {
@@ -1646,6 +1765,9 @@ export default function Page() {
 
     function upsertCard(dateKey: string, cardObj: CardData, persist = false) {
       const list = ensureCardList(dateKey);
+      if (!cardObj.boardId) {
+        cardObj.boardId = activeTabId;
+      }
       const id = cardObj.id;
       const idx = list.findIndex((c) => c.id === id);
       if (idx >= 0) list[idx] = cardObj;
@@ -1693,6 +1815,7 @@ export default function Page() {
       const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
       const done = card.classList.contains("done");
       const color = card.dataset.color || "default";
+      const boardId = card.dataset.boardId || activeTabId;
       const sectionId = card.dataset.sectionId || "default";
       const sectionTitle = card.dataset.sectionTitle || getSectionTitle(dateKey, sectionId);
       const originSectionId = card.dataset.originSectionId || undefined;
@@ -1705,6 +1828,7 @@ export default function Page() {
         prev.text !== text ||
         prev.done !== done ||
         prev.color !== color ||
+        prev.boardId !== boardId ||
         prev.sectionId !== sectionId ||
         prev.sectionTitle !== sectionTitle ||
         prev.originSectionId !== originSectionId ||
@@ -1717,6 +1841,7 @@ export default function Page() {
           text,
           done,
           color,
+          boardId,
           sectionId,
           sectionTitle,
           originSectionId,
@@ -1749,6 +1874,7 @@ export default function Page() {
           const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
           const done = card.classList.contains("done");
           const color = card.dataset.color || "default";
+          const boardId = card.dataset.boardId || activeTabId;
           const sectionId = card.dataset.sectionId || "default";
           const sectionTitle = card.dataset.sectionTitle || getSectionTitle(dateKey, sectionId);
           const originSectionId = card.dataset.originSectionId || undefined;
@@ -1765,6 +1891,7 @@ export default function Page() {
             text,
             done,
             color,
+            boardId,
             sectionId,
             sectionTitle,
             originSectionId,
@@ -1884,6 +2011,8 @@ export default function Page() {
       card.dataset.cardId = String(id);
       card.id = `card-${id}`;
       card.dataset.color = color;
+      const resolvedBoardId = cardData?.boardId || activeTabId;
+      card.dataset.boardId = resolvedBoardId;
       card.dataset.sectionId = resolvedSectionId;
       card.dataset.sectionTitle = resolvedSectionTitle;
       if (cardData?.originSectionId) card.dataset.originSectionId = cardData.originSectionId;
@@ -2867,6 +2996,7 @@ export default function Page() {
           weekVisibility: parsed.weekVisibility ?? {},
           stickers: parsed.stickers ?? {},
         };
+        ensureCardBoardIds(activeTabId);
         renderCalendar();
         alert("에어테이블 스냅샷을 불러왔습니다!");
       } catch (e) {

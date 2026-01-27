@@ -938,6 +938,7 @@ export default function Page() {
         console.error("saveActiveTab error", e);
       }
       state.cards = {};
+      state.stickers = {};
       history = [];
       historyIndex = -1;
       clearSelection();
@@ -998,10 +999,44 @@ export default function Page() {
       saveLocalState();
     }
 
+    async function fetchStickersFromSupabase() {
+      if (previewMode) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { data, error } = await supabase
+        .from("stickers")
+        .select("id, date_key, src, x, y, width, height, rotation, z, board_id")
+        .eq("user_id", uid)
+        .eq("board_id", activeTabId)
+        .order("created_at", { ascending: true });
+      if (error) {
+        console.error("supabase sticker load error", error);
+        return;
+      }
+      const grouped: Record<string, StickerData[]> = {};
+      data?.forEach((row) => {
+        const dk = row.date_key;
+        if (!grouped[dk]) grouped[dk] = [];
+        grouped[dk].push({
+          id: row.id,
+          src: row.src,
+          x: Number(row.x),
+          y: Number(row.y),
+          width: Number(row.width),
+          height: Number(row.height),
+          rotation: Number(row.rotation),
+          z: Number(row.z ?? 1),
+        });
+      });
+      state.stickers = grouped;
+      saveLocalState();
+    }
+
     async function loadState() {
       // Supabase 데이터 우선
       if (!previewMode) {
         await fetchCardsFromSupabase();
+        await fetchStickersFromSupabase();
       }
       // Supabase에 아무 것도 없을 때만 로컬 캐시 복구
       const local = loadLocalState();
@@ -1011,7 +1046,7 @@ export default function Page() {
       if (local?.sections) {
         state.sections = local.sections;
       }
-      if (local?.stickers) {
+      if (!Object.keys(state.stickers).length && local?.stickers) {
         state.stickers = local.stickers;
       }
     }
@@ -1063,6 +1098,39 @@ export default function Page() {
           origin_date_key: cardObj.originDateKey ?? null,
         });
       if (error) console.error("supabase upsert error", error);
+    }
+
+    async function upsertStickerToSupabase(dateKey: string, sticker: StickerData) {
+      if (previewMode) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { error } = await supabase.from("stickers").upsert({
+        id: sticker.id,
+        user_id: uid,
+        board_id: activeTabId,
+        date_key: dateKey,
+        src: sticker.src,
+        x: sticker.x,
+        y: sticker.y,
+        width: sticker.width,
+        height: sticker.height,
+        rotation: sticker.rotation,
+        z: sticker.z ?? 1,
+      });
+      if (error) console.error("supabase sticker upsert error", error);
+    }
+
+    async function deleteStickerInSupabase(stickerId: string) {
+      if (previewMode) return;
+      const uid = currentUserIdRef.current;
+      if (!uid) return;
+      const { error } = await supabase
+        .from("stickers")
+        .delete()
+        .eq("id", stickerId)
+        .eq("user_id", uid)
+        .eq("board_id", activeTabId);
+      if (error) console.error("supabase sticker delete error", error);
     }
 
     // 주기적 전체 동기화: DOM -> state -> Supabase
@@ -1167,12 +1235,14 @@ export default function Page() {
       const idx = list.findIndex((s) => s.id === stickerId);
       if (idx < 0) return;
       list[idx] = { ...list[idx], ...updates };
+      void upsertStickerToSupabase(dateKey, list[idx]);
       saveLocalState();
     };
 
     const deleteStickerFromState = (dateKey: string, stickerId: string) => {
       const list = ensureStickerList(dateKey);
       state.stickers[dateKey] = list.filter((s) => s.id !== stickerId);
+      void deleteStickerInSupabase(stickerId);
       saveLocalState();
     };
 
@@ -1217,6 +1287,7 @@ export default function Page() {
 
       const toList = ensureStickerList(toKey);
       toList.push(moved);
+      void upsertStickerToSupabase(toKey, moved);
       saveLocalState();
       return true;
     };
@@ -3995,6 +4066,7 @@ export default function Page() {
         z: nextZ,
       };
       list.push(sticker);
+      void upsertStickerToSupabase(dateKey, sticker);
       saveLocalState();
       renderCalendar();
     }

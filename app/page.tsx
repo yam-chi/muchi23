@@ -1120,22 +1120,8 @@ export default function Page() {
       if (upErr) {
         console.error("supabase periodic upsert error", upErr);
       }
-      // Supabase에는 있는데 state에는 없는 카드 제거
-      if (ids.length) {
-        const inList = buildInList(ids);
-        const { error: delErr, data: delData } = await supabase
-          .from("cards")
-          .delete()
-          .eq("user_id", uid)
-          .eq("board_id", activeTabId)
-          .not("id", "in", inList)
-          .select("*");
-        if (delErr) {
-          console.error("supabase periodic delete error", delErr);
-        } else if (Array.isArray(delData) && delData.length) {
-          console.log("supabase periodic pruned", delData.length);
-        }
-      }
+      // 주기 동기화에서 삭제는 하지 않는다.
+      // (현재 화면/월에 없는 카드까지 지워질 수 있어 데이터 손실 위험)
     }
 
     async function deleteCardInSupabase(id: string) {

@@ -2770,6 +2770,9 @@ export default function Page() {
           });
 
           draggingCards.forEach((card) => syncOneCardFromDom(card, false));
+          // 드래그 결과로 DOM 순서가 바뀌므로 전체 상태를 DOM 기준으로 재구성
+          syncCurrentMonthFromDom();
+          saveLocalState();
           saveState();
 
           affectedDateKeys.forEach((key) => {

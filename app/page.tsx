@@ -1908,6 +1908,10 @@ export default function Page() {
       if (!content || content.isContentEditable) return;
       const safeContent: HTMLDivElement = content;
 
+      let finished = false;
+      let isComposing = false;
+      let pendingFinish = false;
+
       safeContent.contentEditable = "true";
       safeContent.focus();
       const range = document.createRange();
@@ -1917,6 +1921,18 @@ export default function Page() {
       if (sel) {
         sel.removeAllRanges();
         sel.addRange(range);
+      }
+
+      function finishEditing() {
+        if (finished) return;
+        finished = true;
+        safeContent.removeEventListener("blur", onBlur);
+        safeContent.removeEventListener("keydown", onKey);
+        safeContent.removeEventListener("compositionstart", onCompositionStart);
+        safeContent.removeEventListener("compositionend", onCompositionEnd);
+        safeContent.removeEventListener("compositioncancel", onCompositionEnd);
+        safeContent.contentEditable = "false";
+        syncOneCardFromDom(card);
       }
 
       function onBlur() {
@@ -1930,20 +1946,36 @@ export default function Page() {
             safeContent.focus();
             return;
           }
-          safeContent.removeEventListener("blur", onBlur);
-          safeContent.removeEventListener("keydown", onKey);
-          safeContent.contentEditable = "false";
-          syncOneCardFromDom(card);
+          if (isComposing) {
+            pendingFinish = true;
+            return;
+          }
+          finishEditing();
         }, 0);
       }
       function onKey(e: KeyboardEvent) {
         if (e.key === "Escape") {
           e.preventDefault();
+          e.stopPropagation();
+          pendingFinish = true;
           safeContent.blur();
+        }
+      }
+      function onCompositionStart() {
+        isComposing = true;
+      }
+      function onCompositionEnd() {
+        isComposing = false;
+        if (pendingFinish) {
+          pendingFinish = false;
+          finishEditing();
         }
       }
       safeContent.addEventListener("blur", onBlur);
       safeContent.addEventListener("keydown", onKey);
+      safeContent.addEventListener("compositionstart", onCompositionStart);
+      safeContent.addEventListener("compositionend", onCompositionEnd);
+      safeContent.addEventListener("compositioncancel", onCompositionEnd);
     }
 
     function createCard(

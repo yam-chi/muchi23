@@ -969,6 +969,7 @@ export default function Page() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
       if (!uid) return;
+      const localSnapshot = tabId === activeTabId ? loadLocalState() : undefined;
       const { data, error } = await supabase
         .from("cards")
         .select(
@@ -1013,6 +1014,9 @@ export default function Page() {
           }
         }
       });
+      if (localSnapshot?.cards) {
+        applyLocalCardOrder(grouped, localSnapshot.cards);
+      }
       state.cards = grouped;
       state.sections = sectionMap;
       saveLocalState();
@@ -1322,6 +1326,31 @@ export default function Page() {
       if (changed) {
         saveLocalState();
       }
+    };
+
+    const applyLocalCardOrder = (
+      grouped: Record<string, CardData[]>,
+      localCards: Record<string, CardData[]>,
+    ) => {
+      Object.entries(grouped).forEach(([dateKey, list]) => {
+        const localList = localCards[dateKey];
+        if (!Array.isArray(localList) || !localList.length) return;
+        const order = new Map<string, number>();
+        localList.forEach((c, idx) => {
+          if (c?.id) order.set(c.id, idx);
+        });
+        if (!order.size) return;
+        const withIndex = list.map((c, idx) => ({
+          card: c,
+          order: order.has(c.id) ? order.get(c.id)! : Number.MAX_SAFE_INTEGER,
+          fallback: idx,
+        }));
+        withIndex.sort((a, b) => {
+          if (a.order !== b.order) return a.order - b.order;
+          return a.fallback - b.fallback;
+        });
+        grouped[dateKey] = withIndex.map((x) => x.card);
+      });
     };
 
     const getCardsForDate = (dateKey: string) => {

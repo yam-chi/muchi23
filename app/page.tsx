@@ -2571,8 +2571,14 @@ export default function Page() {
           }
         });
 
-        cell.addEventListener("dblclick", () => {
+        cell.addEventListener("dblclick", (e) => {
           if (!cell.dataset.date) return;
+          const target = e.target as HTMLElement | null;
+          if (!target) return;
+          if (target.closest(".card")) return;
+          if (target.closest(".day-section-header")) return;
+          if (target.closest(".day-header")) return;
+          if (target.closest(".day-expand-btn")) return;
           const body = getSectionBodyById(cell, "default") || getActiveSectionBody(cell);
           if (!body) return;
           createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });

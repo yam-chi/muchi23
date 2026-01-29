@@ -397,6 +397,7 @@ export default function Page() {
     let keepFocusFromToolbar = false;
     let tabs: Array<{ id: string; name: string }> = [];
     let activeTabId = "work";
+    let editingCardId: string | null = null;
     const tabBar = document.getElementById("tabBar") as HTMLElement | null;
     const DEBUG_SYNC = localStorage.getItem("muchi-debug-sync") === "1";
     const dbg = (...args: unknown[]) => {
@@ -1940,6 +1941,7 @@ export default function Page() {
       let finished = false;
       let isComposing = false;
       let pendingFinish = false;
+      editingCardId = card.dataset.cardId || null;
 
       safeContent.contentEditable = "true";
       safeContent.focus();
@@ -1955,6 +1957,7 @@ export default function Page() {
       function finishEditing() {
         if (finished) return;
         finished = true;
+        editingCardId = null;
         safeContent.removeEventListener("blur", onBlur);
         safeContent.removeEventListener("keydown", onKey);
         safeContent.removeEventListener("compositionstart", onCompositionStart);
@@ -2143,9 +2146,26 @@ export default function Page() {
         }
         const jsonData = e.clipboardData?.getData("application/json");
         if (jsonData) {
-          e.preventDefault();
-          showToast("카드 복사는 카드 밖에서 붙여넣기 해주세요.");
-          return;
+          let isCardPayload = false;
+          try {
+            const parsed = JSON.parse(jsonData);
+            if (Array.isArray(parsed)) {
+              isCardPayload = parsed.every(
+                (c) =>
+                  c &&
+                  typeof c === "object" &&
+                  typeof c.text === "string" &&
+                  typeof c.done === "boolean",
+              );
+            }
+          } catch {
+            /* ignore */
+          }
+          if (isCardPayload) {
+            e.preventDefault();
+            showToast("카드 복사는 카드 밖에서 붙여넣기 해주세요.");
+            return;
+          }
         }
         const activeEl = document.activeElement as HTMLElement | null;
         const canPaste =
@@ -2167,7 +2187,7 @@ export default function Page() {
         }
       });
 
-      content.addEventListener("click", () => {
+      content.addEventListener("dblclick", () => {
         if (!content.isContentEditable) {
           makeEditable(card);
         }
@@ -2215,8 +2235,11 @@ export default function Page() {
         setActiveDay(day);
         setActiveSection(day, card.dataset.sectionId || "default");
         const contentEl = card.querySelector(".card-content") as HTMLDivElement | null;
-        if (!contentEl || contentEl.isContentEditable) return;
-        makeEditable(card);
+        if (!contentEl) return;
+        if (editingCardId && editingCardId !== card.dataset.cardId) {
+          contentEl.blur();
+          contentEl.contentEditable = "false";
+        }
       });
 
       btnDone.addEventListener("click", (e) => {
@@ -3328,6 +3351,10 @@ export default function Page() {
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        if (isEditableTarget(e.target as HTMLElement)) {
+          e.preventDefault();
+          return;
+        }
         clearSelection();
         if (expandedCell) {
           collapseExpandedCell();
@@ -3380,6 +3407,7 @@ export default function Page() {
         deleteSelectedStickers();
       }
       if (!isEditableTarget(e.target as HTMLElement)) {
+        const selectedCards = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
         if (e.key === "ArrowLeft") {
           e.preventDefault();
           moveActiveDay(-1, 0);
@@ -3387,9 +3415,51 @@ export default function Page() {
           e.preventDefault();
           moveActiveDay(1, 0);
         } else if (e.key === "ArrowUp") {
+          if (selectedCards.length) {
+            const currentCard = selectedCards[0];
+            const cell = currentCard.closest(".day-cell");
+            if (cell) {
+              const cards = Array.from(cell.querySelectorAll<HTMLDivElement>(".card"));
+              const idx = cards.indexOf(currentCard);
+              const nextIdx = idx > 0 ? idx - 1 : 0;
+              const next = cards[nextIdx];
+              if (next) {
+                e.preventDefault();
+                clearSelection();
+                next.classList.add("selected");
+                setActiveDay(cell);
+                setActiveSection(cell, next.dataset.sectionId || "default");
+                next.scrollIntoView({ block: "nearest" });
+                return;
+              }
+            }
+            e.preventDefault();
+            return;
+          }
           e.preventDefault();
           moveActiveDay(0, -1);
         } else if (e.key === "ArrowDown") {
+          if (selectedCards.length) {
+            const currentCard = selectedCards[0];
+            const cell = currentCard.closest(".day-cell");
+            if (cell) {
+              const cards = Array.from(cell.querySelectorAll<HTMLDivElement>(".card"));
+              const idx = cards.indexOf(currentCard);
+              const nextIdx = idx >= 0 && idx < cards.length - 1 ? idx + 1 : idx;
+              const next = cards[nextIdx];
+              if (next) {
+                e.preventDefault();
+                clearSelection();
+                next.classList.add("selected");
+                setActiveDay(cell);
+                setActiveSection(cell, next.dataset.sectionId || "default");
+                next.scrollIntoView({ block: "nearest" });
+                return;
+              }
+            }
+            e.preventDefault();
+            return;
+          }
           e.preventDefault();
           moveActiveDay(0, 1);
         }
@@ -3541,9 +3611,17 @@ export default function Page() {
         const tag = target.tagName.toLowerCase();
         if (tag === "input" || tag === "textarea") return;
       }
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const node = range.commonAncestorContainer;
+        const el = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement) as HTMLElement | null;
+        if (el && el.closest(".card-content")) {
+          return;
+        }
+      }
       const selected = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
       if (!selected.length) {
-        const sel = window.getSelection();
         if (sel && !sel.isCollapsed && sel.toString().trim()) {
           return;
         }

@@ -398,6 +398,8 @@ export default function Page() {
     let tabs: Array<{ id: string; name: string }> = [];
     let activeTabId = "work";
     let editingCardId: string | null = null;
+    let lastSelectedCardId: string | null = null;
+    let selectionAnchorCardId: string | null = null;
     const tabBar = document.getElementById("tabBar") as HTMLElement | null;
     const DEBUG_SYNC = localStorage.getItem("muchi-debug-sync") === "1";
     const dbg = (...args: unknown[]) => {
@@ -407,10 +409,20 @@ export default function Page() {
 
     function toggleSelection(card: HTMLDivElement) {
       card.classList.toggle("selected");
+      if (card.classList.contains("selected")) {
+        lastSelectedCardId = card.dataset.cardId || null;
+        if (!selectionAnchorCardId) {
+          selectionAnchorCardId = lastSelectedCardId;
+        }
+      } else if (selectionAnchorCardId === card.dataset.cardId) {
+        selectionAnchorCardId = null;
+      }
     }
 
     function clearSelection() {
       document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
+      lastSelectedCardId = null;
+      selectionAnchorCardId = null;
     }
 
     function sanitizeToTextAndEmojis(html: string) {
@@ -2224,6 +2236,8 @@ export default function Page() {
       container.appendChild(card);
 
       card.addEventListener("click", (e) => {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) return;
         if (e.shiftKey) {
           e.stopPropagation();
           toggleSelection(card);
@@ -2231,6 +2245,8 @@ export default function Page() {
         }
         clearSelection();
         card.classList.add("selected");
+        lastSelectedCardId = card.dataset.cardId || null;
+        selectionAnchorCardId = lastSelectedCardId;
         const day = card.closest(".day-cell") as HTMLElement | null;
         setActiveDay(day);
         setActiveSection(day, card.dataset.sectionId || "default");
@@ -3378,12 +3394,20 @@ export default function Page() {
           const body = getActiveSectionBody(activeCell);
           if (body) {
             e.preventDefault();
-            createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+            const newCard = createCard(
+              body,
+              { text: "", done: false, color: "default" },
+              { autoEdit: true, fromState: false },
+            );
             const key = activeCell.dataset.date;
             if (key) updateDayBadge(key);
             setActiveDay(activeCell);
             pushHistory();
             updateSectionHints(activeCell);
+            clearSelection();
+            newCard.classList.add("selected");
+            lastSelectedCardId = newCard.dataset.cardId || null;
+            selectionAnchorCardId = lastSelectedCardId;
           }
         }
       }
@@ -3416,8 +3440,11 @@ export default function Page() {
           moveActiveDay(1, 0);
         } else if (e.key === "ArrowUp") {
           if (selectedCards.length) {
-            const currentCard = selectedCards[0];
-            const cell = currentCard.closest(".day-cell");
+            const currentCard =
+              (lastSelectedCardId
+                ? (document.querySelector(`.card[data-card-id="${lastSelectedCardId}"]`) as HTMLDivElement | null)
+                : null) || selectedCards[selectedCards.length - 1];
+            const cell = currentCard.closest(".day-cell") as HTMLElement | null;
             if (cell) {
               const cards = Array.from(cell.querySelectorAll<HTMLDivElement>(".card"));
               const idx = cards.indexOf(currentCard);
@@ -3425,12 +3452,39 @@ export default function Page() {
               const next = cards[nextIdx];
               if (next) {
                 e.preventDefault();
-                clearSelection();
-                next.classList.add("selected");
-                setActiveDay(cell);
-                setActiveSection(cell, next.dataset.sectionId || "default");
-                next.scrollIntoView({ block: "nearest" });
-                return;
+                if (e.shiftKey) {
+                  const anchorId = selectionAnchorCardId || currentCard.dataset.cardId;
+                  if (!anchorId) return;
+                  const anchorEl = document.querySelector(
+                    `.card[data-card-id="${anchorId}"]`,
+                  ) as HTMLDivElement | null;
+                  if (!anchorEl) return;
+                  const anchorIdx = cards.indexOf(anchorEl);
+                  const targetIdx = cards.indexOf(next);
+                  if (anchorIdx >= 0 && targetIdx >= 0) {
+                    clearSelection();
+                    const [from, to] =
+                      anchorIdx <= targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+                    for (let i = from; i <= to; i++) {
+                      cards[i].classList.add("selected");
+                    }
+                    lastSelectedCardId = next.dataset.cardId || null;
+                    selectionAnchorCardId = anchorId;
+                    setActiveDay(cell);
+                    setActiveSection(cell, next.dataset.sectionId || "default");
+                    next.scrollIntoView({ block: "nearest" });
+                    return;
+                  }
+                } else {
+                  clearSelection();
+                  next.classList.add("selected");
+                  lastSelectedCardId = next.dataset.cardId || null;
+                  selectionAnchorCardId = lastSelectedCardId;
+                  setActiveDay(cell);
+                  setActiveSection(cell, next.dataset.sectionId || "default");
+                  next.scrollIntoView({ block: "nearest" });
+                  return;
+                }
               }
             }
             e.preventDefault();
@@ -3440,8 +3494,11 @@ export default function Page() {
           moveActiveDay(0, -1);
         } else if (e.key === "ArrowDown") {
           if (selectedCards.length) {
-            const currentCard = selectedCards[0];
-            const cell = currentCard.closest(".day-cell");
+            const currentCard =
+              (lastSelectedCardId
+                ? (document.querySelector(`.card[data-card-id="${lastSelectedCardId}"]`) as HTMLDivElement | null)
+                : null) || selectedCards[selectedCards.length - 1];
+            const cell = currentCard.closest(".day-cell") as HTMLElement | null;
             if (cell) {
               const cards = Array.from(cell.querySelectorAll<HTMLDivElement>(".card"));
               const idx = cards.indexOf(currentCard);
@@ -3449,12 +3506,39 @@ export default function Page() {
               const next = cards[nextIdx];
               if (next) {
                 e.preventDefault();
-                clearSelection();
-                next.classList.add("selected");
-                setActiveDay(cell);
-                setActiveSection(cell, next.dataset.sectionId || "default");
-                next.scrollIntoView({ block: "nearest" });
-                return;
+                if (e.shiftKey) {
+                  const anchorId = selectionAnchorCardId || currentCard.dataset.cardId;
+                  if (!anchorId) return;
+                  const anchorEl = document.querySelector(
+                    `.card[data-card-id="${anchorId}"]`,
+                  ) as HTMLDivElement | null;
+                  if (!anchorEl) return;
+                  const anchorIdx = cards.indexOf(anchorEl);
+                  const targetIdx = cards.indexOf(next);
+                  if (anchorIdx >= 0 && targetIdx >= 0) {
+                    clearSelection();
+                    const [from, to] =
+                      anchorIdx <= targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+                    for (let i = from; i <= to; i++) {
+                      cards[i].classList.add("selected");
+                    }
+                    lastSelectedCardId = next.dataset.cardId || null;
+                    selectionAnchorCardId = anchorId;
+                    setActiveDay(cell);
+                    setActiveSection(cell, next.dataset.sectionId || "default");
+                    next.scrollIntoView({ block: "nearest" });
+                    return;
+                  }
+                } else {
+                  clearSelection();
+                  next.classList.add("selected");
+                  lastSelectedCardId = next.dataset.cardId || null;
+                  selectionAnchorCardId = lastSelectedCardId;
+                  setActiveDay(cell);
+                  setActiveSection(cell, next.dataset.sectionId || "default");
+                  next.scrollIntoView({ block: "nearest" });
+                  return;
+                }
               }
             }
             e.preventDefault();
@@ -3613,12 +3697,7 @@ export default function Page() {
       }
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        const node = range.commonAncestorContainer;
-        const el = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement) as HTMLElement | null;
-        if (el && el.closest(".card-content")) {
-          return;
-        }
+        return;
       }
       const selected = Array.from(document.querySelectorAll<HTMLDivElement>(".card.selected"));
       if (!selected.length) {

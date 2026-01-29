@@ -2143,6 +2143,8 @@ export default function Page() {
         }
         const jsonData = e.clipboardData?.getData("application/json");
         if (jsonData) {
+          e.preventDefault();
+          showToast("카드 복사는 카드 밖에서 붙여넣기 해주세요.");
           return;
         }
         const activeEl = document.activeElement as HTMLElement | null;

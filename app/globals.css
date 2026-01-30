@@ -1677,7 +1677,7 @@ header {
       outline: 2px solid var(--theme-accent-outline);
       box-shadow: 0 0 0 4px rgba(var(--theme-accent-rgb), 0.15);
       position: relative;
-      z-index: 25;
+      z-index: 80;
     }
 
     .day-cell.has-sticker {

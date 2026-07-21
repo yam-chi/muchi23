@@ -13,6 +13,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     storageKey: "sb-ndayxojdgsolszqamzbq-auth-token",
   },
+  global: {
+    // keepalive: 페이지를 닫거나 새로고침하는 순간에도 이미 시작된 저장 요청이
+    // 끊기지 않고 완료되도록 함 (beforeunload 시점의 마지막 저장 유실 방지)
+    fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+  },
 });
 
 // 디버그용으로 브라우저 콘솔에서 접근 가능하게 노출

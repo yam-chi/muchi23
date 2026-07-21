@@ -806,14 +806,34 @@ export default function Page() {
 
     function undo() {
       if (historyIndex <= 0) return;
+      const beforeState = state;
       historyIndex--;
       const prev = history[historyIndex];
       state = JSON.parse(JSON.stringify(prev));
       saveState();
+      saveLocalState();
       renderCalendar();
       if (!previewMode) {
+        // periodicSync는 upsert만 하므로, undo로 사라진(=이전 스냅샷에 없는) 카드/스티커는
+        // 서버에서도 명시적으로 삭제해야 새로고침 시 되살아나지 않는다.
+        const removedCardIds: string[] = [];
+        Object.entries(beforeState.cards).forEach(([dateKey, list]) => {
+          const afterIds = new Set((state.cards[dateKey] || []).map((c) => c.id));
+          list.forEach((c) => {
+            if (!afterIds.has(c.id)) removedCardIds.push(c.id);
+          });
+        });
+        const removedStickerIds: string[] = [];
+        Object.entries(beforeState.stickers).forEach(([dateKey, list]) => {
+          const afterIds = new Set((state.stickers[dateKey] || []).map((s) => s.id));
+          list.forEach((s) => {
+            if (!afterIds.has(s.id)) removedStickerIds.push(s.id);
+          });
+        });
         requestAnimationFrame(() => {
           void periodicSync();
+          removedCardIds.forEach((id) => void deleteCardInSupabase(id));
+          removedStickerIds.forEach((id) => void deleteStickerInSupabase(id));
         });
       }
     }
@@ -979,9 +999,9 @@ export default function Page() {
     }
 
     async function fetchCardsFromSupabase(tabId = activeTabId) {
-      if (previewMode) return;
+      if (previewMode) return false;
       const uid = currentUserIdRef.current;
-      if (!uid) return;
+      if (!uid) return false;
       const localSnapshot = tabId === activeTabId ? loadLocalState() : undefined;
       const { data, error } = await supabase
         .from("cards")
@@ -993,9 +1013,9 @@ export default function Page() {
         .order("created_at", { ascending: true });
       if (error) {
         console.error("supabase load error", error);
-        return;
+        return false;
       }
-      if (tabId !== activeTabId) return;
+      if (tabId !== activeTabId) return false;
       const grouped: Record<string, CardData[]> = {};
       const sectionMap: Record<string, SectionData[]> = {};
       data?.forEach((row) => {
@@ -1033,12 +1053,13 @@ export default function Page() {
       state.cards = grouped;
       state.sections = sectionMap;
       saveLocalState();
+      return true;
     }
 
     async function fetchStickersFromSupabase(tabId = activeTabId) {
-      if (previewMode) return;
+      if (previewMode) return false;
       const uid = currentUserIdRef.current;
-      if (!uid) return;
+      if (!uid) return false;
       const { data, error } = await supabase
         .from("stickers")
         .select("id, date_key, src, x, y, width, height, rotation, z, board_id")
@@ -1047,9 +1068,9 @@ export default function Page() {
         .order("created_at", { ascending: true });
       if (error) {
         console.error("supabase sticker load error", error);
-        return;
+        return false;
       }
-      if (tabId !== activeTabId) return;
+      if (tabId !== activeTabId) return false;
       const grouped: Record<string, StickerData[]> = {};
       data?.forEach((row) => {
         const dk = row.date_key;
@@ -1067,21 +1088,26 @@ export default function Page() {
       });
       state.stickers = grouped;
       saveLocalState();
+      return true;
     }
 
     async function loadState() {
       const tabId = activeTabId;
       // Supabase 데이터 우선
+      let cardsFetched = false;
+      let stickersFetched = false;
       if (!previewMode) {
         await repairBoardMappingFromLocal();
-        await fetchCardsFromSupabase(tabId);
-        await fetchStickersFromSupabase(tabId);
+        cardsFetched = !!(await fetchCardsFromSupabase(tabId));
+        stickersFetched = !!(await fetchStickersFromSupabase(tabId));
       }
       if (tabId !== activeTabId) return;
       currentBoardIdRef.current = tabId;
-      // Supabase에 아무 것도 없을 때만 로컬 캐시 복구
+      // Supabase 조회에 실패했거나(오프라인/에러) 건너뛴 경우(미리보기 모드 등)에만
+      // 로컬 캐시로 복구한다. 조회에 성공했다면 카드가 0개인 것도 "진짜 0개"이므로
+      // 오래된 로컬 캐시로 덮어쓰지 않는다.
       const local = loadLocalState();
-      if (!Object.keys(state.cards).length && local?.cards) {
+      if (!cardsFetched && !Object.keys(state.cards).length && local?.cards) {
         state.cards = local.cards;
         Object.values(state.cards).forEach((list) => {
           if (!Array.isArray(list)) return;
@@ -1093,7 +1119,7 @@ export default function Page() {
       if (local?.sections) {
         state.sections = local.sections;
       }
-      if (!Object.keys(state.stickers).length && local?.stickers) {
+      if (!stickersFetched && !Object.keys(state.stickers).length && local?.stickers) {
         state.stickers = local.stickers;
       }
       ensureCardBoardIds(tabId);
@@ -3137,6 +3163,24 @@ export default function Page() {
         console.error("loadState error", err);
         renderCalendar();
       });
+
+    // 편집 중 blur 없이 탭을 닫거나 새로고침하면 마지막 입력이 저장되지 않고
+    // 유실될 수 있어, 페이지가 사라지기 직전 편집 중이던 카드를 강제로 flush한다.
+    // (supabase 클라이언트는 keepalive fetch를 사용하므로 요청이 페이지 종료 후에도 이어진다)
+    function flushEditingCardBeforeLeave() {
+      if (editingCardId) {
+        const activeCard = document.querySelector<HTMLDivElement>(
+          `.card[data-card-id="${editingCardId}"]`,
+        );
+        if (activeCard) syncOneCardFromDom(activeCard, false);
+      }
+      saveLocalState();
+    }
+    window.addEventListener("beforeunload", flushEditingCardBeforeLeave);
+    window.addEventListener("pagehide", flushEditingCardBeforeLeave);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushEditingCardBeforeLeave();
+    });
 
     // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
     // prev/next 버튼은 숨김 상태 (동작 비활성)

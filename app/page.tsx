@@ -871,6 +871,93 @@ export default function Page() {
       }
     }
 
+    const COLUMN_WIDTH_KEY = "muchi-column-widths-v1";
+    const MIN_COL_WIDTH = 140;
+    const MAX_COL_WIDTH = 640;
+
+    function applyColumnWidth(index: number, px: number | null) {
+      if (px == null) {
+        document.documentElement.style.removeProperty(`--col-w-${index}`);
+      } else {
+        document.documentElement.style.setProperty(`--col-w-${index}`, `${px}px`);
+      }
+    }
+
+    function loadColumnWidths() {
+      try {
+        const raw = localStorage.getItem(COLUMN_WIDTH_KEY);
+        if (!raw) return;
+        const arr = JSON.parse(raw) as Array<number | null>;
+        arr.forEach((w, i) => {
+          if (typeof w === "number" && w >= MIN_COL_WIDTH && w <= MAX_COL_WIDTH) {
+            applyColumnWidth(i, w);
+          }
+        });
+      } catch (e) {
+        console.error("loadColumnWidths error", e);
+      }
+    }
+
+    function saveColumnWidths() {
+      try {
+        const widths: Array<number | null> = [];
+        for (let i = 0; i < 7; i++) {
+          const raw = document.documentElement.style.getPropertyValue(`--col-w-${i}`).trim();
+          widths.push(raw ? parseFloat(raw) : null);
+        }
+        localStorage.setItem(COLUMN_WIDTH_KEY, JSON.stringify(widths));
+      } catch (e) {
+        console.error("saveColumnWidths error", e);
+      }
+    }
+
+    function setupColumnResize() {
+      const handles = Array.from(
+        document.querySelectorAll<HTMLElement>(".col-resize-handle"),
+      );
+      handles.forEach((handle) => {
+        const colIndex = Number(handle.dataset.colIndex);
+        handle.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const weekdayCol = handle.closest(".weekday-col") as HTMLElement | null;
+          if (!weekdayCol) return;
+          const startWidth = weekdayCol.getBoundingClientRect().width / uiScaleValue();
+          const startX = e.clientX;
+          handle.classList.add("resizing");
+          function onMove(ev: MouseEvent) {
+            const delta = (ev.clientX - startX) / uiScaleValue();
+            const next = Math.min(
+              MAX_COL_WIDTH,
+              Math.max(MIN_COL_WIDTH, Math.round(startWidth + delta)),
+            );
+            applyColumnWidth(colIndex, next);
+          }
+          function onUp() {
+            handle.classList.remove("resizing");
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            saveColumnWidths();
+          }
+          window.addEventListener("mousemove", onMove);
+          window.addEventListener("mouseup", onUp);
+        });
+        handle.addEventListener("dblclick", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          applyColumnWidth(colIndex, null);
+          saveColumnWidths();
+        });
+      });
+    }
+
+    function uiScaleValue() {
+      const v = Number(
+        getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
+      );
+      return Number.isFinite(v) && v > 0 ? v : 1;
+    }
+
     function adjustScale(delta: number) {
       const current = Number(
         getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"),
@@ -3146,6 +3233,8 @@ export default function Page() {
     ensureTabs();
     loadActiveTab();
     renderTabs();
+    loadColumnWidths();
+    setupColumnResize();
 
     loadState()
       .then(() => {
@@ -4980,6 +5069,14 @@ export default function Page() {
           </div>
           <div className="tab-strip">
             <div className="tab-bar" id="tabBar" />
+          </div>
+          <div className="weekday-row" id="weekdayRow">
+            {WEEKDAY_NAMES_MON_FIRST.map((label, i) => (
+              <div className="weekday-col" key={label}>
+                {label}
+                <span className="col-resize-handle" data-col-index={i} title="드래그해서 칸 너비 조절 (더블클릭: 초기화)" />
+              </div>
+            ))}
           </div>
           <div className="calendar-grid" id="calendarGrid" />
         </div>

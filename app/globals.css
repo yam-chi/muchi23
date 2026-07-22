@@ -967,6 +967,9 @@ header {
    소스 순서상 나중에 나오는 기본 .calendar-grid/.day-cell 규칙에 밀려버린다.
    그래서 여기서는 순서에 의존하지 않도록 #calendarGrid ID 선택자로 우선순위를 확보한다. */
 @media (max-width: 600px) {
+  #weekdayRow {
+    display: none;
+  }
   #calendarGrid,
   .weekend-hidden #calendarGrid {
     grid-template-columns: 1fr;
@@ -1488,22 +1491,90 @@ header {
     }
 
 
+    /* 요일별 칸 너비: 사용자가 드래그로 조정하면 --col-w-N(px)이 채워지고,
+       조정 전에는 기본값(minmax(230px, 1fr))을 그대로 쓴다. */
+    .weekday-row,
+    .calendar-grid {
+      grid-template-columns:
+        var(--col-w-0, minmax(230px, 1fr))
+        var(--col-w-1, minmax(230px, 1fr))
+        var(--col-w-2, minmax(230px, 1fr))
+        var(--col-w-3, minmax(230px, 1fr))
+        var(--col-w-4, minmax(230px, 1fr))
+        var(--col-w-5, minmax(230px, 1fr))
+        var(--col-w-6, minmax(230px, 1fr));
+    }
+
+    .weekend-hidden .weekday-row,
+    .weekend-hidden .calendar-grid {
+      grid-template-columns:
+        var(--col-w-0, minmax(230px, 1fr))
+        var(--col-w-1, minmax(230px, 1fr))
+        var(--col-w-2, minmax(230px, 1fr))
+        var(--col-w-3, minmax(230px, 1fr))
+        var(--col-w-4, minmax(230px, 1fr));
+    }
+
     .weekday-row {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
+      gap: 0;
       margin-bottom: 12px;
       font-size: 12px;
       font-weight: 700;
       color: rgba(17, 24, 39, 0.6);
       text-align: center;
       letter-spacing: 0.3px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--panel-bg);
+      min-width: 1680px; /* .calendar-grid와 동일하게: 줌/칸너비 조정 시 항상 정렬 유지 */
+      transform: scale(var(--ui-scale));
+      transform-origin: top left;
+      width: calc(100% / var(--ui-scale));
+    }
+
+    .weekend-hidden .weekday-row {
+      min-width: 1200px;
+    }
+
+    .weekday-col {
+      position: relative;
+      padding: 4px 0;
+    }
+
+    .col-resize-handle {
+      position: absolute;
+      top: 0;
+      right: -5px;
+      width: 10px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 6;
+      border-radius: 4px;
+    }
+
+    .col-resize-handle:hover,
+    .col-resize-handle.resizing {
+      background: rgba(var(--theme-accent-rgb), 0.25);
+    }
+
+    .weekday-row > div:last-child .col-resize-handle {
+      display: none;
+    }
+
+    .weekend-hidden .weekday-row > div:nth-child(5) .col-resize-handle {
+      display: none;
+    }
+
+    .weekend-hidden .weekday-row div:nth-child(6),
+    .weekend-hidden .weekday-row div:nth-child(7) {
+      display: none;
     }
 
     /* 주별 레이아웃 + 접기/펼치기 */
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(230px, 1fr));
       gap: 0;
       min-width: 1680px; /* 230px*7 + gaps */
       transform: scale(var(--ui-scale));
@@ -1512,21 +1583,6 @@ header {
     }
 
     .weekend-hidden .calendar-grid {
-      grid-template-columns: repeat(5, minmax(230px, 1fr));
-      min-width: 1200px;
-    }
-
-    .weekend-hidden .weekday-row {
-      grid-template-columns: repeat(5, 1fr);
-    }
-
-    .weekend-hidden .weekday-row div:nth-child(6),
-    .weekend-hidden .weekday-row div:nth-child(7) {
-      display: none;
-    }
-
-    .weekend-hidden .calendar-grid {
-      grid-template-columns: repeat(5, minmax(230px, 1fr));
       min-width: 1200px;
     }
 

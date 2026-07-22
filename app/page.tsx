@@ -871,84 +871,91 @@ export default function Page() {
       }
     }
 
-    const COLUMN_WIDTH_KEY = "muchi-column-widths-v1";
+    const WEEK_COLUMN_WIDTH_KEY = "muchi-week-column-widths-v1";
     const MIN_COL_WIDTH = 140;
     const MAX_COL_WIDTH = 640;
+    // 주(월요일 날짜키)별 요일 칸 너비. 이 주에서 드래그로 조정한 칸만 기록되고,
+    // 다른 주에는 영향을 주지 않는다.
+    let weekColumnWidths: Record<string, Array<number | null>> = {};
 
-    function applyColumnWidth(index: number, px: number | null) {
-      if (px == null) {
-        document.documentElement.style.removeProperty(`--col-w-${index}`);
-      } else {
-        document.documentElement.style.setProperty(`--col-w-${index}`, `${px}px`);
-      }
-    }
-
-    function loadColumnWidths() {
+    function loadWeekColumnWidths() {
       try {
-        const raw = localStorage.getItem(COLUMN_WIDTH_KEY);
+        const raw = localStorage.getItem(WEEK_COLUMN_WIDTH_KEY);
         if (!raw) return;
-        const arr = JSON.parse(raw) as Array<number | null>;
-        arr.forEach((w, i) => {
-          if (typeof w === "number" && w >= MIN_COL_WIDTH && w <= MAX_COL_WIDTH) {
-            applyColumnWidth(i, w);
-          }
-        });
+        weekColumnWidths = JSON.parse(raw) as Record<string, Array<number | null>>;
       } catch (e) {
-        console.error("loadColumnWidths error", e);
+        console.error("loadWeekColumnWidths error", e);
       }
     }
 
-    function saveColumnWidths() {
+    function saveWeekColumnWidths() {
       try {
-        const widths: Array<number | null> = [];
-        for (let i = 0; i < 7; i++) {
-          const raw = document.documentElement.style.getPropertyValue(`--col-w-${i}`).trim();
-          widths.push(raw ? parseFloat(raw) : null);
-        }
-        localStorage.setItem(COLUMN_WIDTH_KEY, JSON.stringify(widths));
+        localStorage.setItem(WEEK_COLUMN_WIDTH_KEY, JSON.stringify(weekColumnWidths));
       } catch (e) {
-        console.error("saveColumnWidths error", e);
+        console.error("saveWeekColumnWidths error", e);
       }
     }
 
-    function setupColumnResize() {
-      const handles = Array.from(
-        document.querySelectorAll<HTMLElement>(".col-resize-handle"),
-      );
-      handles.forEach((handle) => {
-        const colIndex = Number(handle.dataset.colIndex);
-        handle.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const weekdayCol = handle.closest(".weekday-col") as HTMLElement | null;
-          if (!weekdayCol) return;
-          const startWidth = weekdayCol.getBoundingClientRect().width / uiScaleValue();
-          const startX = e.clientX;
-          handle.classList.add("resizing");
-          function onMove(ev: MouseEvent) {
-            const delta = (ev.clientX - startX) / uiScaleValue();
-            const next = Math.min(
-              MAX_COL_WIDTH,
-              Math.max(MIN_COL_WIDTH, Math.round(startWidth + delta)),
-            );
-            applyColumnWidth(colIndex, next);
-          }
-          function onUp() {
-            handle.classList.remove("resizing");
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-            saveColumnWidths();
-          }
-          window.addEventListener("mousemove", onMove);
-          window.addEventListener("mouseup", onUp);
-        });
-        handle.addEventListener("dblclick", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          applyColumnWidth(colIndex, null);
-          saveColumnWidths();
-        });
+    function applyStoredWeekColumnWidths(rowEl: HTMLElement, weekKey: string) {
+      const widths = weekColumnWidths[weekKey];
+      if (!widths) return;
+      widths.forEach((w, i) => {
+        if (typeof w === "number" && w >= MIN_COL_WIDTH && w <= MAX_COL_WIDTH) {
+          rowEl.style.setProperty(`--col-w-${i}`, `${w}px`);
+        }
       });
+    }
+
+    function createColumnResizeHandle(colIndex: number) {
+      const handle = document.createElement("span");
+      handle.className = "col-resize-handle";
+      handle.title = "드래그해서 이번 주만 칸 너비 조절 (더블클릭: 이번 주 초기화)";
+      handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rowElNullable = handle.closest(".week-row-grid") as HTMLElement | null;
+        const cellEl = handle.closest(".day-cell") as HTMLElement | null;
+        if (!rowElNullable || !cellEl) return;
+        const rowEl = rowElNullable;
+        const weekKey = rowEl.dataset.weekKey || "";
+        const startWidth = cellEl.getBoundingClientRect().width / uiScaleValue();
+        const startX = e.clientX;
+        handle.classList.add("resizing");
+        function onMove(ev: MouseEvent) {
+          const delta = (ev.clientX - startX) / uiScaleValue();
+          const next = Math.min(
+            MAX_COL_WIDTH,
+            Math.max(MIN_COL_WIDTH, Math.round(startWidth + delta)),
+          );
+          rowEl.style.setProperty(`--col-w-${colIndex}`, `${next}px`);
+        }
+        function onUp() {
+          handle.classList.remove("resizing");
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+          if (!weekKey) return;
+          const raw = rowEl.style.getPropertyValue(`--col-w-${colIndex}`).trim();
+          const widths = weekColumnWidths[weekKey] || [];
+          widths[colIndex] = raw ? parseFloat(raw) : null;
+          weekColumnWidths[weekKey] = widths;
+          saveWeekColumnWidths();
+        }
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      });
+      handle.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rowEl = handle.closest(".week-row-grid") as HTMLElement | null;
+        if (!rowEl) return;
+        const weekKey = rowEl.dataset.weekKey || "";
+        rowEl.style.removeProperty(`--col-w-${colIndex}`);
+        if (weekKey && weekColumnWidths[weekKey]) {
+          weekColumnWidths[weekKey][colIndex] = null;
+          saveWeekColumnWidths();
+        }
+      });
+      return handle;
     }
 
     function uiScaleValue() {
@@ -2544,11 +2551,42 @@ export default function Page() {
       }
       let renderedCount = 0;
 
+      // 주(week) 단위로 독립된 그리드를 만들어서, 칸 너비 조정이 그 주에만 적용되게 한다.
+      const mondayOfFirstRow = new Date(startDate);
+      mondayOfFirstRow.setDate(mondayOfFirstRow.getDate() - leadingEmpty);
+      let currentWeekRow: HTMLDivElement | null = null;
+      let colInRow = 0;
+      let rowIndex = 0;
+      const appendToGrid = (el: HTMLDivElement) => {
+        if (!currentWeekRow || colInRow >= columns) {
+          const weekStart = new Date(mondayOfFirstRow);
+          weekStart.setDate(weekStart.getDate() + rowIndex * 7);
+          const weekKey = formatDateKey(weekStart);
+          currentWeekRow = document.createElement("div");
+          currentWeekRow.className = "week-row-grid";
+          currentWeekRow.dataset.weekKey = weekKey;
+          applyStoredWeekColumnWidths(currentWeekRow, weekKey);
+          calendarGrid!.appendChild(currentWeekRow);
+          colInRow = 0;
+          rowIndex++;
+        }
+        const thisColIndex = colInRow;
+        currentWeekRow.appendChild(el);
+        if (
+          el.classList.contains("day-cell") &&
+          !el.classList.contains("placeholder") &&
+          thisColIndex < columns - 1
+        ) {
+          el.appendChild(createColumnResizeHandle(thisColIndex));
+        }
+        colInRow++;
+      };
+
       // 앞쪽 빈 셀로 요일 정렬
       for (let i = 0; i < leadingEmpty; i++) {
         const placeholder = document.createElement("div");
         placeholder.className = "day-cell placeholder";
-        calendarGrid.appendChild(placeholder);
+        appendToGrid(placeholder);
       }
 
       for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
@@ -2744,7 +2782,7 @@ export default function Page() {
           openStickerPalette(stickerBtn);
         });
         cell.appendChild(stickerBtn);
-        calendarGrid.appendChild(cell);
+        appendToGrid(cell);
 
         if (!cell.dataset.activeSectionId) {
           cell.dataset.activeSectionId = "default";
@@ -2961,7 +2999,7 @@ export default function Page() {
       for (let i = 0; i < trailing; i++) {
         const placeholder = document.createElement("div");
         placeholder.className = "day-cell placeholder";
-        calendarGrid.appendChild(placeholder);
+        appendToGrid(placeholder);
       }
 
       // 선택 유지: 기존 선택된 날짜가 있으면 새 DOM에서 다시 표시
@@ -3233,8 +3271,7 @@ export default function Page() {
     ensureTabs();
     loadActiveTab();
     renderTabs();
-    loadColumnWidths();
-    setupColumnResize();
+    loadWeekColumnWidths();
 
     loadState()
       .then(() => {
@@ -5069,14 +5106,6 @@ export default function Page() {
           </div>
           <div className="tab-strip">
             <div className="tab-bar" id="tabBar" />
-          </div>
-          <div className="weekday-row" id="weekdayRow">
-            {WEEKDAY_NAMES_MON_FIRST.map((label, i) => (
-              <div className="weekday-col" key={label}>
-                {label}
-                <span className="col-resize-handle" data-col-index={i} title="드래그해서 칸 너비 조절 (더블클릭: 초기화)" />
-              </div>
-            ))}
           </div>
           <div className="calendar-grid" id="calendarGrid" />
         </div>

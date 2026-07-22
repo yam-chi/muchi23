@@ -967,14 +967,14 @@ header {
    소스 순서상 나중에 나오는 기본 .calendar-grid/.day-cell 규칙에 밀려버린다.
    그래서 여기서는 순서에 의존하지 않도록 #calendarGrid ID 선택자로 우선순위를 확보한다. */
 @media (max-width: 600px) {
-  #weekdayRow {
-    display: none;
-  }
-  #calendarGrid,
-  .weekend-hidden #calendarGrid {
+  #calendarGrid .week-row-grid,
+  .weekend-hidden #calendarGrid .week-row-grid {
     grid-template-columns: 1fr;
     min-width: 0;
     gap: 12px;
+  }
+  #calendarGrid .col-resize-handle {
+    display: none;
   }
   #calendarGrid .day-cell {
     min-height: auto;
@@ -1491,10 +1491,19 @@ header {
     }
 
 
-    /* 요일별 칸 너비: 사용자가 드래그로 조정하면 --col-w-N(px)이 채워지고,
-       조정 전에는 기본값(minmax(230px, 1fr))을 그대로 쓴다. */
-    .weekday-row,
+    /* 주별 레이아웃 + 접기/펼치기: 주(week)마다 독립된 그리드라서
+       칸 너비 조정이 그 주에만 적용된다. */
     .calendar-grid {
+      display: block;
+      transform: scale(var(--ui-scale));
+      transform-origin: top left;
+      width: calc(100% / var(--ui-scale));
+    }
+
+    /* 한 주(週) 분량의 요일 칸들을 담는 그리드. --col-w-N은 이 주의 인라인
+       스타일로만 설정되므로 다른 주에는 영향을 주지 않는다. */
+    .week-row-grid {
+      display: grid;
       grid-template-columns:
         var(--col-w-0, minmax(230px, 1fr))
         var(--col-w-1, minmax(230px, 1fr))
@@ -1503,46 +1512,22 @@ header {
         var(--col-w-4, minmax(230px, 1fr))
         var(--col-w-5, minmax(230px, 1fr))
         var(--col-w-6, minmax(230px, 1fr));
+      gap: 0;
+      min-width: 1680px; /* 230px*7 + gaps */
     }
 
-    .weekend-hidden .weekday-row,
-    .weekend-hidden .calendar-grid {
+    .weekend-hidden .week-row-grid {
       grid-template-columns:
         var(--col-w-0, minmax(230px, 1fr))
         var(--col-w-1, minmax(230px, 1fr))
         var(--col-w-2, minmax(230px, 1fr))
         var(--col-w-3, minmax(230px, 1fr))
         var(--col-w-4, minmax(230px, 1fr));
-    }
-
-    .weekday-row {
-      display: grid;
-      gap: 0;
-      margin-bottom: 12px;
-      font-size: 12px;
-      font-weight: 700;
-      color: rgba(17, 24, 39, 0.6);
-      text-align: center;
-      letter-spacing: 0.3px;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      background: var(--panel-bg);
-      min-width: 1680px; /* .calendar-grid와 동일하게: 줌/칸너비 조정 시 항상 정렬 유지 */
-      transform: scale(var(--ui-scale));
-      transform-origin: top left;
-      width: calc(100% / var(--ui-scale));
-    }
-
-    .weekend-hidden .weekday-row {
       min-width: 1200px;
     }
 
-    .weekday-col {
-      position: relative;
-      padding: 4px 0;
-    }
-
+    /* 칸 경계 드래그 핸들: 각 day-cell의 오른쪽 경계에 붙어서, 그 칸이 속한
+       주(week-row-grid)의 너비만 바꾼다. 평소엔 숨겨두고 hover 시에만 노출. */
     .col-resize-handle {
       position: absolute;
       top: 0;
@@ -1552,38 +1537,18 @@ header {
       cursor: col-resize;
       z-index: 6;
       border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    .day-cell:hover .col-resize-handle,
+    .col-resize-handle.resizing {
+      opacity: 1;
     }
 
     .col-resize-handle:hover,
     .col-resize-handle.resizing {
       background: rgba(var(--theme-accent-rgb), 0.25);
-    }
-
-    .weekday-row > div:last-child .col-resize-handle {
-      display: none;
-    }
-
-    .weekend-hidden .weekday-row > div:nth-child(5) .col-resize-handle {
-      display: none;
-    }
-
-    .weekend-hidden .weekday-row div:nth-child(6),
-    .weekend-hidden .weekday-row div:nth-child(7) {
-      display: none;
-    }
-
-    /* 주별 레이아웃 + 접기/펼치기 */
-    .calendar-grid {
-      display: grid;
-      gap: 0;
-      min-width: 1680px; /* 230px*7 + gaps */
-      transform: scale(var(--ui-scale));
-      transform-origin: top left;
-      width: calc(100% / var(--ui-scale));
-    }
-
-    .weekend-hidden .calendar-grid {
-      min-width: 1200px;
     }
 
     .expanded-overlay {

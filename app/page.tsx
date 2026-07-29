@@ -3325,10 +3325,12 @@ export default function Page() {
             const container = calendarWrapper || document.documentElement;
             const containerRect = container.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
-            const headerHeight = headerCollapsed ? 0 : 140;
-            const desiredOffset = container.clientHeight * 0.5;
-            const offset =
-              targetRect.top - containerRect.top + container.scrollTop - headerHeight - desiredOffset;
+            // 실제 화면상 위치(getBoundingClientRect)를 기준으로 오늘 칸의 중심을
+            // 스크롤 영역 중심에 맞춘다. 헤더 높이를 하드코딩해서 추정하지 않는다.
+            const targetCenter = targetRect.top + targetRect.height / 2;
+            const containerCenter = containerRect.top + containerRect.height / 2;
+            const delta = targetCenter - containerCenter;
+            const offset = container.scrollTop + delta;
             skipAutoExtend = true;
             container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
             setTimeout(() => {

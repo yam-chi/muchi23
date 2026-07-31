@@ -816,18 +816,26 @@ export default function Page() {
       if (!previewMode) {
         // periodicSync는 upsert만 하므로, undo로 사라진(=이전 스냅샷에 없는) 카드/스티커는
         // 서버에서도 명시적으로 삭제해야 새로고침 시 되살아나지 않는다.
+        // 주의: 카드는 undo로 날짜가 바뀔 수 있으므로(드래그 이동 되돌리기 등) dateKey별로
+        // 비교하면 안 되고, 전체 상태에서 그 id가 어딘가에 여전히 존재하는지로 판단해야 한다.
+        const afterCardIds = new Set<string>();
+        Object.values(state.cards).forEach((list) => {
+          list.forEach((c) => afterCardIds.add(c.id));
+        });
         const removedCardIds: string[] = [];
-        Object.entries(beforeState.cards).forEach(([dateKey, list]) => {
-          const afterIds = new Set((state.cards[dateKey] || []).map((c) => c.id));
+        Object.values(beforeState.cards).forEach((list) => {
           list.forEach((c) => {
-            if (!afterIds.has(c.id)) removedCardIds.push(c.id);
+            if (!afterCardIds.has(c.id)) removedCardIds.push(c.id);
           });
         });
+        const afterStickerIds = new Set<string>();
+        Object.values(state.stickers).forEach((list) => {
+          list.forEach((s) => afterStickerIds.add(s.id));
+        });
         const removedStickerIds: string[] = [];
-        Object.entries(beforeState.stickers).forEach(([dateKey, list]) => {
-          const afterIds = new Set((state.stickers[dateKey] || []).map((s) => s.id));
+        Object.values(beforeState.stickers).forEach((list) => {
           list.forEach((s) => {
-            if (!afterIds.has(s.id)) removedStickerIds.push(s.id);
+            if (!afterStickerIds.has(s.id)) removedStickerIds.push(s.id);
           });
         });
         requestAnimationFrame(() => {

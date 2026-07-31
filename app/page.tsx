@@ -2384,6 +2384,8 @@ export default function Page() {
           contentEl.blur();
           contentEl.contentEditable = "false";
         }
+        // 엑셀처럼 한 번 클릭으로 바로 편집: 이미 편집 중이면 makeEditable이 no-op 처리.
+        makeEditable(card);
       });
 
       btnDone.addEventListener("click", (e) => {

@@ -3288,6 +3288,8 @@ export default function Page() {
         pushHistory();
         loadScale();
         renderCalendar();
+        // 새로고침 직후에도 TODAY를 눌렀을 때와 같은 화면(오늘 중심)에서 시작하도록
+        scrollToTodayCell("auto");
         // 3초마다 주기 동기화 (Supabase + 로컬)
         if (!previewMode) {
           periodicSyncTimer.current = window.setInterval(() => {
@@ -3321,6 +3323,41 @@ export default function Page() {
     // 이전/다음 달 버튼: 인피니트 스크롤과 함께 범위 재설정
     // prev/next 버튼은 숨김 상태 (동작 비활성)
 
+    // TODAY 버튼과 새로고침 직후 초기 로딩 둘 다, 오늘 칸을 화면 중앙에 오도록
+    // 스크롤한다는 점에서 동일해야 하므로 로직을 공유한다.
+    function scrollToTodayCell(behavior: ScrollBehavior) {
+      requestAnimationFrame(() => {
+        const target = document.querySelector<HTMLDivElement>(".day-cell.today");
+        if (target) {
+          const container = calendarWrapper || document.documentElement;
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          // 실제 화면상 위치(getBoundingClientRect)를 기준으로 오늘 칸의 중심을
+          // 스크롤 영역 중심에 맞춘다. 헤더 높이를 하드코딩해서 추정하지 않는다.
+          const targetCenter = targetRect.top + targetRect.height / 2;
+          const containerCenter = containerRect.top + containerRect.height / 2;
+          const delta = targetCenter - containerCenter;
+          const offset = container.scrollTop + delta;
+          skipAutoExtend = true;
+          container.scrollTo({ top: Math.max(offset, 0), behavior });
+          setTimeout(
+            () => {
+              skipAutoExtend = false;
+              syncMonthHeaderWithScroll();
+            },
+            behavior === "smooth" ? 450 : 50,
+          );
+        } else if (calendarWrapper) {
+          skipAutoExtend = true;
+          calendarWrapper.scrollTop = 0;
+          setTimeout(() => {
+            skipAutoExtend = false;
+            syncMonthHeaderWithScroll();
+          }, 120);
+        }
+      });
+    }
+
     if (todayBtn) {
       todayBtn.addEventListener("click", () => {
         syncCurrentMonthFromDom();
@@ -3329,33 +3366,7 @@ export default function Page() {
         startCursor = new Date(current.getFullYear(), current.getMonth(), 1);
         endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
         renderCalendar();
-        requestAnimationFrame(() => {
-          const target = document.querySelector<HTMLDivElement>(".day-cell.today");
-          if (target) {
-            const container = calendarWrapper || document.documentElement;
-            const containerRect = container.getBoundingClientRect();
-            const targetRect = target.getBoundingClientRect();
-            // 실제 화면상 위치(getBoundingClientRect)를 기준으로 오늘 칸의 중심을
-            // 스크롤 영역 중심에 맞춘다. 헤더 높이를 하드코딩해서 추정하지 않는다.
-            const targetCenter = targetRect.top + targetRect.height / 2;
-            const containerCenter = containerRect.top + containerRect.height / 2;
-            const delta = targetCenter - containerCenter;
-            const offset = container.scrollTop + delta;
-            skipAutoExtend = true;
-            container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
-            setTimeout(() => {
-              skipAutoExtend = false;
-              syncMonthHeaderWithScroll();
-            }, 450);
-          } else if (calendarWrapper) {
-            skipAutoExtend = true;
-            calendarWrapper.scrollTop = 0;
-            setTimeout(() => {
-              skipAutoExtend = false;
-              syncMonthHeaderWithScroll();
-            }, 120);
-          }
-        });
+        scrollToTodayCell("smooth");
       });
     }
 

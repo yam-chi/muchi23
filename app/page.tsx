@@ -3843,6 +3843,10 @@ export default function Page() {
       if (e.button !== 0) return;
       const target = e.target as HTMLElement;
       if (target.closest(".card")) return; // 카드 위에서는 기존 드래그/클릭 우선
+      // 드래그로 박스(카드)만 선택하고, 브라우저 기본 텍스트 선택은 같이 잡히지 않게 한다.
+      e.preventDefault();
+      window.getSelection()?.removeAllRanges();
+      document.body.classList.add("marquee-selecting");
       marqueeActive = true;
       marqueeStart = { x: e.clientX, y: e.clientY };
       const box = ensureMarqueeBox();
@@ -3876,6 +3880,8 @@ export default function Page() {
         marqueeBox.style.width = "0px";
         marqueeBox.style.height = "0px";
       }
+      document.body.classList.remove("marquee-selecting");
+      window.getSelection()?.removeAllRanges();
       document.removeEventListener("mousemove", onMarqueeMove);
       setTimeout(() => {
         marqueeActive = false;

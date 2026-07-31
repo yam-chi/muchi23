@@ -371,6 +371,7 @@ export default function Page() {
     let marqueeBox: HTMLDivElement | null = null;
     let marqueeStart: { x: number; y: number } | null = null;
     let marqueeActive = false;
+    let selectionOutlineBox: HTMLDivElement | null = null;
     let stickerPointerActive = false;
     const SCALE_KEY = "muchi-ui-scale";
     let lastActiveDayCell: HTMLElement | null = null;
@@ -733,6 +734,42 @@ export default function Page() {
       document.body.appendChild(box);
       marqueeBox = box;
       return box;
+    }
+
+    function ensureSelectionOutlineBox() {
+      if (selectionOutlineBox) return selectionOutlineBox;
+      const box = document.createElement("div");
+      box.className = "selection-outline-box";
+      document.body.appendChild(box);
+      selectionOutlineBox = box;
+      return box;
+    }
+
+    // 카드가 1개만 선택되면 표시하지 않고, 2개 이상 선택되면 전체를 감싸는
+    // 사각형 하나만 그린다 (개별 카드 테두리 대신).
+    function updateSelectionOutlineBox() {
+      const box = ensureSelectionOutlineBox();
+      const selected = Array.from(document.querySelectorAll<HTMLElement>(".card.selected"));
+      if (selected.length < 2) {
+        box.style.display = "none";
+        return;
+      }
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+      selected.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        left = Math.min(left, r.left);
+        top = Math.min(top, r.top);
+        right = Math.max(right, r.right);
+        bottom = Math.max(bottom, r.bottom);
+      });
+      box.style.display = "block";
+      box.style.left = `${left}px`;
+      box.style.top = `${top}px`;
+      box.style.width = `${right - left}px`;
+      box.style.height = `${bottom - top}px`;
     }
 
     function isEditableTarget(el: HTMLElement | null) {
@@ -3283,6 +3320,27 @@ export default function Page() {
     renderTabs();
     loadWeekColumnWidths();
 
+    // 카드의 selected 클래스가 바뀔 때마다(클릭/Shift+클릭/드래그 다중선택/방향키 선택 등
+    // 여러 경로가 있어 각각 훅을 걸지 않고) 그룹 선택 테두리를 다시 계산한다.
+    if (calendarGrid) {
+      const selectionObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === "attributes" && m.attributeName === "class") {
+            const el = m.target as HTMLElement;
+            if (el.classList && el.classList.contains("card")) {
+              updateSelectionOutlineBox();
+              break;
+            }
+          }
+        }
+      });
+      selectionObserver.observe(calendarGrid, {
+        attributes: true,
+        attributeFilter: ["class"],
+        subtree: true,
+      });
+    }
+
     loadState()
       .then(() => {
         pushHistory();
@@ -4018,6 +4076,8 @@ export default function Page() {
       const scrollTop = container.scrollTop;
       const clientHeight = container.clientHeight;
       const scrollHeight = container.scrollHeight;
+
+      updateSelectionOutlineBox();
 
       if (skipAutoExtend) {
         return;

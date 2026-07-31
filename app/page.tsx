@@ -2427,74 +2427,19 @@ export default function Page() {
 
       btnDone.addEventListener("click", (e) => {
         e.stopPropagation();
+        // 완료 처리해도 카드를 다른 섹션으로 옮기지 않고 제자리에서 스타일만 바꾼다.
         const cell = card.closest(".day-cell") as HTMLElement | null;
-        const currentlyDone = card.classList.contains("done");
-        if (!cell) return;
-        if (currentlyDone) {
-          card.classList.remove("done");
-          const originDate = card.dataset.originDateKey || card.dataset.date;
-          const originSectionId = card.dataset.originSectionId || "default";
-          const originTitle =
-            card.dataset.originSectionTitle ||
-            (originDate ? getSectionTitle(originDate, originSectionId) : "");
-          const targetCell =
-            (originDate
-              ? document.querySelector<HTMLElement>(`.day-cell[data-date="${originDate}"]`)
-              : null) || cell;
-          if (targetCell) {
-            let nextSectionId = originSectionId || "default";
-            let nextTitle =
-              originTitle || getSectionTitle(targetCell.dataset.date || originDate || "", nextSectionId);
-            let targetBody = getSectionBodyById(targetCell, nextSectionId);
-            if (!targetBody) {
-              nextSectionId = "default";
-              nextTitle = getSectionTitle(targetCell.dataset.date || originDate || "", nextSectionId);
-              targetBody =
-                getSectionBodyById(targetCell, "default") ||
-                (targetCell.querySelector(".day-section-body") as HTMLElement | null);
-            }
-            if (targetBody) {
-              const destDate = targetCell.dataset.date || originDate || "";
-              if (destDate) card.dataset.date = destDate;
-              card.dataset.sectionId = nextSectionId;
-              card.dataset.sectionTitle = nextTitle;
-              targetBody.appendChild(card);
-              setActiveSection(targetCell, nextSectionId);
-              updateSectionHints(targetCell);
-              cleanupDoneSection(targetCell);
-            }
-          }
-          card.dataset.originSectionId = "";
-          card.dataset.originSectionTitle = "";
-          card.dataset.originDateKey = "";
-          updateSectionHints(cell);
-          cleanupDoneSection(cell);
-        } else {
-          const originSectionId = card.dataset.sectionId || "default";
-          const originTitle = card.dataset.sectionTitle || getSectionTitle(card.dataset.date || "", originSectionId);
-          const originDateKey = card.dataset.date || "";
-          if (!card.dataset.originSectionId) {
-            card.dataset.originSectionId = originSectionId;
-            card.dataset.originSectionTitle = originTitle;
-            card.dataset.originDateKey = originDateKey;
-          }
-          const doneBody = ensureDoneSectionBody(cell);
-          if (!doneBody) return;
-          card.classList.add("done");
+        card.classList.toggle("done");
+        if (card.classList.contains("done")) {
           const contentEl = card.querySelector(".card-content") as HTMLElement | null;
           if (contentEl) wrapTextNodesInSpans(contentEl);
-          card.dataset.sectionId = DONE_SECTION_ID;
-          card.dataset.sectionTitle = "완료";
-          doneBody.appendChild(card);
-          setActiveSection(cell, DONE_SECTION_ID);
         }
         syncOneCardFromDom(card);
         syncCurrentMonthFromDom();
         saveLocalState();
         const dKey = card.dataset.date;
         if (dKey) updateDayBadge(dKey);
-        updateSectionHints(cell);
-        cleanupDoneSection(cell);
+        if (cell) updateSectionHints(cell);
       });
 
       btnDelete.addEventListener("click", (e) => {
@@ -2700,14 +2645,11 @@ export default function Page() {
         ensureDefaultSection(key);
         const sections = [{ id: "default", title: "", order: 0 }];
         const cards = getCardsForDate(key);
-        const doneCards: CardData[] = [];
+        // 완료 처리된 카드도 별도 섹션으로 옮기지 않고 원래 자리에 그대로 둔다
+        // (완료 표시는 .done 클래스로만 처리).
         const cardsBySection = new Map<string, CardData[]>();
         cards.forEach((card) => {
-          const sectionId = card.sectionId === DONE_SECTION_ID ? DONE_SECTION_ID : "default";
-          if (card.done || sectionId === DONE_SECTION_ID) {
-            doneCards.push({ ...card, sectionId: DONE_SECTION_ID, sectionTitle: "완료" });
-            return;
-          }
+          const sectionId = "default";
           if (!cardsBySection.has(sectionId)) cardsBySection.set(sectionId, []);
           cardsBySection.get(sectionId)!.push(card);
         });
@@ -2771,34 +2713,6 @@ export default function Page() {
           sectionEl.appendChild(sectionBody);
           sectionsWrap.appendChild(sectionEl);
         });
-
-        if (doneCards.length > 0) {
-          const doneEl = document.createElement("div");
-          doneEl.className = "day-section day-section-done";
-          doneEl.dataset.sectionId = DONE_SECTION_ID;
-          doneEl.dataset.sectionTitle = "완료";
-
-          const doneHeader = document.createElement("div");
-          doneHeader.className = "day-section-header";
-          const doneTitle = document.createElement("div");
-          doneTitle.className = "day-section-title";
-          doneTitle.textContent = "완료";
-          doneHeader.appendChild(doneTitle);
-
-          const doneBody = document.createElement("div");
-          doneBody.className = "day-section-body";
-          doneBody.addEventListener("mouseenter", () => {
-            if (stickerPointerActive) return;
-            setActiveDay(cell);
-            setActiveSection(cell, DONE_SECTION_ID);
-          });
-          doneCards.forEach((data) => {
-            createCard(doneBody, data, { autoEdit: false, fromState: true });
-          });
-          doneEl.appendChild(doneHeader);
-          doneEl.appendChild(doneBody);
-          sectionsWrap.appendChild(doneEl);
-        }
 
         updateDayBadge(key);
 

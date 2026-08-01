@@ -5032,12 +5032,6 @@ export default function Page() {
                 ⋯
               </button>
               <div className="more-menu-dropdown" id="moreMenuDropdown">
-                <button className="link-btn" id="weekendToggle">
-                  WEEKEND
-                </button>
-                <button className="link-btn" id="settingsBtn" type="button">
-                  SETTING
-                </button>
                 <div className="zoom-slider" aria-label="Zoom">
                   <button className="zoom-btn" id="zoomOut" type="button" aria-label="Zoom out">
                     −
@@ -5059,6 +5053,12 @@ export default function Page() {
                     +
                   </button>
                 </div>
+                <button className="link-btn" id="weekendToggle">
+                  WEEKEND
+                </button>
+                <button className="link-btn" id="settingsBtn" type="button">
+                  SETTING
+                </button>
                 <button className="top-link" id="logoutBtn" type="button">
                   log out
                 </button>

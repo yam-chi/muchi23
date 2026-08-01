@@ -4958,8 +4958,8 @@ export default function Page() {
     <div className="app">
       <div className="main-glass-panel">
         <header>
-          <div className="title-with-logout">
-            <span className="app-title">MUCHI NOTE</span>
+          <span className="app-title">MUCHI NOTE</span>
+          <div className="header-center">
             <div className="month-picker">
               <button className="month-display" id="monthPickerToggle" type="button">
                 <span className="month-title" id="monthTitle" />
@@ -5018,14 +5018,14 @@ export default function Page() {
             <button className="link-btn" id="todayBtn">
               TODAY
             </button>
+          </div>
+          <div className="top-actions">
             <div className="search-wrap">
               <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
               <button className="btn" id="searchBtn">
                 검색
               </button>
             </div>
-          </div>
-          <div className="top-actions">
             <div className="more-menu">
               <button className="btn more-menu-btn" id="moreMenuBtn" type="button">
                 ⋯

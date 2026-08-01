@@ -275,8 +275,9 @@ export default function Page() {
       "airtableLoadBtn",
     ) as HTMLButtonElement | null;
     const todayBtn = document.getElementById("todayBtn") as HTMLButtonElement | null;
-    const scopeMonthBtn = document.getElementById("scopeMonth") as HTMLButtonElement | null;
-    const scopeAllBtn = document.getElementById("scopeAll") as HTMLButtonElement | null;
+    const searchScopeToggle = document.getElementById(
+      "searchScopeToggle",
+    ) as HTMLButtonElement | null;
     const toastContainer = document.getElementById(
       "toastContainer",
     ) as HTMLElement | null;
@@ -315,8 +316,7 @@ export default function Page() {
       !calendarGrid ||
       !searchInput ||
       !searchBtn ||
-      !scopeMonthBtn ||
-      !scopeAllBtn ||
+      !searchScopeToggle ||
       !toastContainer
     ) {
       console.error("필수 DOM 요소를 찾을 수 없습니다. 마크업을 확인하세요.");
@@ -2978,12 +2978,10 @@ export default function Page() {
     const switchSearchScope = (mode: "month" | "all") => {
       searchMode = mode;
       if (mode === "month") {
-        scopeMonthBtn.classList.add("active");
-        scopeAllBtn.classList.remove("active");
+        searchScopeToggle.textContent = "이번 달";
         searchInput.placeholder = "이 달에서 검색";
       } else {
-        scopeMonthBtn.classList.remove("active");
-        scopeAllBtn.classList.add("active");
+        searchScopeToggle.textContent = "전체";
         searchInput.placeholder = "전체 기간 검색";
       }
       searchInput.focus();
@@ -3337,8 +3335,9 @@ export default function Page() {
       });
     }
 
-    scopeMonthBtn.addEventListener("click", () => switchSearchScope("month"));
-    scopeAllBtn.addEventListener("click", () => switchSearchScope("all"));
+    searchScopeToggle.addEventListener("click", () =>
+      switchSearchScope(searchMode === "month" ? "all" : "month"),
+    );
 
     searchBtn.addEventListener("click", runSearch);
     searchInput.addEventListener("keydown", (e) => {
@@ -4959,8 +4958,7 @@ export default function Page() {
       <div className="main-glass-panel">
         <header>
           <span className="app-title">MUCHI NOTE</span>
-          <div className="header-center">
-            <div className="month-picker">
+          <div className="month-picker">
               <button className="month-display" id="monthPickerToggle" type="button">
                 <span className="month-title" id="monthTitle" />
                 <span className="month-caret">▾</span>
@@ -5015,17 +5013,19 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            <button className="link-btn" id="todayBtn">
-              TODAY
+          <button className="link-btn" id="todayBtn">
+            TODAY
+          </button>
+          <div className="search-wrap">
+            <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
+            <button className="scope-btn" id="searchScopeToggle" type="button">
+              이번 달
+            </button>
+            <button className="btn" id="searchBtn">
+              검색
             </button>
           </div>
           <div className="top-actions">
-            <div className="search-wrap">
-              <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
-              <button className="btn" id="searchBtn">
-                검색
-              </button>
-            </div>
             <div className="more-menu">
               <button className="btn more-menu-btn" id="moreMenuBtn" type="button">
                 ⋯
@@ -5056,14 +5056,6 @@ export default function Page() {
                   </div>
                   <button className="zoom-btn" id="zoomIn" type="button" aria-label="Zoom in">
                     +
-                  </button>
-                </div>
-                <div className="search-scope-toggles">
-                  <button className="scope-btn active" id="scopeMonth">
-                    이번 달
-                  </button>
-                  <button className="scope-btn" id="scopeAll">
-                    전체
                   </button>
                 </div>
                 <button className="top-link" id="logoutBtn" type="button">

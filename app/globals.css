@@ -215,25 +215,14 @@ header {
   font-size: 18px;
   font-weight: 700;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   border: 1px solid #e6ebf5;
   border-radius: 18px 18px 0 0;
   box-shadow: none;
   backdrop-filter: blur(8px);
-}
-
-.header-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .top-actions {
@@ -748,18 +737,6 @@ header {
     padding: 12px 12px;
     gap: 10px;
   }
-  .top-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  .search-wrap {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  .search-input {
-    width: 100%;
-    min-width: auto;
-  }
   .calendar-wrapper {
     max-height: none;
     padding: 10px;
@@ -792,11 +769,11 @@ header {
     align-items: flex-start;
     border-radius: 14px 14px 0 0;
   }
-  .header-center {
-    position: static;
-    transform: none;
+  .month-picker {
     width: 100%;
-    justify-content: flex-start;
+  }
+  .search-wrap {
+    width: 100%;
   }
   .top-actions {
     width: 100%;
@@ -825,14 +802,13 @@ header {
     gap: 2px;
   }
   .search-wrap {
-    width: auto;
+    width: 100%;
     max-width: 100%;
-    flex: 0 1 auto;
+    flex-wrap: nowrap;
     justify-content: flex-start;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
-  .search-wrap > * {
+  .search-wrap .scope-btn,
+  .search-wrap .btn {
     flex-shrink: 0;
   }
   .btn,
@@ -843,10 +819,10 @@ header {
   .btn {
     padding: 5px 8px;
   }
-  .search-input {
-    width: 60px;
-    min-width: 60px;
-    flex: 0 0 60px;
+  #searchInput {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
   }
   .month-title {
     font-size: 14px;
@@ -2216,31 +2192,22 @@ header {
   color: #374151;
 }
 
-    /* === Search Scope Toggles === */
-    .search-scope-toggles {
-      display: flex;
-      background: rgba(255, 255, 255, 0.4);
-      border-radius: 999px;
-      padding: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-    }
-
+    /* === Search Scope Toggle === */
     .scope-btn {
-      border: none;
-      background: transparent;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
       border-radius: 999px;
-      padding: 4px 12px;
+      padding: 6px 12px;
       font-size: 12px;
       font-weight: 600;
-      color: #6b7280;
+      color: var(--theme-accent);
       cursor: pointer;
+      white-space: nowrap;
       transition: all 0.2s;
     }
 
-    .scope-btn.active {
-      background: #ffffff;
-      color: var(--theme-accent);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    .scope-btn:hover {
+      background: #f8fafc;
     }
 
     #searchBtn {

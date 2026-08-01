@@ -4958,6 +4958,7 @@ export default function Page() {
       <div className="main-glass-panel">
         <header>
           <span className="app-title">MUCHI NOTE</span>
+          <div className="header-controls">
           <div className="month-picker">
               <button className="month-display" id="monthPickerToggle" type="button">
                 <span className="month-title" id="monthTitle" />
@@ -5063,6 +5064,7 @@ export default function Page() {
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </header>
 

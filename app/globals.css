@@ -1654,19 +1654,19 @@ header {
       display: none;
     }
 
-    /* === Day Cells (Glass Chips) === */
+    /* === Day Cells (플랫형: 그림자/둥근 테두리 없이 얇은 격자선만) === */
     .day-cell {
       min-height: 210px; /* 기존 대비 약 1.5배 */
       padding: 18px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
-      box-shadow: var(--shadow-card);
+      box-shadow: none;
       display: flex;
       flex-direction: column;
       position: relative;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: background 0.2s ease;
       margin: 0;
-      border-radius: 12px;
+      border-radius: 0;
       isolation: isolate;
       overflow: visible;
     }
@@ -1748,7 +1748,7 @@ header {
     .day-cell.today {
       border: 1px solid #e5e7eb;
       background: #ffffff;
-      box-shadow: var(--shadow-card);
+      box-shadow: none;
     }
 
     .day-cell.other-month {

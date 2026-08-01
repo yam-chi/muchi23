@@ -815,12 +815,6 @@ header {
   .search-wrap {
     width: 100%;
     max-width: 100%;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
-  .search-wrap .scope-btn,
-  .search-wrap .btn {
-    flex-shrink: 0;
   }
   .btn,
   .month-display,
@@ -964,10 +958,10 @@ header {
     }
 
     .search-wrap {
+      position: relative;
       margin-left: 0;
       display: flex;
       align-items: center;
-      gap: 8px;
     }
 
     .emoji-panel {
@@ -1321,7 +1315,7 @@ header {
     }
 
     .search-input {
-      padding: 8px 16px;
+      padding: 8px 78px 8px 16px;
       font-size: 13px;
       border-radius: 999px;
       border: 1px solid #e5e7eb;
@@ -2203,13 +2197,17 @@ header {
   color: #374151;
 }
 
-    /* === Search Scope Toggle === */
+    /* === Search Scope Toggle (검색창 내부에 임베드) === */
     .scope-btn {
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: rgba(var(--theme-accent-rgb), 0.12);
       border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 12px;
+      padding: 5px 10px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--theme-accent);
       cursor: pointer;
@@ -2218,7 +2216,7 @@ header {
     }
 
     .scope-btn:hover {
-      background: #f8fafc;
+      background: rgba(var(--theme-accent-rgb), 0.2);
     }
 
     #searchBtn {

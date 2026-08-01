@@ -5022,10 +5022,10 @@ export default function Page() {
             <button className="scope-btn" id="searchScopeToggle" type="button">
               이번 달
             </button>
-            <button className="btn" id="searchBtn">
-              검색
-            </button>
           </div>
+          <button className="btn" id="searchBtn">
+            검색
+          </button>
           <div className="top-actions">
             <div className="more-menu">
               <button className="btn more-menu-btn" id="moreMenuBtn" type="button">

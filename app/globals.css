@@ -857,6 +857,13 @@ header {
   #headerToggle {
     position: static;
   }
+  #moreMenuBtn {
+    position: static;
+  }
+  #moreMenuDropdown {
+    top: 100%;
+    right: 0;
+  }
   .top-bar {
     position: static;
     border-radius: 0;
@@ -1464,6 +1471,48 @@ header {
       border: 1px solid #e5e7eb;
       color: var(--theme-accent);
       box-shadow: var(--shadow-card);
+    }
+
+    /* 자주 안 쓰는 컨트롤을 모아둔 "⋯" 더보기 메뉴 */
+    .more-menu {
+      position: relative;
+    }
+
+    .more-menu-btn {
+      position: absolute;
+      top: 12px;
+      right: 100px;
+      z-index: 25;
+      padding: 8px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      color: var(--theme-accent);
+      box-shadow: var(--shadow-card);
+      letter-spacing: 1px;
+    }
+
+    .more-menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 50px;
+      right: 100px;
+      z-index: 30;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: var(--shadow-card);
+      padding: 12px;
+      min-width: 200px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .more-menu-dropdown.open {
+      display: flex;
     }
 
 .header-collapsed header {

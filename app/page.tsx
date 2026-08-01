@@ -3775,6 +3775,25 @@ export default function Page() {
       headerToggleFloating.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
     }
 
+    // 자주 안 쓰는 컨트롤(WEEKEND/줌/검색범위/SETTING/로그아웃)을 모아둔 "⋯" 메뉴
+    const moreMenuBtn = document.getElementById("moreMenuBtn") as HTMLButtonElement | null;
+    const moreMenuDropdown = document.getElementById("moreMenuDropdown") as HTMLElement | null;
+    if (moreMenuBtn && moreMenuDropdown) {
+      moreMenuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        moreMenuDropdown.classList.toggle("open");
+      });
+      document.addEventListener("click", (e) => {
+        if (!moreMenuDropdown.classList.contains("open")) return;
+        const target = e.target as HTMLElement;
+        if (moreMenuDropdown.contains(target) || target === moreMenuBtn) return;
+        moreMenuDropdown.classList.remove("open");
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") moreMenuDropdown.classList.remove("open");
+      });
+    }
+
     // ===== 스크롤 동기화: 화면 상단에 보이는 일(또는 카드)의 월로 헤더 업데이트 =====
     let syncRaf = 0;
     function syncMonthHeaderWithScroll() {
@@ -5016,11 +5035,53 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            <button className="top-link" id="logoutBtn" type="button">
-              log out
-            </button>
           </div>
           <div className="top-actions">
+            <div className="more-menu">
+              <button className="btn more-menu-btn" id="moreMenuBtn" type="button">
+                ⋯
+              </button>
+              <div className="more-menu-dropdown" id="moreMenuDropdown">
+                <button className="link-btn" id="weekendToggle">
+                  WEEKEND
+                </button>
+                <button className="link-btn" id="settingsBtn" type="button">
+                  SETTING
+                </button>
+                <div className="zoom-slider" aria-label="Zoom">
+                  <button className="zoom-btn" id="zoomOut" type="button" aria-label="Zoom out">
+                    −
+                  </button>
+                  <div className="zoom-range-wrap">
+                    <span className="zoom-center-mark" aria-hidden="true" />
+                    <input
+                      className="zoom-range"
+                      id="zoomRange"
+                      type="range"
+                      min="80"
+                      max="130"
+                      step="5"
+                      defaultValue="100"
+                      aria-label="Zoom level"
+                    />
+                  </div>
+                  <button className="zoom-btn" id="zoomIn" type="button" aria-label="Zoom in">
+                    +
+                  </button>
+                </div>
+                <div className="search-scope-toggles">
+                  <button className="scope-btn active" id="scopeMonth">
+                    이번 달
+                  </button>
+                  <button className="scope-btn" id="scopeAll">
+                    전체
+                  </button>
+                </div>
+                <button className="top-link" id="logoutBtn" type="button">
+                  log out
+                </button>
+              </div>
+            </div>
             <button className="btn header-toggle" id="headerToggle" type="button">
               헤더 숨기기
             </button>
@@ -5039,45 +5100,9 @@ export default function Page() {
             <button className="link-btn" id="todayBtn">
               TODAY
             </button>
-            <button className="link-btn" id="weekendToggle">
-              WEEKEND
-            </button>
-            <button className="link-btn" id="settingsBtn" type="button">
-              SETTING
-            </button>
-          </div>
-
-          <div className="zoom-slider" aria-label="Zoom">
-            <button className="zoom-btn" id="zoomOut" type="button" aria-label="Zoom out">
-              −
-            </button>
-            <div className="zoom-range-wrap">
-              <span className="zoom-center-mark" aria-hidden="true" />
-              <input
-                className="zoom-range"
-                id="zoomRange"
-                type="range"
-                min="80"
-                max="130"
-                step="5"
-                defaultValue="100"
-                aria-label="Zoom level"
-              />
-            </div>
-            <button className="zoom-btn" id="zoomIn" type="button" aria-label="Zoom in">
-              +
-            </button>
           </div>
 
           <div className="search-wrap">
-            <div className="search-scope-toggles">
-              <button className="scope-btn active" id="scopeMonth">
-                이번 달
-              </button>
-              <button className="scope-btn" id="scopeAll">
-                전체
-              </button>
-            </div>
             <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
             <button className="btn" id="searchBtn">
               검색

@@ -236,25 +236,11 @@ header {
   margin-left: auto;
 }
 
-.floating-toggle-wrap {
-  display: none;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 12px;
-  z-index: 25;
-  padding: 0 8px 8px 25px;
-}
-
-.floating-toggle-wrap .header-toggle {
-  position: static;
-}
-
-.floating-title {
+.app-title {
   font-size: 14px;
   font-weight: 700;
   color: var(--theme-accent);
+  white-space: nowrap;
 }
 
 .header-left {
@@ -268,34 +254,6 @@ header {
       opacity: 0.7;
       font-weight: 500;
     }
-
-.top-bar {
-  position: sticky;
-  top: 52px; /* 헤더와 높이 맞추기 위해 상단 간격 축소 */
-  z-index: 18;
-  padding: 8px 10px;
-  background: var(--theme-topbar-bg);
-  border: 1px solid #e5e7eb;
-  border-bottom-color: transparent;
-  --topbar-gap: 8px;
-  display: flex;
-  align-items: center;
-  gap: var(--topbar-gap);
-  border-radius: 0;
-  box-shadow: none;
-  backdrop-filter: blur(8px);
-  max-height: 90px;
-  transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
-  border-top: none;
-}
-
-.top-left-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-left: 20px;
-}
 
 .zoom-slider {
   margin-left: auto;
@@ -401,6 +359,7 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .tab-bar {
@@ -492,12 +451,6 @@ header {
 #settingsClose,
 #settingsPwdBtn,
 #feedbackSubmit {
-  color: var(--theme-accent);
-}
-
-/* 헤더 토글 버튼 (행 내 배치) */
-.header-toggle {
-  position: static;
   color: var(--theme-accent);
 }
 
@@ -802,12 +755,6 @@ header {
     padding: 12px 12px;
     gap: 10px;
   }
-  .top-bar {
-    flex-wrap: wrap;
-    padding: 8px 10px;
-    --topbar-gap: 10px;
-    gap: var(--topbar-gap);
-  }
   .top-actions {
     width: 100%;
     justify-content: flex-end;
@@ -850,12 +797,10 @@ header {
     flex-direction: column;
     align-items: flex-start;
     border-radius: 14px 14px 0 0;
+    max-height: none;
   }
   .title-with-logout {
     width: 100%;
-  }
-  #headerToggle {
-    position: static;
   }
   #moreMenuBtn {
     position: static;
@@ -864,32 +809,10 @@ header {
     top: 100%;
     right: 0;
   }
-  .top-bar {
-    position: static;
-    border-radius: 0;
-    --topbar-gap: 2px;
-    gap: var(--topbar-gap);
-    padding: 2px 2px;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: wrap;
-  }
   .top-actions {
     width: 100%;
     justify-content: flex-end;
     gap: 6px;
-  }
-  .top-left-actions {
-    width: auto;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 6px; /* 버튼들 간 기본 여백 유지 */
-  }
-  .top-left-actions > * {
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 11px;
   }
   .zoom-slider {
     margin-left: 0;
@@ -1446,32 +1369,12 @@ header {
   border: 1px solid #e5e7eb;
   border-radius: 0 0 18px 18px;
   box-shadow: none;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
   overflow-x: auto;
   position: relative;
   border-top: none;
 }
-
-.header-collapsed .calendar-wrapper {
-  border-top: 1px solid #e5e7eb;
-  border-radius: 18px;
-}
-
-    /* 헤더/탑바 토글 */
-    .header-toggle {
-      position: absolute;
-      top: 12px;
-      right: 16px;
-      z-index: 25;
-      padding: 8px 14px;
-      font-size: 13px;
-      border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      color: var(--theme-accent);
-      box-shadow: var(--shadow-card);
-    }
 
     /* 자주 안 쓰는 컨트롤을 모아둔 "⋯" 더보기 메뉴 */
     .more-menu {
@@ -1481,7 +1384,7 @@ header {
     .more-menu-btn {
       position: absolute;
       top: 12px;
-      right: 100px;
+      right: 16px;
       z-index: 25;
       padding: 8px 14px;
       font-size: 15px;
@@ -1498,7 +1401,7 @@ header {
       display: none;
       position: absolute;
       top: 50px;
-      right: 100px;
+      right: 16px;
       z-index: 30;
       background: #ffffff;
       border: 1px solid #e5e7eb;
@@ -1514,31 +1417,6 @@ header {
     .more-menu-dropdown.open {
       display: flex;
     }
-
-.header-collapsed header {
-  display: none;
-}
-
-.header-collapsed .top-bar {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-12px);
-  padding-top: 0;
-  padding-bottom: 0;
-  border-width: 0;
-  box-shadow: none;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.header-collapsed .floating-toggle-wrap {
-  display: inline-flex;
-}
-
-    .header-collapsed .calendar-wrapper {
-      max-height: calc(100vh - 80px);
-    }
-
 
     /* 주별 레이아웃 + 접기/펼치기: 주(week)마다 독립된 그리드라서
        칸 너비 조정이 그 주에만 적용된다. */

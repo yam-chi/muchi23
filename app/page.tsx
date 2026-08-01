@@ -258,10 +258,6 @@ export default function Page() {
 
     const calendarGrid = document.getElementById("calendarGrid") as HTMLElement | null;
     const calendarWrapper = document.querySelector(".calendar-wrapper") as HTMLElement | null;
-    const headerToggle = document.getElementById("headerToggle") as HTMLButtonElement | null;
-    const headerToggleFloating = document.getElementById(
-      "headerToggleFloating",
-    ) as HTMLButtonElement | null;
     const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
     const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
@@ -366,7 +362,6 @@ export default function Page() {
     let endCursor = new Date(current.getFullYear(), current.getMonth() + 1, 1);
 
     let state: State = { cards: {}, weekVisibility: {}, sections: {}, stickers: {} };
-    let headerCollapsed = false;
     let showWeekend = true;
     let marqueeBox: HTMLDivElement | null = null;
     let marqueeStart: { x: number; y: number } | null = null;
@@ -3759,22 +3754,6 @@ export default function Page() {
     (window as typeof window & { _dumpState?: () => State })._dumpState = () =>
       JSON.parse(JSON.stringify(state));
 
-    // 헤더 토글
-    function setHeaderVisibility(collapsed: boolean) {
-      headerCollapsed = collapsed;
-      document.body.classList.toggle("header-collapsed", collapsed);
-      const label = collapsed ? "헤더 보이기" : "헤더 숨기기";
-      if (headerToggle) headerToggle.textContent = label;
-      if (headerToggleFloating) headerToggleFloating.textContent = label;
-    }
-    if (headerToggle) {
-      headerToggle.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
-      setHeaderVisibility(false);
-    }
-    if (headerToggleFloating) {
-      headerToggleFloating.addEventListener("click", () => setHeaderVisibility(!headerCollapsed));
-    }
-
     // 자주 안 쓰는 컨트롤(WEEKEND/줌/검색범위/SETTING/로그아웃)을 모아둔 "⋯" 메뉴
     const moreMenuBtn = document.getElementById("moreMenuBtn") as HTMLButtonElement | null;
     const moreMenuDropdown = document.getElementById("moreMenuDropdown") as HTMLElement | null;
@@ -4980,6 +4959,7 @@ export default function Page() {
       <div className="main-glass-panel">
         <header>
           <div className="title-with-logout">
+            <span className="app-title">MUCHI NOTE</span>
             <div className="month-picker">
               <button className="month-display" id="monthPickerToggle" type="button">
                 <span className="month-title" id="monthTitle" />
@@ -5035,6 +5015,15 @@ export default function Page() {
                 </div>
               </div>
             </div>
+            <button className="link-btn" id="todayBtn">
+              TODAY
+            </button>
+            <div className="search-wrap">
+              <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
+              <button className="btn" id="searchBtn">
+                검색
+              </button>
+            </div>
           </div>
           <div className="top-actions">
             <div className="more-menu">
@@ -5082,33 +5071,8 @@ export default function Page() {
                 </button>
               </div>
             </div>
-            <button className="btn header-toggle" id="headerToggle" type="button">
-              헤더 숨기기
-            </button>
           </div>
         </header>
-
-        <div className="floating-toggle-wrap">
-          <span className="floating-title">MUCHI NOTE</span>
-          <button className="btn header-toggle" id="headerToggleFloating" type="button">
-            헤더 보이기
-          </button>
-        </div>
-
-        <div className="top-bar">
-          <div className="top-left-actions">
-            <button className="link-btn" id="todayBtn">
-              TODAY
-            </button>
-          </div>
-
-          <div className="search-wrap">
-            <input className="search-input" id="searchInput" type="text" placeholder="검색어 입력" />
-            <button className="btn" id="searchBtn">
-              검색
-            </button>
-          </div>
-        </div>
 
         <div className="calendar-wrapper">
           <div className="emoji-panel emoji-panel-hidden" aria-hidden="true">

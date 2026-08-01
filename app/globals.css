@@ -214,9 +214,9 @@ header {
   color: var(--text-main);
   font-size: 18px;
   font-weight: 700;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   border: 1px solid #e6ebf5;
   border-radius: 18px 18px 0 0;
@@ -225,6 +225,10 @@ header {
 }
 
 .header-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -789,6 +793,8 @@ header {
     border-radius: 14px 14px 0 0;
   }
   .header-center {
+    position: static;
+    transform: none;
     width: 100%;
     justify-content: flex-start;
   }
@@ -1331,14 +1337,14 @@ header {
       padding: 8px 16px;
       font-size: 13px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
       min-width: 200px;
       transition: all 0.2s;
     }
 
     .search-input:focus {
-      background: rgba(255, 255, 255, 0.8);
+      background: #ffffff;
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);

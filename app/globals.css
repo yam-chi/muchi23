@@ -374,7 +374,7 @@ header {
   display: flex;
   align-items: center;
   padding: 8px 0 12px;
-  background: var(--panel-bg);
+  background: #ffffff;
   z-index: 4;
 }
 

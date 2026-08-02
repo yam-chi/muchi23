@@ -212,13 +212,13 @@ export default function Page() {
     checkSession();
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      if (!session) {
-        setAuthReady(false);
-        window.location.href = "/login";
-      } else {
+      if (session) {
         currentUserIdRef.current = session.user.id;
         currentUserEmailRef.current = session.user.email ?? null;
         setAuthReady(true);
+      } else if (_event === "SIGNED_OUT") {
+        setAuthReady(false);
+        window.location.href = "/login";
       }
     });
     return () => {

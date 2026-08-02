@@ -1413,6 +1413,7 @@ export default function Page() {
       return `(${arr.map((id) => `"${id}"`).join(",")})`;
     }
 
+    let syncFailing = false;
     async function periodicSync() {
       if (previewMode) return;
       const uid = currentUserIdRef.current;
@@ -1466,6 +1467,13 @@ export default function Page() {
       const { error: upErr } = await supabase.from("cards").upsert(rows);
       if (upErr) {
         console.error("supabase periodic upsert error", upErr);
+        if (!syncFailing) {
+          syncFailing = true;
+          showToast("저장이 지연되고 있어요. 인터넷 연결을 확인해주세요.");
+        }
+      } else if (syncFailing) {
+        syncFailing = false;
+        showToast("저장이 다시 정상적으로 되고 있어요.");
       }
       // 주기 동기화에서 삭제는 하지 않는다.
       // (현재 화면/월에 없는 카드까지 지워질 수 있어 데이터 손실 위험)
@@ -1481,8 +1489,12 @@ export default function Page() {
         .delete()
         .eq("id", id)
         .eq("user_id", uid);
-      if (error) console.error("supabase delete error", error);
-      else dbg("deleteCardInSupabase ok", { id, data });
+      if (error) {
+        console.error("supabase delete error", error);
+        showToast("삭제가 서버에 반영되지 않았어요. 다시 시도해주세요.");
+      } else {
+        dbg("deleteCardInSupabase ok", { id, data });
+      }
     }
 
     const ensureCardBoardIds = (tabId: string) => {

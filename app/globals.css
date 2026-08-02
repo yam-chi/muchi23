@@ -1857,11 +1857,13 @@ header {
 
     .day-empty-hint {
       position: absolute;
-      top: 2px;
-      left: 2px;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 4px;
       font-size: 10px;
       color: rgba(107, 114, 128, 0.5);
-      pointer-events: none;
+      cursor: pointer;
     }
 
     /* === Cards (플랫형: 그림자/구분선 없이 왼쪽 색 막대 + 여백만으로 구분) === */

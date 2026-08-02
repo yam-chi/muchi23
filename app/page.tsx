@@ -2696,7 +2696,17 @@ export default function Page() {
           if (section.id === "default" && sectionCards.length === 0) {
             const hint = document.createElement("div");
             hint.className = "day-empty-hint";
-            hint.textContent = "더블클릭해서 카드 추가";
+            hint.textContent = "탭해서 카드 추가";
+            hint.addEventListener("click", () => {
+              if (!cell.dataset.date) return;
+              const body = getSectionBodyById(cell, "default") || getActiveSectionBody(cell);
+              if (!body) return;
+              createCard(body, { text: "", done: false, color: "default" }, { autoEdit: true, fromState: false });
+              updateDayBadge(cell.dataset.date);
+              setActiveDay(cell);
+              setActiveSection(cell, "default");
+              pushHistory();
+            });
             sectionBody.appendChild(hint);
           }
 

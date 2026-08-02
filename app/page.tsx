@@ -4261,8 +4261,6 @@ export default function Page() {
     });
 
     // ========== 이모지 업로드 & 팔레트 ==========
-    const emojiTrigger = document.getElementById("emojiTrigger") as HTMLButtonElement | null;
-    const emojiTriggerExpanded = document.getElementById("emojiTriggerExpanded") as HTMLButtonElement | null;
     const emojiUploadTrigger = document.getElementById(
       "emojiUploadTrigger",
     ) as HTMLButtonElement | null;
@@ -4644,7 +4642,6 @@ export default function Page() {
       stickerUploadTrigger.addEventListener("click", () => stickerUpload.click());
     }
 
-    const emojiTriggers = [emojiTrigger, emojiTriggerExpanded].filter(Boolean) as HTMLButtonElement[];
     const closeEmojiPalette = () => {
       if (!emojiPalette) return;
       emojiPalette.classList.remove("open");
@@ -4742,42 +4739,8 @@ export default function Page() {
       stickerPalette.classList.add("open");
     }
 
-    if (emojiTriggers.length && emojiPalette) {
-      emojiTriggers.forEach((trg) => {
-        trg.addEventListener("mousedown", (e) => handleEmojiTriggerMouseDown(trg, e));
-
-        trg.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const isExpandedTrigger = trg === emojiTriggerExpanded;
-          toggleEmojiPaletteForTrigger(trg, isExpandedTrigger);
-        });
-      });
-
-      emojiPalette.addEventListener("pointerdown", (e) => {
-        const dragBtn = (e.target as HTMLElement).closest(".emoji-btn");
-        if (dragBtn && dragBtn instanceof HTMLButtonElement && dragBtn.draggable) {
-          keepFocusFromPalette = true;
-          return;
-        }
-        keepFocusFromPalette = true;
-        e.preventDefault();
-        if (lastFocusedContent) {
-          lastFocusedContent.focus();
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          if (lastRange) sel?.addRange(lastRange);
-        }
-      });
-      emojiPalette.addEventListener("pointerup", () => {
-        setTimeout(() => {
-          keepFocusFromPalette = false;
-        }, 0);
-      });
-    }
-
     if (emojiPalette) {
-      const isEmojiTriggerTarget = (t: HTMLElement) =>
-        emojiTriggers.some((btn) => btn.contains(t)) || !!t.closest(".card-btn-emoji");
+      const isEmojiTriggerTarget = (t: HTMLElement) => !!t.closest(".card-btn-emoji");
 
       document.addEventListener("click", (e) => {
         const t = e.target as HTMLElement;
@@ -4949,6 +4912,9 @@ export default function Page() {
                 </button>
                 <button className="link-btn" id="settingsBtn" type="button">
                   SETTING
+                </button>
+                <button className="link-btn" id="helpButton" type="button">
+                  도움말
                 </button>
                 <button className="top-link" id="logoutBtn" type="button">
                   log out

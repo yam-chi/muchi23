@@ -236,14 +236,6 @@ export default function Page() {
     }
     (window as typeof window & { __MUCHI_NOTE_INIT__?: boolean }).__MUCHI_NOTE_INIT__ = true;
 
-    const AIRTABLE_BASE_ID =
-      process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID ?? "app8KHGcgFezjsSHP";
-    const AIRTABLE_TABLE_NAME =
-      process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME ?? "cards";
-    const AIRTABLE_TOKEN =
-      process.env.NEXT_PUBLIC_AIRTABLE_TOKEN ??
-      "여기에_네_Airtable_토큰_붙여넣기";
-
     const monthTitle = document.getElementById("monthTitle") as HTMLElement | null;
     const monthPickerToggle = document.getElementById(
       "monthPickerToggle",
@@ -258,22 +250,13 @@ export default function Page() {
 
     const calendarGrid = document.getElementById("calendarGrid") as HTMLElement | null;
     const calendarWrapper = document.querySelector(".calendar-wrapper") as HTMLElement | null;
-    const prevBtn = document.getElementById("prevMonth") as HTMLButtonElement | null;
-    const nextBtn = document.getElementById("nextMonth") as HTMLButtonElement | null;
     const weekendToggleBtn = document.getElementById("weekendToggle") as HTMLButtonElement | null;
-    const scaleResetBtn = document.getElementById("scaleReset") as HTMLButtonElement | null;
     const zoomRange = document.getElementById("zoomRange") as HTMLInputElement | null;
     const zoomInBtn = document.getElementById("zoomIn") as HTMLButtonElement | null;
     const zoomOutBtn = document.getElementById("zoomOut") as HTMLButtonElement | null;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement | null;
     const searchBtn = document.getElementById("searchBtn") as HTMLButtonElement | null;
     const logoutBtn = document.getElementById("logoutBtn") as HTMLButtonElement | null;
-    const airtableSaveBtn = document.getElementById(
-      "airtableSaveBtn",
-    ) as HTMLButtonElement | null;
-    const airtableLoadBtn = document.getElementById(
-      "airtableLoadBtn",
-    ) as HTMLButtonElement | null;
     const todayBtn = document.getElementById("todayBtn") as HTMLButtonElement | null;
     const searchScopeToggle = document.getElementById(
       "searchScopeToggle",
@@ -3135,114 +3118,6 @@ export default function Page() {
       }
     }
 
-    function ensureAirtableConfig() {
-      if (!AIRTABLE_BASE_ID || !AIRTABLE_TABLE_NAME) {
-        alert("Airtable 설정(Base ID / Table Name)이 비어 있습니다.");
-        return false;
-      }
-      if (!AIRTABLE_TOKEN || AIRTABLE_TOKEN.includes("여기에_네_Airtable_토큰_붙여넣기")) {
-        alert("Airtable 토큰이 설정되지 않았습니다. pat... 토큰을 AIRTABLE_TOKEN에 넣어주세요.");
-        return false;
-      }
-      return true;
-    }
-
-    async function saveToAirtableSnapshot() {
-      if (!ensureAirtableConfig()) return;
-      try {
-        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-          AIRTABLE_TABLE_NAME,
-        )}`;
-        const snapshotName = new Date().toISOString().slice(0, 19).replace("T", " ");
-        const snapshotJson = JSON.stringify(state);
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            records: [
-              {
-                fields: {
-                  cardID: snapshotName,
-                  json: snapshotJson,
-                },
-              },
-            ],
-          }),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("[Airtable] save error", res.status, res.statusText, text);
-          alert(`에어테이블 저장 중 오류가 발생했습니다. (HTTP ${res.status})`);
-          return;
-        }
-
-        alert("에어테이블에 스냅샷 저장 완료!");
-      } catch (e) {
-        console.error("saveToAirtableSnapshot error", e);
-        alert("에어테이블 저장 중 예외가 발생했습니다. 콘솔을 확인해주세요.");
-      }
-    }
-
-    async function loadFromAirtableSnapshot() {
-      if (!ensureAirtableConfig()) return;
-      try {
-        const url =
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-            AIRTABLE_TABLE_NAME,
-          )}` + `?maxRecords=1&sort[0][field]=createdTime&sort[0][direction]=desc`;
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-          },
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("[Airtable] load error", res.status, res.statusText, text);
-          alert("에어테이블에서 데이터 불러오기 실패. 콘솔을 확인해주세요.");
-          return;
-        }
-
-        const data = await res.json();
-        if (!data.records || data.records.length === 0) {
-          alert("에어테이블에 저장된 스냅샷이 없습니다.");
-          return;
-        }
-
-        const latest = data.records[0];
-        const rawJson = latest.fields.json as string | undefined;
-        if (!rawJson) {
-          alert("마지막 스냅샷에 json 필드가 없습니다.");
-          return;
-        }
-
-        const parsed = JSON.parse(rawJson) as Partial<State>;
-        if (!parsed || typeof parsed !== "object" || !parsed.cards) {
-          alert("스냅샷 구조가 예상과 다릅니다.");
-          return;
-        }
-
-        state = {
-          cards: parsed.cards ?? {},
-          sections: parsed.sections ?? {},
-          weekVisibility: parsed.weekVisibility ?? {},
-          stickers: parsed.stickers ?? {},
-        };
-        ensureCardBoardIds(activeTabId);
-        renderCalendar();
-        alert("에어테이블 스냅샷을 불러왔습니다!");
-      } catch (e) {
-        console.error("loadFromAirtableSnapshot error", e);
-        alert("에어테이블에서 데이터 불러오는 중 예외가 발생했습니다. 콘솔을 확인해주세요.");
-      }
-    }
-
     loadTabs();
     ensureTabs();
     loadActiveTab();
@@ -3769,9 +3644,6 @@ export default function Page() {
       });
     }
 
-    if (airtableSaveBtn) airtableSaveBtn.addEventListener("click", saveToAirtableSnapshot);
-    if (airtableLoadBtn) airtableLoadBtn.addEventListener("click", loadFromAirtableSnapshot);
-
     (window as typeof window & { _dumpState?: () => State })._dumpState = () =>
       JSON.parse(JSON.stringify(state));
 
@@ -4049,11 +3921,6 @@ export default function Page() {
     document.addEventListener("copy", copySelectedCards);
     document.addEventListener("paste", pasteCards);
 
-    if (scaleResetBtn) {
-      scaleResetBtn.addEventListener("click", () => {
-        setScale(1);
-      });
-    }
     if (zoomRange) {
       zoomRange.addEventListener("input", () => {
         const v = Number(zoomRange.value);

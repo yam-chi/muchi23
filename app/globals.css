@@ -337,12 +337,6 @@ header {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-    /* prev/next 버튼 숨김 */
-    #prevMonth,
-    #nextMonth {
-      display: none;
-    }
-
 .month-title {
   font-size: 18px;
   font-weight: 700;

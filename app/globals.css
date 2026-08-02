@@ -873,10 +873,15 @@ header {
    소스 순서상 나중에 나오는 기본 .calendar-grid/.day-cell 규칙에 밀려버린다.
    그래서 여기서는 순서에 의존하지 않도록 #calendarGrid ID 선택자로 우선순위를 확보한다. */
 @media (max-width: 600px) {
+  #calendarGrid {
+    min-width: 0;
+    width: 100%;
+  }
   #calendarGrid .week-row-grid,
   .weekend-hidden #calendarGrid .week-row-grid {
     grid-template-columns: 1fr;
     min-width: 0;
+    width: 100%;
     gap: 12px;
   }
   #calendarGrid .col-resize-handle {

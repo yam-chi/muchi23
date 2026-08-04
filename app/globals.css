@@ -1960,6 +1960,43 @@ header {
       height: 9px;
     }
 
+    /* 반복 버튼을 누르면 뜨는 옵션 메뉴 */
+    .repeat-menu {
+      display: none;
+      position: fixed;
+      z-index: 60;
+      flex-direction: column;
+      min-width: 120px;
+      padding: 6px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .repeat-menu.open {
+      display: flex;
+    }
+
+    .repeat-menu-item {
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: left;
+      border-radius: 6px;
+      background: transparent;
+      color: #374151;
+    }
+
+    .repeat-menu-item:hover {
+      background: #f1f5f9;
+    }
+
+    .repeat-menu-item.active {
+      background: rgba(var(--theme-accent-rgb), 0.14);
+      color: var(--theme-accent);
+    }
+
     .marquee-selection {
       position: fixed;
       pointer-events: none;

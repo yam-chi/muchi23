@@ -365,6 +365,7 @@ export default function Page() {
     let stickerList: Array<{ id: string; src: string; name: string }> = [];
     let stickerOrder: string[] = [];
     let activeStickerTarget: HTMLElement | null = null;
+    let activeRepeatCard: HTMLDivElement | null = null;
     let draggingEmojiId: string | null = null;
     const HISTORY_LIMIT = 200;
     let history: State[] = [];
@@ -2201,6 +2202,54 @@ export default function Page() {
       });
     }
 
+    function applyRecurrenceToCard(card: HTMLDivElement, rule: RecurrenceRule | null) {
+      const btnRepeat = card.querySelector(".card-btn-repeat") as HTMLButtonElement | null;
+      const repeatBadge = card.querySelector(".card-repeat-badge") as HTMLElement | null;
+      if (!btnRepeat || !repeatBadge) return;
+      if (rule) {
+        card.dataset.recurrenceRule = rule;
+        const seriesId = card.dataset.seriesId || card.dataset.cardId || newId();
+        card.dataset.seriesId = seriesId;
+        applyCardRecurrenceUI(card, btnRepeat, repeatBadge, rule);
+        syncOneCardFromDom(card);
+        generateRecurringInstances(card, rule, seriesId);
+        showToast(`${RECURRENCE_LABEL[rule]} 설정 완료`);
+      } else {
+        delete card.dataset.recurrenceRule;
+        applyCardRecurrenceUI(card, btnRepeat, repeatBadge, null);
+        syncOneCardFromDom(card);
+      }
+      saveLocalState();
+      updateRecurrenceStats();
+    }
+
+    const repeatMenu = document.getElementById("repeatMenu") as HTMLElement | null;
+
+    function closeRepeatMenu() {
+      if (!repeatMenu) return;
+      repeatMenu.classList.remove("open");
+      activeRepeatCard = null;
+    }
+
+    function openRepeatMenu(card: HTMLDivElement, anchorBtn: HTMLButtonElement) {
+      if (!repeatMenu) return;
+      if (activeRepeatCard === card && repeatMenu.classList.contains("open")) {
+        closeRepeatMenu();
+        return;
+      }
+      activeRepeatCard = card;
+      const currentRule = (card.dataset.recurrenceRule as RecurrenceRule | undefined) || null;
+      repeatMenu.querySelectorAll<HTMLButtonElement>(".repeat-menu-item").forEach((item) => {
+        item.classList.toggle("active", (item.dataset.rule || null) === currentRule);
+      });
+      const rect = anchorBtn.getBoundingClientRect();
+      document.body.appendChild(repeatMenu);
+      repeatMenu.style.position = "fixed";
+      repeatMenu.style.top = `${rect.bottom + 6}px`;
+      repeatMenu.style.left = `${rect.left}px`;
+      repeatMenu.classList.add("open");
+    }
+
     function makeEditable(card: HTMLDivElement) {
       const content = card.querySelector(".card-content") as HTMLDivElement | null;
       if (!content || content.isContentEditable) return;
@@ -2586,27 +2635,9 @@ export default function Page() {
         saveLocalState();
       });
 
-      const RECURRENCE_CYCLE: Array<RecurrenceRule | null> = [null, "daily", "weekly", "monthly"];
       btnRepeat.addEventListener("click", (e) => {
         e.stopPropagation();
-        const currentRule = (card.dataset.recurrenceRule as RecurrenceRule | undefined) || null;
-        const idx = RECURRENCE_CYCLE.indexOf(currentRule);
-        const nextRule = RECURRENCE_CYCLE[(idx + 1 + RECURRENCE_CYCLE.length) % RECURRENCE_CYCLE.length];
-        if (nextRule) {
-          card.dataset.recurrenceRule = nextRule;
-          const seriesId = card.dataset.seriesId || card.dataset.cardId || newId();
-          card.dataset.seriesId = seriesId;
-          applyCardRecurrenceUI(card, btnRepeat, repeatBadge, nextRule);
-          syncOneCardFromDom(card);
-          generateRecurringInstances(card, nextRule, seriesId);
-          showToast(`${RECURRENCE_LABEL[nextRule]} 설정 완료`);
-        } else {
-          delete card.dataset.recurrenceRule;
-          applyCardRecurrenceUI(card, btnRepeat, repeatBadge, null);
-          syncOneCardFromDom(card);
-        }
-        saveLocalState();
-        updateRecurrenceStats();
+        openRepeatMenu(card, btnRepeat);
       });
 
       handle.draggable = true;
@@ -3817,6 +3848,28 @@ export default function Page() {
       });
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") moreMenuDropdown.classList.remove("open");
+      });
+    }
+
+    // 카드의 반복 버튼 → 반복 옵션 메뉴
+    if (repeatMenu) {
+      repeatMenu.querySelectorAll<HTMLButtonElement>(".repeat-menu-item").forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!activeRepeatCard) return;
+          const rule = (item.dataset.rule || "") as RecurrenceRule | "";
+          applyRecurrenceToCard(activeRepeatCard, rule ? rule : null);
+          closeRepeatMenu();
+        });
+      });
+      document.addEventListener("click", (e) => {
+        if (!repeatMenu.classList.contains("open")) return;
+        const target = e.target as HTMLElement;
+        if (repeatMenu.contains(target) || target.closest(".card-btn-repeat")) return;
+        closeRepeatMenu();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeRepeatMenu();
       });
     }
 
@@ -5101,6 +5154,20 @@ export default function Page() {
                 </button>
               </div>
               </div>
+          </div>
+          <div className="repeat-menu" id="repeatMenu">
+            <button className="repeat-menu-item" type="button" data-rule="">
+              반복 안 함
+            </button>
+            <button className="repeat-menu-item" type="button" data-rule="daily">
+              매일
+            </button>
+            <button className="repeat-menu-item" type="button" data-rule="weekly">
+              매주
+            </button>
+            <button className="repeat-menu-item" type="button" data-rule="monthly">
+              매월
+            </button>
           </div>
           <div className="tab-strip">
             <div className="tab-bar" id="tabBar" />

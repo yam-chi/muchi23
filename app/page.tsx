@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+type RecurrenceRule = "daily" | "weekly" | "monthly";
+
 type CardData = {
   id: string; // uuid string
   text: string; // HTML-safe string (text + optional <img class="emoji-img" src="data:image/...">)
@@ -14,6 +16,8 @@ type CardData = {
   originSectionId?: string;
   originSectionTitle?: string;
   originDateKey?: string;
+  recurrenceRule?: RecurrenceRule | null;
+  seriesId?: string | null;
 };
 
 type StickerData = {
@@ -237,6 +241,7 @@ export default function Page() {
     (window as typeof window & { __MUCHI_NOTE_INIT__?: boolean }).__MUCHI_NOTE_INIT__ = true;
 
     const monthTitle = document.getElementById("monthTitle") as HTMLElement | null;
+    const recurrenceStats = document.getElementById("recurrenceStats") as HTMLElement | null;
     const monthPickerToggle = document.getElementById(
       "monthPickerToggle",
     ) as HTMLButtonElement | null;
@@ -795,6 +800,25 @@ export default function Page() {
       }
       pickerYear = year;
       if (ymYearLabel) ymYearLabel.textContent = `${pickerYear}년`;
+      updateRecurrenceStats(date);
+    }
+
+    function updateRecurrenceStats(date: Date = current) {
+      if (!recurrenceStats) return;
+      const year = date.getFullYear();
+      const monthIdx = date.getMonth();
+      let total = 0;
+      let done = 0;
+      Object.entries(state.cards).forEach(([dateKey, list]) => {
+        const [y, m] = dateKey.split("-").map(Number);
+        if (y !== year || m - 1 !== monthIdx) return;
+        list.forEach((c) => {
+          if (!c.recurrenceRule) return;
+          total += 1;
+          if (c.done) done += 1;
+        });
+      });
+      recurrenceStats.textContent = total > 0 ? `반복 ${done}/${total}` : "";
     }
 
     const toggleWeekendUI = () => {
@@ -1123,7 +1147,7 @@ export default function Page() {
       const { data, error } = await supabase
         .from("cards")
         .select(
-          "id, date_key, text, done, color, board_id, section_id, section_title, origin_section_id, origin_section_title, origin_date_key",
+          "id, date_key, text, done, color, board_id, section_id, section_title, origin_section_id, origin_section_title, origin_date_key, recurrence_rule, series_id",
         )
         .eq("user_id", uid)
         .eq("board_id", tabId)
@@ -1151,6 +1175,8 @@ export default function Page() {
           originSectionId: row.origin_section_id ?? undefined,
           originSectionTitle: row.origin_section_title ?? undefined,
           originDateKey: row.origin_date_key ?? undefined,
+          recurrenceRule: (row.recurrence_rule as RecurrenceRule | null) ?? null,
+          seriesId: row.series_id ?? null,
         });
         if (!sectionMap[dk]) sectionMap[dk] = [];
         if (sectionId && sectionId !== "done") {
@@ -1353,6 +1379,8 @@ export default function Page() {
           origin_section_id: cardObj.originSectionId ?? null,
           origin_section_title: cardObj.originSectionTitle ?? null,
           origin_date_key: cardObj.originDateKey ?? null,
+          recurrence_rule: cardObj.recurrenceRule ?? null,
+          series_id: cardObj.seriesId ?? null,
         });
       if (error) console.error("supabase upsert error", error);
     }
@@ -1421,6 +1449,8 @@ export default function Page() {
         origin_section_id: string | null;
         origin_section_title: string | null;
         origin_date_key: string | null;
+        recurrence_rule: string | null;
+        series_id: string | null;
       }> = [];
       const ids: string[] = [];
       Object.entries(state.cards).forEach(([dateKey, list]) => {
@@ -1441,6 +1471,8 @@ export default function Page() {
             origin_section_id: c.originSectionId ?? null,
             origin_section_title: c.originSectionTitle ?? null,
             origin_date_key: c.originDateKey ?? null,
+            recurrence_rule: c.recurrenceRule ?? null,
+            series_id: c.seriesId ?? null,
           });
         });
       });
@@ -1993,6 +2025,23 @@ export default function Page() {
       else if (colorKey === "pink") card.classList.add("color-pink");
     }
 
+    const RECURRENCE_LABEL: Record<RecurrenceRule, string> = {
+      daily: "매일 반복",
+      weekly: "매주 반복",
+      monthly: "매월 반복",
+    };
+
+    function applyCardRecurrenceUI(
+      card: HTMLElement,
+      btnRepeat: HTMLButtonElement,
+      repeatBadge: HTMLElement,
+      rule: RecurrenceRule | null,
+    ) {
+      repeatBadge.style.display = rule ? "flex" : "none";
+      btnRepeat.classList.toggle("active", !!rule);
+      btnRepeat.title = rule ? `${RECURRENCE_LABEL[rule]} (클릭해서 변경)` : "반복 안 함 (클릭해서 설정)";
+    }
+
     function updateDayBadge(dateKey: string) {
       const cell = document.querySelector(`.day-cell[data-date="${dateKey}"]`);
       if (!cell) return;
@@ -2018,6 +2067,8 @@ export default function Page() {
       const originSectionId = card.dataset.originSectionId || undefined;
       const originSectionTitle = card.dataset.originSectionTitle || undefined;
       const originDateKey = card.dataset.originDateKey || undefined;
+      const recurrenceRule = (card.dataset.recurrenceRule as RecurrenceRule | undefined) || null;
+      const seriesId = card.dataset.seriesId || null;
       const list = getCardsForDate(dateKey);
       const prev = list.find((c) => c.id === id);
       const changed =
@@ -2030,7 +2081,9 @@ export default function Page() {
         prev.sectionTitle !== sectionTitle ||
         prev.originSectionId !== originSectionId ||
         prev.originSectionTitle !== originSectionTitle ||
-        prev.originDateKey !== originDateKey;
+        prev.originDateKey !== originDateKey ||
+        prev.recurrenceRule !== recurrenceRule ||
+        prev.seriesId !== seriesId;
       upsertCard(
         dateKey,
         {
@@ -2044,6 +2097,8 @@ export default function Page() {
           originSectionId,
           originSectionTitle,
           originDateKey,
+          recurrenceRule,
+          seriesId,
         },
         true,
       );
@@ -2077,6 +2132,8 @@ export default function Page() {
           const originSectionId = card.dataset.originSectionId || undefined;
           const originSectionTitle = card.dataset.originSectionTitle || undefined;
           const originDateKey = card.dataset.originDateKey || undefined;
+          const recurrenceRule = (card.dataset.recurrenceRule as RecurrenceRule | undefined) || null;
+          const seriesId = card.dataset.seriesId || null;
           if (sectionId !== "done") {
             const sections = ensureSectionList(dateKey);
             if (!sections.some((s) => s.id === sectionId)) {
@@ -2094,9 +2151,53 @@ export default function Page() {
             originSectionId,
             originSectionTitle,
             originDateKey,
+            recurrenceRule,
+            seriesId,
           });
         });
         state.cards[dateKey] = list;
+      });
+    }
+
+    // 반복 일정: 최초 설정 시 앞으로 일정 기간의 카드를 미리 생성해둔다.
+    // (매일 60일치 / 매주 8회 / 매월 3회) 기존 날짜별 카드 구조를 그대로 써서
+    // 별도의 "가상 카드" 렌더링 로직 없이도 해당 월로 이동하면 바로 보인다.
+    function generateRecurringInstances(card: HTMLDivElement, rule: RecurrenceRule, seriesId: string) {
+      const dateKey = card.dataset.date;
+      if (!dateKey) return;
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const content = card.querySelector(".card-content");
+      const text = content ? normalizeCardHtmlForSave(content.innerHTML ?? "") : "";
+      const color = card.dataset.color || "default";
+      const boardId = card.dataset.boardId || activeTabId;
+
+      const futureDates: Date[] = [];
+      if (rule === "daily") {
+        for (let i = 1; i <= 60; i++) futureDates.push(new Date(y, m - 1, d + i));
+      } else if (rule === "weekly") {
+        for (let i = 1; i <= 8; i++) futureDates.push(new Date(y, m - 1, d + i * 7));
+      } else if (rule === "monthly") {
+        for (let i = 1; i <= 3; i++) futureDates.push(new Date(y, m - 1 + i, d));
+      }
+
+      futureDates.forEach((dt) => {
+        const key = formatDateKey(dt);
+        ensureDefaultSection(key);
+        upsertCard(
+          key,
+          {
+            id: newId(),
+            text,
+            done: false,
+            color,
+            boardId,
+            sectionId: "default",
+            sectionTitle: getSectionTitle(key, "default"),
+            recurrenceRule: rule,
+            seriesId,
+          },
+          true,
+        );
       });
     }
 
@@ -2208,13 +2309,22 @@ export default function Page() {
       const btnColor = document.createElement("button");
       btnColor.className = "card-btn card-btn-color";
       btnColor.textContent = "색";
+      const btnRepeat = document.createElement("button");
+      btnRepeat.className = "card-btn card-btn-repeat";
+      btnRepeat.textContent = "🔁";
+      btnRepeat.type = "button";
       const btnDelete = document.createElement("button");
       btnDelete.className = "card-btn card-btn-delete";
       btnDelete.textContent = "×";
       toolbar.appendChild(btnEmoji);
       toolbar.appendChild(btnColor);
+      toolbar.appendChild(btnRepeat);
       toolbar.appendChild(btnDone);
       toolbar.appendChild(btnDelete);
+
+      const repeatBadge = document.createElement("div");
+      repeatBadge.className = "card-repeat-badge";
+      repeatBadge.textContent = "🔁";
 
       btnEmoji.addEventListener("mousedown", (e) => {
         handleEmojiTriggerMouseDown(btnEmoji, e);
@@ -2249,7 +2359,10 @@ export default function Page() {
       if (cardData?.originSectionId) card.dataset.originSectionId = cardData.originSectionId;
       if (cardData?.originSectionTitle) card.dataset.originSectionTitle = cardData.originSectionTitle;
       if (cardData?.originDateKey) card.dataset.originDateKey = cardData.originDateKey;
+      if (cardData?.recurrenceRule) card.dataset.recurrenceRule = cardData.recurrenceRule;
+      if (cardData?.seriesId) card.dataset.seriesId = cardData.seriesId;
       applyCardColorClass(card, color);
+      applyCardRecurrenceUI(card, btnRepeat, repeatBadge, cardData?.recurrenceRule ?? null);
       content.innerHTML = renderCardHtml(text || "");
 
       content.addEventListener("focus", () => {
@@ -2386,6 +2499,7 @@ export default function Page() {
 
       card.appendChild(handle);
       card.appendChild(doneBadge);
+      card.appendChild(repeatBadge);
       card.appendChild(content);
       card.appendChild(toolbar);
       container.appendChild(card);
@@ -2430,6 +2544,7 @@ export default function Page() {
         const dKey = card.dataset.date;
         if (dKey) updateDayBadge(dKey);
         if (cell) updateSectionHints(cell);
+        if (card.dataset.recurrenceRule) updateRecurrenceStats();
       });
 
       btnDelete.addEventListener("click", (e) => {
@@ -2454,6 +2569,29 @@ export default function Page() {
         // 안전망: DOM 기준으로 재저장
         syncCurrentMonthFromDom();
         saveLocalState();
+      });
+
+      const RECURRENCE_CYCLE: Array<RecurrenceRule | null> = [null, "daily", "weekly", "monthly"];
+      btnRepeat.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const currentRule = (card.dataset.recurrenceRule as RecurrenceRule | undefined) || null;
+        const idx = RECURRENCE_CYCLE.indexOf(currentRule);
+        const nextRule = RECURRENCE_CYCLE[(idx + 1 + RECURRENCE_CYCLE.length) % RECURRENCE_CYCLE.length];
+        if (nextRule) {
+          card.dataset.recurrenceRule = nextRule;
+          const seriesId = card.dataset.seriesId || card.dataset.cardId || newId();
+          card.dataset.seriesId = seriesId;
+          applyCardRecurrenceUI(card, btnRepeat, repeatBadge, nextRule);
+          syncOneCardFromDom(card);
+          generateRecurringInstances(card, nextRule, seriesId);
+          showToast(`${RECURRENCE_LABEL[nextRule]} 설정 완료`);
+        } else {
+          delete card.dataset.recurrenceRule;
+          applyCardRecurrenceUI(card, btnRepeat, repeatBadge, null);
+          syncOneCardFromDom(card);
+        }
+        saveLocalState();
+        updateRecurrenceStats();
       });
 
       handle.draggable = true;
@@ -3150,6 +3288,7 @@ export default function Page() {
         pushHistory();
         loadScale();
         renderCalendar();
+        updateRecurrenceStats();
         // 새로고침 직후에도 TODAY를 눌렀을 때와 같은 화면(오늘 중심)에서 시작하도록
         scrollToTodayCell("auto");
         // 3초마다 주기 동기화 (Supabase + 로컬)
@@ -4866,6 +5005,7 @@ export default function Page() {
                 </div>
               </div>
             </div>
+          <span className="recurrence-stats" id="recurrenceStats" />
           <button className="link-btn" id="todayBtn">
             TODAY
           </button>

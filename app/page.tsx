@@ -2298,24 +2298,39 @@ export default function Page() {
       content.className = "card-content";
       content.dataset.placeholder = "새 할 일을 적어보세요";
 
+      const ICON_EMOJI =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8 14.5c1.5 1.5 6.5 1.5 8 0"/></svg>';
+      const ICON_COLOR =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-1.8 0-.5-.3-1-.5-1.4-.3-.6.1-1.3.8-1.3H16a3 3 0 0 0 3-3A8.5 8.5 0 0 0 12 3z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.3" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>';
+      const ICON_REPEAT =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+      const ICON_DONE =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      const ICON_DELETE =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
       const btnEmoji = document.createElement("button");
       btnEmoji.className = "card-btn card-btn-emoji";
-      btnEmoji.textContent = "😊";
+      btnEmoji.innerHTML = ICON_EMOJI;
+      btnEmoji.title = "이모지 추가";
       const btnDone = document.createElement("button");
       btnDone.className = "card-btn card-btn-done";
-      btnDone.textContent = "✓";
+      btnDone.innerHTML = ICON_DONE;
+      btnDone.title = "완료 토글";
       const btnColor = document.createElement("button");
       btnColor.className = "card-btn card-btn-color";
-      btnColor.textContent = "색";
+      btnColor.innerHTML = ICON_COLOR;
+      btnColor.title = "색상 변경";
       const btnRepeat = document.createElement("button");
       btnRepeat.className = "card-btn card-btn-repeat";
-      btnRepeat.textContent = "🔁";
+      btnRepeat.innerHTML = ICON_REPEAT;
       btnRepeat.type = "button";
       const btnDelete = document.createElement("button");
       btnDelete.className = "card-btn card-btn-delete";
-      btnDelete.textContent = "×";
+      btnDelete.innerHTML = ICON_DELETE;
+      btnDelete.title = "삭제";
       toolbar.appendChild(btnEmoji);
       toolbar.appendChild(btnColor);
       toolbar.appendChild(btnRepeat);
@@ -2324,7 +2339,7 @@ export default function Page() {
 
       const repeatBadge = document.createElement("div");
       repeatBadge.className = "card-repeat-badge";
-      repeatBadge.textContent = "🔁";
+      repeatBadge.innerHTML = ICON_REPEAT;
 
       btnEmoji.addEventListener("mousedown", (e) => {
         handleEmojiTriggerMouseDown(btnEmoji, e);

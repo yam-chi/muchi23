@@ -1887,13 +1887,18 @@ header {
 
     .card-toolbar {
       position: absolute;
-      top: -11px;
-      right: -11px;
+      top: -14px;
+      right: -6px;
       display: flex;
       flex-direction: row;
-      align-items: flex-end;
+      align-items: center;
       justify-content: flex-start;
-      gap: 4px;
+      gap: 1px;
+      padding: 3px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
       opacity: 0;
       transition: opacity 0.15s;
       z-index: 3;
@@ -1905,93 +1910,34 @@ header {
     }
 
     .card-btn {
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      border-radius: 999px;
-      font-size: 9px;
-      padding: 0 6px;
-      min-width: 32px;
-      height: 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      width: 24px;
+      min-width: 24px;
+      height: 24px;
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      color: #64748b;
+      box-shadow: none;
     }
 
     .card-btn:hover {
-      background: #ffffff;
-      font-weight: 600;
-    }
-
-    .card-btn-delete {
-      width: 22px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      background: #ffffff;
-      color: #475569;
-      font-size: 12px;
+      background: #f1f5f9;
+      color: #1f2937;
     }
 
     .card-btn-delete:hover {
       background: #fee2e2;
       color: #ef4444;
-      font-weight: 600;
-    }
-
-    .card-btn-done {
-      width: 22px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      background: #ffffff;
-      color: #475569;
-      font-size: 10px;
-    }
-
-    .card-btn-done:hover {
-      background: #e2e8f0;
-      color: #475569;
-      font-weight: 600;
-    }
-
-    .card-btn-color {
-      width: 22px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      background: #ffffff;
-      color: #475569;
-      font-size: 10px;
-    }
-
-    .card-btn-color:hover {
-      background: #dbeafe;
-      color: #2563eb;
-      font-weight: 600;
-    }
-
-    .card-btn-repeat {
-      width: 22px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      background: #ffffff;
-      font-size: 10px;
-    }
-
-    .card-btn-repeat:hover {
-      background: rgba(var(--theme-accent-rgb), 0.12);
     }
 
     .card-btn-repeat.active {
-      background: rgba(var(--theme-accent-rgb), 0.16);
-      border-color: var(--theme-accent);
+      background: rgba(var(--theme-accent-rgb), 0.14);
+      color: var(--theme-accent);
     }
 
     .card-repeat-badge {
@@ -2003,27 +1949,15 @@ header {
       border-radius: 50%;
       border: 1px solid #e5e7eb;
       background: #ffffff;
-      font-size: 8px;
+      color: var(--theme-accent);
       display: none;
       align-items: center;
       justify-content: center;
     }
 
-    .card-btn-emoji {
-      width: 22px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      background: #ffffff;
-      color: #475569;
-      font-size: 11px;
-    }
-
-    .card-btn-emoji:hover {
-      background: #f1f5f9;
-      color: #334155;
-      font-weight: 600;
+    .card-repeat-badge svg {
+      width: 9px;
+      height: 9px;
     }
 
     .marquee-selection {

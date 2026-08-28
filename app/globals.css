@@ -1267,6 +1267,9 @@ header {
        칸 너비 조정이 그 주에만 적용된다. */
     .calendar-grid {
       display: block;
+      /* 맨 윗줄 카드를 선택했을 때 뜨는 카드 툴바가 위쪽 탭바(일/개인)와
+         겹치지 않도록 여유 공간을 둔다 (툴바 높이 32px + 여백). */
+      margin-top: 36px;
       transform: scale(var(--ui-scale));
       transform-origin: top left;
       width: calc(100% / var(--ui-scale));
@@ -1887,7 +1890,7 @@ header {
 
     .card-toolbar {
       position: absolute;
-      top: -14px;
+      top: -34px;
       right: -6px;
       display: flex;
       flex-direction: row;
